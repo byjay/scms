@@ -144,3 +144,80 @@ select.fi option{background:var(--bg1)}
 .tray-node-item:hover{border-color:var(--cyan);background:var(--cyanG)}
 .tray-node-item.active{border-color:var(--green);background:rgba(0,229,160,.08);color:var(--green)}
 .tray-node-item .cnt{font-family:'Orbitron',sans-serif;font-size:9px;color:var(--amber)}
+
+/* ===== FILL (TRAY PHYSICS V2) ===== */
+.fill-wrap{display:flex;flex-direction:column;height:100%;overflow:hidden}
+.fill-header{background:var(--bg2);padding:6px 12px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border);flex-shrink:0;flex-wrap:wrap}
+.fill-header .fill-logo{display:flex;align-items:center;gap:6px;font-family:'Orbitron',sans-serif;font-size:12px;font-weight:900;color:var(--cyan);letter-spacing:2px}
+.fill-header .fill-logo .fill-icon{width:24px;height:24px;background:var(--cyan);border-radius:4px;display:flex;align-items:center;justify-content:center;color:var(--bg0);font-size:12px;font-weight:900}
+.fill-controls{display:flex;align-items:center;gap:6px;margin-left:auto;flex-wrap:wrap}
+.fill-ctrl-grp{display:flex;align-items:center;gap:4px;background:var(--bg1);border:1px solid var(--border);border-radius:4px;padding:2px 8px}
+.fill-ctrl-grp label{font-size:9px;color:var(--t3);letter-spacing:.5px}
+.fill-ctrl-grp input[type=range]{width:60px;height:4px;accent-color:var(--cyan);cursor:pointer}
+.fill-ctrl-grp .val{font-family:'Orbitron',sans-serif;font-size:9px;color:var(--cyan);min-width:28px;text-align:right}
+.fill-tier-btns{display:flex;background:var(--bg1);border:1px solid var(--border);border-radius:4px;padding:1px}
+.fill-tier-btn{padding:3px 10px;font-size:9px;font-family:'Orbitron',sans-serif;background:transparent;border:none;color:var(--t3);cursor:pointer;border-radius:3px;letter-spacing:1px}
+.fill-tier-btn.active{background:var(--cyan);color:var(--bg0)}
+.fill-width-ctrl{display:flex;align-items:center;gap:2px;background:var(--bg1);border:1px solid var(--border);border-radius:4px;padding:1px 4px}
+.fill-width-ctrl button{background:transparent;border:none;color:var(--t3);cursor:pointer;padding:2px 4px;font-size:12px}
+.fill-width-ctrl button:hover{color:var(--cyan)}
+.fill-width-ctrl .wval{font-family:'Orbitron',sans-serif;font-size:9px;color:var(--cyan);min-width:36px;text-align:center}
+.fill-calc-btn{padding:4px 12px;font-family:'Orbitron',sans-serif;font-size:9px;letter-spacing:1px;background:var(--cyan);color:var(--bg0);border:none;border-radius:4px;cursor:pointer;display:flex;align-items:center;gap:4px;font-weight:900}
+.fill-calc-btn:disabled{opacity:.4;cursor:not-allowed}
+.fill-calc-btn:hover:not(:disabled){box-shadow:0 0 12px var(--glow-c)}
+
+.fill-body{flex:1;display:flex;overflow:hidden}
+.fill-sidebar{width:280px;background:var(--bg1);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0}
+.fill-sidebar-hdr{padding:8px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--bg2)}
+.fill-sidebar-hdr h3{font-size:10px;font-family:'Orbitron',sans-serif;color:var(--t2);letter-spacing:1px;display:flex;align-items:center;gap:6px}
+.fill-sidebar-btns{display:flex;gap:4px}
+.fill-upload-btn{padding:4px 10px;font-size:9px;background:var(--green);color:var(--bg0);border:none;border-radius:3px;cursor:pointer;font-family:'JetBrains Mono',monospace;font-weight:600;display:flex;align-items:center;gap:4px}
+.fill-upload-btn:hover{box-shadow:0 0 8px var(--glow-g)}
+.fill-data-info{padding:6px 12px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border);background:rgba(0,200,240,.03);flex-shrink:0}
+.fill-data-badge{font-size:9px;padding:2px 8px;border-radius:10px;font-family:'Orbitron',sans-serif}
+.fill-data-badge.blue{background:rgba(0,200,240,.15);color:var(--cyan);border:1px solid rgba(0,200,240,.3)}
+.fill-data-badge.yellow{background:rgba(255,193,7,.15);color:var(--amber);border:1px solid rgba(255,193,7,.3)}
+.fill-textarea{flex:1;overflow:auto;padding:0}
+.fill-textarea textarea{width:100%;height:100%;resize:none;background:var(--bg0);border:none;color:var(--t1);font-family:'JetBrains Mono',monospace;font-size:11px;padding:10px;outline:none;line-height:1.6}
+.fill-textarea-btns{padding:6px 12px;border-top:1px solid var(--border);display:flex;gap:6px;flex-shrink:0}
+.fill-txt-btn{padding:4px 10px;font-size:9px;border:1px solid var(--border);border-radius:3px;background:transparent;cursor:pointer;font-family:'JetBrains Mono',monospace;display:flex;align-items:center;gap:4px}
+.fill-txt-btn.rst{color:var(--t2);border-color:var(--border)}
+.fill-txt-btn.rst:hover{border-color:var(--t2)}
+.fill-txt-btn.clr{color:var(--red);border-color:rgba(255,77,77,.3)}
+.fill-txt-btn.clr:hover{border-color:var(--red);background:rgba(255,77,77,.05)}
+.fill-txt-btn.node{color:var(--cyan);border-color:rgba(0,200,240,.3)}
+.fill-txt-btn.node:hover{border-color:var(--cyan);background:rgba(0,200,240,.05)}
+
+.fill-main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.fill-viz{flex:1;overflow:hidden;display:flex;align-items:center;justify-content:center;background:var(--bg0);position:relative}
+.fill-viz svg{width:100%;height:100%}
+.fill-viz .no-data{display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--t3);gap:8px}
+.fill-viz .no-data .icon{font-size:32px;opacity:.3}
+.fill-viz .no-data h3{font-family:'Orbitron',sans-serif;font-size:10px;letter-spacing:2px}
+
+.fill-info-bar{background:var(--bg2);padding:6px 12px;display:flex;align-items:center;justify-content:space-between;gap:8px;border-top:1px solid var(--border);flex-shrink:0;flex-wrap:wrap}
+.fill-info-bar .fi-stat{font-size:10px;color:var(--t2);display:flex;align-items:center;gap:4px}
+.fill-info-bar .fi-stat .fiv{font-family:'Orbitron',sans-serif;color:var(--cyan)}
+.fill-info-bar .fi-badge{display:flex;align-items:center;gap:4px;padding:2px 8px;border-radius:3px;font-size:9px;font-family:'Orbitron',sans-serif}
+.fill-info-bar .fi-badge.ok{background:rgba(0,229,160,.15);color:var(--green);border:1px solid rgba(0,229,160,.3)}
+.fill-info-bar .fi-badge.fail{background:rgba(255,77,77,.15);color:var(--red);border:1px solid rgba(255,77,77,.3)}
+
+.fill-cable-list{background:var(--bg1);border-top:1px solid var(--border);flex-shrink:0;max-height:100px;overflow-y:auto;display:flex;flex-wrap:wrap;gap:3px;padding:6px}
+.fill-cable-chip{display:flex;align-items:center;gap:3px;padding:2px 6px;border-radius:3px;font-size:9px;border:1px solid var(--border)}
+.fill-cable-chip .chip-idx{width:16px;height:16px;background:var(--bg3);color:var(--t1);border-radius:2px;font-size:7px;display:flex;align-items:center;justify-content:center;font-family:'Orbitron',sans-serif;font-weight:bold}
+.fill-cable-chip .chip-name{color:var(--t2);max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fill-cable-chip .chip-od{color:var(--t3)}
+
+/* Tray Size Selection Mode */
+.fill-size-selector{padding:8px 12px;border-bottom:1px solid var(--border);background:var(--bg2);display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap}
+.fill-size-selector .ssl{font-size:9px;color:var(--t3);font-family:'Orbitron',sans-serif;letter-spacing:1px}
+.fill-size-chips{display:flex;gap:4px;flex-wrap:wrap}
+.fill-size-chip{padding:3px 10px;font-size:9px;font-family:'Orbitron',sans-serif;border:1px solid var(--border);border-radius:3px;background:transparent;color:var(--t3);cursor:pointer;letter-spacing:.5px;transition:all .15s}
+.fill-size-chip:hover{border-color:var(--cyan);color:var(--cyan)}
+.fill-size-chip.active{border-color:var(--cyan);background:rgba(0,200,240,.12);color:var(--cyan);box-shadow:0 0 8px rgba(0,200,240,.15)}
+.fill-size-chip.fit{border-color:var(--green);color:var(--green)}
+.fill-size-chip.fit.active{background:rgba(0,229,160,.12);box-shadow:0 0 8px rgba(0,229,160,.15)}
+.fill-size-chip.tight{border-color:var(--amber);color:var(--amber)}
+.fill-size-chip.tight.active{background:rgba(255,193,7,.12);box-shadow:0 0 8px rgba(255,193,7,.15)}
+.fill-size-chip.over{border-color:var(--red);color:var(--red)}
+.fill-size-chip.over.active{background:rgba(255,77,77,.12);box-shadow:0 0 8px rgba(255,77,77,.15)}

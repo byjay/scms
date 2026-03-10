@@ -233,7 +233,7 @@ function showTab(id){
   if(id==='analysis')runAnalysisUpdate();
   if(id==='project')updateProjectPanel();
   if(id==='admin')renderAdminPanels();
-  if(id==='tray')renderTrayNodeList();
+  if(id==='tray'){renderTrayNodeList();if(!fillState.cableData.length)initFillPanel()}
 }
 
 // ---- FILE LOADING ----
@@ -597,21 +597,30 @@ function render3D(){
 }
 
 function layoutFromConnections(nodes){
-  // Simple force-directed layout for nodes without coordinates
+  // Orthogonal grid layout: arrange nodes in a rectangular grid grouped by prefix
   const nm={};nodes.forEach(n=>{nm[n.name]=n});
-  // Assign initial positions using prefix grouping
   const prefixGroups={};
   nodes.forEach(n=>{
     const p=n.name.slice(0,2).toUpperCase();
     if(!prefixGroups[p])prefixGroups[p]=[];
     prefixGroups[p].push(n);
   });
-  let gx=0;
-  Object.entries(prefixGroups).forEach(([prefix,group])=>{
+  const prefixes=Object.keys(prefixGroups);
+  const GRID_SPACE_X=60,GRID_SPACE_Y=60;
+  // Arrange groups in rows, nodes within groups in columns
+  let gy=0;
+  prefixes.forEach(prefix=>{
+    const group=prefixGroups[prefix];
+    const cols=Math.ceil(Math.sqrt(group.length));
     group.forEach((n,i)=>{
-      if(n.x==null){n.x=gx+Math.cos(i*0.5)*50*(1+i*0.3);n.y=Math.sin(i*0.5)*50*(1+i*0.3);n.z=getDeckForNode(n.name).deck*30}
+      const col=i%cols, row=Math.floor(i/cols);
+      if(n.x==null){
+        n.x=col*GRID_SPACE_X;
+        n.y=gy+row*GRID_SPACE_Y;
+        n.z=getDeckForNode(n.name).deck*30;
+      }
     });
-    gx+=150;
+    gy+=(Math.ceil(group.length/cols)+1)*GRID_SPACE_Y;
   });
 }
 
@@ -650,124 +659,345 @@ function calcSingleRoute(){
   notify(`경로 산출: ${uniquePath.length}노드 / ${total}m`,'success');
 }
 
-// ---- TRAY PHYSICS ----
-function renderTrayNodeList(){
-  const el=document.getElementById('trayNodeList');if(!el)return;
-  // Count cables per node from calculated paths
-  const nodeCableCnt={};
-  cableData.forEach(c=>{
-    if(!c.calculatedPath)return;
-    c.calculatedPath.split(/\s*[,→]\s*/).filter(Boolean).forEach(n=>{nodeCableCnt[n]=(nodeCableCnt[n]||0)+1});
-  });
-  // Also add from nodeData
-  nodeData.forEach(n=>{if(!nodeCableCnt[n.name])nodeCableCnt[n.name]=n.connectedCables||0});
-  const entries=Object.entries(nodeCableCnt).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]);
-  el.innerHTML=entries.length?entries.map(([name,cnt])=>`<div class="tray-node-item" onclick="runTrayForNode('${name}')">${name} <span class="cnt">${cnt}</span></div>`).join(''):'<div style="color:var(--t3);font-size:11px;padding:8px">경로를 먼저 산출해주세요</div>';
-}
+// ---- FILL SOLVER (Advanced Tray Physics) ----
+const FILL_MARGIN_X=10, FILL_LARGE_CABLE_THRESHOLD=20, FILL_TARGET_FILL_RATE=60, FILL_LOW_FILL_THRESHOLD=35;
+let fillState={cableData:[],systemResult:null,fillRatioLimit:40,maxHeightLimit:60,numberOfTiers:1,manualWidth:null,isCalculating:false,inputText:'',parsedCount:0,dupCount:0,selectedSizeIdx:-1,sizeResults:[]};
 
-function runTrayForNode(nodeName){
-  document.getElementById('trayTargetNode').value=nodeName;
-  runTrayOptimization();
+function fillDist(p1,p2){return Math.sqrt((p1.x-p2.x)**2+(p1.y-p2.y)**2)}
+function fillCheckCollision(cables,x,y,r){for(const c of cables){if(fillDist({x,y},{x:c.x,y:c.y})<c.od/2+r-0.05)return true}return false}
+function fillIsSupported(placed,x,y,r){if(y<=r+0.5)return true;for(const c of placed){if(Math.abs(fillDist({x,y},{x:c.x,y:c.y})-(r+c.od/2))<1.0&&y>c.y)return true}return false}
+function fillTangentPoints(c1,c2,r){
+  const r1=c1.od/2+r,r2=c2.od/2+r,d=fillDist({x:c1.x,y:c1.y},{x:c2.x,y:c2.y});
+  if(d>r1+r2||d<Math.abs(r1-r2)||d===0)return[];
+  const a=(r1*r1-r2*r2+d*d)/(2*d),h=Math.sqrt(Math.max(0,r1*r1-a*a));
+  const x2=c1.x+a*(c2.x-c1.x)/d,y2=c1.y+a*(c2.y-c1.y)/d;
+  return[{x:x2+h*(c2.y-c1.y)/d,y:y2-h*(c2.x-c1.x)/d},{x:x2-h*(c2.y-c1.y)/d,y:y2+h*(c2.x-c1.x)/d}];
 }
-
-function runTrayOptimization(){
-  const targetNode=document.getElementById('trayTargetNode').value.trim();
-  const maxHeight=parseInt(document.getElementById('trayMaxHeight').value)||150;
-  const targetFill=parseInt(document.getElementById('trayTargetFill').value)||40;
-  if(!targetNode){notify('Target Node를 입력해주세요','warning');return}
-  const cablesInNode=cableData.filter(c=>{
-    if(!c.calculatedPath)return false;
-    return c.calculatedPath.split(',').map(n=>n.trim()).includes(targetNode);
-  }).map(c=>({id:c.id,name:c.name,od:parseFloat(c.outDia)||20,system:c.system||'',fromNode:c.fromNode||'',type:c.type||''}));
-  if(!cablesInNode.length){
-    document.getElementById('trayResultWrap').innerHTML=`<span style="color:var(--red)">"${targetNode}" 노드를 지나는 산출된 케이블이 없습니다.</span>`;
-    const canvas=document.getElementById('trayCanvas');if(canvas){const ctx=canvas.getContext('2d');ctx.clearRect(0,0,canvas.width,canvas.height)}
-    return;
-  }
-  // Determine tray type from node prefix
-  const dk=getDeckForNode(targetNode);
-  const nodeInfo=nodeData.find(n=>n.name===targetNode);
-  
-  // Solve
-  const sorted=[...cablesInNode].sort((a,b)=>b.od-a.od);
-  const totalArea=sorted.reduce((acc,c)=>acc+Math.PI*Math.pow(c.od/2,2),0);
-  const mWidth=(totalArea*100)/(maxHeight*targetFill);
-  let bestWidth=Math.max(100,Math.ceil(mWidth/100)*100);
-  if(bestWidth>1000)bestWidth=1000;
-  
-  // Place cables with gravity physics
-  const placed=[];
-  for(const cable of sorted){
-    const r=cable.od/2;
-    let bestPos=null,bestY=Infinity;
-    // Try positions
-    const candidates=[{x:5+r,y:r}];
-    for(const p of placed){
-      candidates.push({x:p.x+p.od/2+r+0.1,y:r});
-      for(let angle=15;angle<=165;angle+=15){
-        const rad=angle*Math.PI/180;
-        candidates.push({x:p.x+Math.cos(rad)*(p.od/2+r),y:p.y+Math.sin(rad)*(p.od/2+r)});
+function fillDetermineLayer(y,r,placed,x){
+  if(y<=r+0.5)return 1;
+  const below=placed.filter(c=>Math.abs(c.x-x)<(c.od/2+r)&&c.y<y);
+  return below.length===0?1:Math.max(...below.map(c=>c.layer))+1;
+}
+function fillFindPosition(cable,placed,xMin,xMax,maxH,maxLayers,preferStack){
+  const r=cable.od/2;const cands=[];
+  let lastFloorX=xMin;
+  const floorCables=placed.filter(c=>c.y<=c.od/2+0.5).sort((a,b)=>b.x-a.x);
+  if(floorCables.length>0)lastFloorX=floorCables[0].x+floorCables[0].od/2;
+  cands.push({p:{x:lastFloorX+r,y:r},layer:1,score:preferStack?100:1});
+  if(maxLayers>1&&cable.od<FILL_LARGE_CABLE_THRESHOLD){
+    for(let i=0;i<placed.length;i++){
+      const topY=placed[i].y+placed[i].od/2+r;
+      if(topY+r<=maxH){const layer=fillDetermineLayer(topY,r,placed,placed[i].x);if(layer<=maxLayers)cands.push({p:{x:placed[i].x,y:topY},layer,score:preferStack?layer*-10:layer*10})}
+      for(let j=i+1;j<placed.length;j++){
+        fillTangentPoints(placed[i],placed[j],r).forEach(tp=>{const layer=fillDetermineLayer(tp.y,r,placed,tp.x);cands.push({p:tp,layer,score:preferStack?layer*-10:layer*10})});
       }
     }
-    for(const c of candidates){
-      if(c.x-r<4.9||c.x+r>bestWidth-4.9)continue;
-      if(c.y+r>maxHeight)continue;
-      let collide=false;
-      for(const p of placed){if(Math.sqrt((c.x-p.x)**2+(c.y-p.y)**2)<(p.od/2+r-0.05)){collide=true;break}}
-      if(collide)continue;
-      // Check support
-      let supported=c.y<=r+1;
-      if(!supported)for(const p of placed){if(Math.sqrt((c.x-p.x)**2+(c.y-p.y)**2)<=(p.od/2+r)+1&&p.y<c.y){supported=true;break}}
-      if(!supported)continue;
-      if(c.y<bestY){bestY=c.y;bestPos=c}
-    }
-    if(bestPos)placed.push({...cable,x:bestPos.x,y:bestPos.y});
   }
-  
-  const maxStackH=placed.length?Math.max(...placed.map(p=>p.y+p.od/2)):0;
-  const fillRatio=(totalArea/(bestWidth*maxHeight))*100;
-  
-  document.getElementById('trayResultWrap').innerHTML=`
-    <span style="color:var(--green)">✓ 시뮬레이션 성공</span> | 
-    노드: <span style="color:var(--cyan)">${targetNode}</span> (${dk.label}) | 
-    Tray Type: <span style="color:var(--amber)">${nodeInfo?.type||dk.label}</span><br>
-    통과 케이블: <span style="color:var(--cyan)">${cablesInNode.length}</span>가닥 | 
-    Tray Width: <span style="color:var(--amber)">${bestWidth}mm</span> | 
-    Stack Height: <span style="color:var(--data)">${Math.round(maxStackH)}mm</span> | 
-    Fill: <span style="color:var(--cyan)">${fillRatio.toFixed(1)}%</span>
-  `;
-  
-  // Render canvas
-  renderTrayCanvas(placed,bestWidth,maxHeight);
-  notify(`Tray 최적화 완료: ${cablesInNode.length}가닥, ${bestWidth}mm`,'success');
+  const valid=cands.filter(c=>{
+    if(isNaN(c.p.x)||isNaN(c.p.y))return false;
+    if(c.p.x-r<xMin-0.1||c.p.x+r>xMax+0.1)return false;
+    if(c.p.y<r-0.1||c.p.y+r>maxH+0.1)return false;
+    if(c.layer>maxLayers)return false;
+    if(cable.od>=FILL_LARGE_CABLE_THRESHOLD&&c.layer>1)return false;
+    if(fillCheckCollision(placed,c.p.x,c.p.y,r))return false;
+    if(c.layer>1&&!fillIsSupported(placed,c.p.x,c.p.y,r))return false;
+    return true;
+  });
+  if(!valid.length)return null;
+  if(preferStack)valid.sort((a,b)=>a.layer!==b.layer?b.layer-a.layer:a.p.x-b.p.x);
+  else valid.sort((a,b)=>Math.abs(a.p.x-b.p.x)>5?a.p.x-b.p.x:a.p.y-b.p.y);
+  return{point:valid[0].p,layer:valid[0].layer};
+}
+function fillTryPlaceAtWidth(cables,width,maxH,stackLimit){
+  const sorted=[...cables].sort((a,b)=>b.od-a.od);
+  const totalArea=cables.reduce((a,c)=>a+Math.PI*(c.od/2)**2,0);
+  let placed=[],allFit=true;
+  const large=sorted.filter(c=>c.od>=FILL_LARGE_CABLE_THRESHOLD),small=sorted.filter(c=>c.od<FILL_LARGE_CABLE_THRESHOLD);
+  for(const cable of large){
+    const res=fillFindPosition(cable,placed,FILL_MARGIN_X,width-FILL_MARGIN_X,maxH,1,false);
+    if(res)placed.push({...cable,x:res.point.x,y:res.point.y,layer:res.layer});else{allFit=false;break}
+  }
+  if(allFit)for(const cable of small){
+    const res=fillFindPosition(cable,placed,FILL_MARGIN_X,width-FILL_MARGIN_X,maxH,stackLimit,false);
+    if(res)placed.push({...cable,x:res.point.x,y:res.point.y,layer:res.layer});else{allFit=false;break}
+  }
+  return{placed,success:allFit,fillRatio:(totalArea/(width*maxH))*100,totalArea};
+}
+function fillGetStdWidth(w){return w<=0?100:Math.ceil(w/100)*100}
+function fillSolveSingleTier(cables,tierIdx,maxH,targetFill,stackLimit){
+  if(!cables.length)return{tierIndex:tierIdx,width:100,cables:[],success:true,fillRatio:0,totalODSum:0,totalCableArea:0};
+  const totalArea=cables.reduce((a,c)=>a+Math.PI*(c.od/2)**2,0);
+  const startWidth=fillGetStdWidth(Math.max((totalArea/maxH)*(100/FILL_TARGET_FILL_RATE),100));
+  let best=null,bestDiff=Infinity;
+  for(let w=startWidth;w<=4000;w+=100){
+    const res=fillTryPlaceAtWidth(cables,w,maxH,stackLimit);
+    if(res.success){const diff=Math.abs(res.fillRatio-FILL_TARGET_FILL_RATE);if(diff<bestDiff){bestDiff=diff;best={width:w,placed:res.placed,fillRatio:res.fillRatio}}if(res.fillRatio<30)break}
+  }
+  if(!best)for(let w=100;w<=4000;w+=100){const res=fillTryPlaceAtWidth(cables,w,maxH,stackLimit);if(res.success){best={width:w,placed:res.placed,fillRatio:res.fillRatio};break}}
+  if(!best)return{tierIndex:tierIdx,width:4000,cables:[],success:false,fillRatio:0,totalODSum:cables.reduce((a,c)=>a+c.od,0),totalCableArea:totalArea};
+  if(best.fillRatio<FILL_LOW_FILL_THRESHOLD){const slr=fillTryPlaceAtWidth(cables,best.width,maxH,1);if(slr.success)best.placed=slr.placed}
+  return{tierIndex:tierIdx,width:best.width,cables:best.placed,success:true,fillRatio:best.fillRatio,totalODSum:cables.reduce((a,c)=>a+c.od,0),totalCableArea:totalArea};
+}
+function fillSolveSystem(allCables,tiers,maxH,targetFill){
+  const buckets=Array.from({length:tiers},()=>[]);
+  [...allCables].sort((a,b)=>b.od-a.od).forEach((c,i)=>buckets[i%tiers].push(c));
+  const init=buckets.map((b,i)=>fillSolveSingleTier(b,i,maxH,targetFill,3));
+  const maxW=Math.max(...init.map(r=>r.width));
+  const final=buckets.map((b,i)=>{const res=fillTryPlaceAtWidth(b,maxW,maxH,3);return{tierIndex:i,width:maxW,cables:res.placed,success:res.success,fillRatio:res.fillRatio,totalODSum:b.reduce((a,c)=>a+c.od,0),totalCableArea:res.totalArea}});
+  return{systemWidth:maxW,tiers:final,success:final.every(r=>r.success),maxHeightPerTier:maxH};
+}
+function fillSolveAtWidth(allCables,tiers,width,maxH,targetFill){
+  const buckets=Array.from({length:tiers},()=>[]);
+  [...allCables].sort((a,b)=>b.od-a.od).forEach((c,i)=>buckets[i%tiers].push(c));
+  const final=buckets.map((b,i)=>{const res=fillTryPlaceAtWidth(b,width,maxH,3);return{tierIndex:i,width,cables:res.placed,success:res.success,fillRatio:res.fillRatio,totalODSum:b.reduce((a,c)=>a+c.od,0),totalCableArea:res.totalArea}});
+  return{systemWidth:width,tiers:final,success:final.every(r=>r.success),maxHeightPerTier:maxH};
 }
 
-function renderTrayCanvas(placed,trayWidth,maxHeight){
-  const canvas=document.getElementById('trayCanvas');if(!canvas)return;
-  const ctx=canvas.getContext('2d');
-  const rect=canvas.parentElement.getBoundingClientRect();
-  const dpr=window.devicePixelRatio||1;
-  canvas.width=rect.width*dpr;canvas.height=rect.height*dpr;ctx.scale(dpr,dpr);
-  const w=rect.width,h=rect.height;ctx.clearRect(0,0,w,h);
-  const PAD=30;
-  const scale=Math.min((w-PAD*2)/trayWidth,(h-PAD*2)/(maxHeight+20));
-  const ox=w/2-(trayWidth*scale)/2,oy=h-PAD;
-  // Tray outline
-  ctx.strokeStyle='#2960a0';ctx.lineWidth=2;
-  ctx.beginPath();ctx.moveTo(ox,oy-maxHeight*scale);ctx.lineTo(ox,oy);ctx.lineTo(ox+trayWidth*scale,oy);ctx.lineTo(ox+trayWidth*scale,oy-maxHeight*scale);ctx.stroke();
-  // Cables
-  for(const c of placed){
-    const cx=ox+c.x*scale,cy=oy-c.y*scale,r=Math.max(1,(c.od/2)*scale);
-    const hash=(c.system||'').split('').reduce((a,b)=>{a=((a<<5)-a)+b.charCodeAt(0);return a&a},0);
-    ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);
-    ctx.fillStyle=`hsl(${Math.abs(hash)%360},70%,50%)`;ctx.fill();
-    ctx.strokeStyle='rgba(0,0,0,.5)';ctx.lineWidth=0.5;ctx.stroke();
-    if(r>8){ctx.fillStyle='#fff';ctx.font=`${Math.max(6,r*0.6)}px monospace`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(c.od+'',cx,cy)}
+// Fill calculate with standard sizes
+function fillCalculateAllSizes(){
+  if(!fillState.cableData.length)return;
+  const stdWidths=[100,200,300,400,500,600,700,800,900,1000,1200,1500,2000];
+  const results=[];
+  for(const w of stdWidths){
+    const res=fillSolveAtWidth(fillState.cableData,fillState.numberOfTiers,w,fillState.maxHeightLimit,fillState.fillRatioLimit);
+    results.push({width:w,...res});
   }
-  // Info
-  ctx.fillStyle='rgba(7,24,40,.8)';ctx.fillRect(ox,oy+4,200,20);
-  ctx.font='10px Orbitron,monospace';ctx.fillStyle='#85bedd';ctx.textAlign='left';
-  ctx.fillText(`${placed.length} cables | W:${trayWidth}mm | H:${maxHeight}mm`,ox+4,oy+16);
+  fillState.sizeResults=results;
+}
+
+function fillCalculate(overrideWidth){
+  if(!fillState.cableData.length)return;
+  fillState.isCalculating=true;
+  setTimeout(()=>{
+    let sol;
+    if(overrideWidth!=null)sol=fillSolveAtWidth(fillState.cableData,fillState.numberOfTiers,overrideWidth,fillState.maxHeightLimit,fillState.fillRatioLimit);
+    else sol=fillSolveSystem(fillState.cableData,fillState.numberOfTiers,fillState.maxHeightLimit,fillState.fillRatioLimit);
+    fillState.systemResult=sol;
+    fillState.isCalculating=false;
+    fillCalculateAllSizes();
+    fillRenderSizeSelector();
+    fillRenderViz();
+    fillRenderCableList();
+    fillUpdateInfoBar();
+    const wv=document.getElementById('fillWVal');if(wv)wv.textContent=sol.systemWidth||0;
+  },10);
+}
+
+function fillParseTextData(text){
+  const lines=text.trim().split('\n');const data=[];const seen=new Set();let dups=0;
+  lines.forEach((line,i)=>{
+    const parts=line.split(/[\t,]+/).map(s=>s.trim()).filter(Boolean);
+    if(parts.length>=3){
+      const name=parts[0],type=parts[1],od=parseFloat(parts[2]);
+      if(!isNaN(od)){if(seen.has(name)){dups++;return}seen.add(name);data.push({id:'fc-'+i,name,type,od})}
+    }
+  });
+  fillState.parsedCount=data.length;fillState.dupCount=dups;fillState.cableData=data;
+  fillUpdateDataInfo();
+  if(data.length>0){fillState.manualWidth=null;fillCalculate(null)}else{fillState.systemResult=null;fillState.sizeResults=[];fillRenderViz();fillRenderCableList();fillRenderSizeSelector();fillUpdateInfoBar()}
+}
+
+function fillLoadFromNode(nodeName){
+  const cablesInNode=cableData.filter(c=>{if(!c.calculatedPath)return false;return c.calculatedPath.split(',').map(n=>n.trim()).includes(nodeName)});
+  if(!cablesInNode.length){notify(`"${nodeName}" 노드를 지나는 케이블이 없습니다.`,'warning');return}
+  const text=cablesInNode.map(c=>`${c.name}\t${c.type||'?'}\t${c.outDia||20}`).join('\n');
+  fillState.inputText=text;
+  const ta=document.getElementById('fillTextArea');if(ta)ta.value=text;
+  fillParseTextData(text);
+  notify(`"${nodeName}" 노드: ${cablesInNode.length}개 케이블 로드`,'success');
+}
+
+function fillHandleFileUpload(e){
+  const file=e.target.files?.[0];if(!file||typeof XLSX==='undefined')return;
+  const reader=new FileReader();
+  reader.onload=evt=>{
+    const wb=XLSX.read(evt.target.result,{type:'binary'});
+    const ws=wb.Sheets[wb.SheetNames[0]];
+    const data=XLSX.utils.sheet_to_json(ws,{header:1});
+    let out='';
+    data.forEach(row=>{if(row.length>=3&&!isNaN(parseFloat(row[2])))out+=`${row[0]||''}\t${row[1]||''}\t${row[2]}\n`});
+    fillState.inputText=out;
+    const ta=document.getElementById('fillTextArea');if(ta)ta.value=out;
+    fillParseTextData(out);
+    e.target.value='';
+  };
+  reader.readAsBinaryString(file);
+}
+
+function fillUpdateDataInfo(){
+  const el=document.getElementById('fillDataInfo');if(!el)return;
+  let html=`<span class="fill-data-badge blue">${fillState.parsedCount} cables</span>`;
+  if(fillState.dupCount>0)html+=`<span class="fill-data-badge yellow">${fillState.dupCount} dups removed</span>`;
+  el.innerHTML=html;
+}
+
+function fillGetTypeColor(type){let h=0;for(let i=0;i<type.length;i++)h=type.charCodeAt(i)+((h<<5)-h);return`hsl(${Math.abs(h)%360},65%,60%)`}
+
+function fillRenderSizeSelector(){
+  const el=document.getElementById('fillSizeChips');if(!el)return;
+  if(!fillState.sizeResults.length){el.innerHTML='';return}
+  const autoW=fillState.systemResult?.systemWidth||0;
+  el.innerHTML=fillState.sizeResults.map((sr,i)=>{
+    let cls='';
+    if(sr.success){
+      const maxFill=Math.max(...sr.tiers.map(t=>t.fillRatio));
+      if(maxFill>fillState.fillRatioLimit)cls='tight';else cls='fit';
+    }else cls='over';
+    const isActive=(fillState.manualWidth===sr.width)||(fillState.manualWidth==null&&sr.width===autoW);
+    return`<button class="fill-size-chip ${cls}${isActive?' active':''}" onclick="fillSelectSize(${sr.width},${i})" title="Fill: ${sr.tiers.map(t=>t.fillRatio.toFixed(0)+'%').join(', ')}">${sr.width}</button>`;
+  }).join('');
+}
+
+function fillSelectSize(w,idx){
+  fillState.manualWidth=w;
+  fillState.selectedSizeIdx=idx;
+  fillCalculate(w);
+}
+
+function fillRenderViz(){
+  const wrap=document.getElementById('fillVizWrap');if(!wrap)return;
+  const sr=fillState.systemResult;
+  if(!sr||!sr.tiers.length){wrap.innerHTML='<div class="no-data"><div class="icon">📦</div><h3>데이터를 입력하세요</h3><p style="font-size:10px">왼쪽 패널에서 Excel 업로드 또는 직접 입력</p></div>';return}
+  // Assign global display index
+  let gIdx=1;
+  const tiers=sr.tiers.map(t=>({...t,cables:t.cables.map(c=>({...c,displayIndex:gIdx++}))}));
+  const W=sr.systemWidth,H=sr.maxHeightPerTier,TC=tiers.length;
+  const BEAM=10,MARGIN=40,GAP=30;
+  const STW=W+60,STH=H+BEAM+50;
+  const isVert=TC>1;
+  const vbW=isVert?STW+MARGIN*2:STW*TC+GAP*(TC-1)+MARGIN*2;
+  const vbH=isVert?STH*TC+GAP*(TC-1)+MARGIN*2:STH+MARGIN*2;
+  const getPos=(idx)=>isVert?{x:MARGIN,y:MARGIN+idx*(STH+GAP)}:{x:MARGIN+idx*(STW+GAP),y:MARGIN};
+
+  let svg=`<svg viewBox="0 0 ${vbW} ${vbH}" preserveAspectRatio="xMidYMid meet" style="width:100%;height:100%;background:#020c1b;border-radius:4px">`;
+  tiers.forEach((tier,idx)=>{
+    const pos=getPos(idx);const beamY=pos.y+H;
+    // Label
+    svg+=`<text x="${pos.x+W/2}" y="${pos.y-8}" text-anchor="middle" font-size="12" font-weight="900" fill="#334155" font-family="Orbitron,sans-serif">T${idx+1} (${tier.cables.length}개, ${tier.fillRatio.toFixed(0)}%)</text>`;
+    // Tray beam
+    svg+=`<rect x="${pos.x}" y="${beamY}" width="${W}" height="${BEAM}" fill="#475569" stroke="#1e293b" stroke-width="1"/>`;
+    // Side walls
+    svg+=`<rect x="${pos.x-5}" y="${pos.y-5}" width="5" height="${H+BEAM+10}" fill="#64748b"/>`;
+    svg+=`<rect x="${pos.x+W}" y="${pos.y-5}" width="5" height="${H+BEAM+10}" fill="#64748b"/>`;
+    // Height limit line
+    svg+=`<line x1="${pos.x}" y1="${pos.y}" x2="${pos.x+W}" y2="${pos.y}" stroke="#ef4444" stroke-width="1" stroke-dasharray="3,2"/>`;
+    // Cables
+    tier.cables.forEach(c=>{
+      const r=c.od/2,cx=pos.x+c.x,cy=beamY-c.y;
+      const col=fillGetTypeColor(c.type);
+      svg+=`<circle cx="${cx}" cy="${cy}" r="${r}" fill="${col}" stroke="#1e293b" stroke-width="0.5"/>`;
+      const fs=Math.max(Math.min(c.od*0.35,8),4);
+      svg+=`<text x="${cx}" y="${cy}" font-size="${fs}" text-anchor="middle" dominant-baseline="middle" fill="#000" font-weight="900">${c.displayIndex}</text>`;
+    });
+    // Width label
+    svg+=`<text x="${pos.x+W/2}" y="${beamY+BEAM+18}" text-anchor="middle" font-size="10" font-weight="bold" fill="#d4eeff">${W}mm</text>`;
+  });
+  svg+='</svg>';
+  wrap.innerHTML=svg;
+}
+
+function fillRenderCableList(){
+  const el=document.getElementById('fillCableList');if(!el)return;
+  const sr=fillState.systemResult;
+  if(!sr){el.innerHTML='';return}
+  const allCables=[];
+  let gIdx=1;
+  sr.tiers.forEach(tier=>tier.cables.forEach(c=>allCables.push({...c,displayIndex:gIdx++})));
+  el.innerHTML=allCables.map(c=>{
+    const col=fillGetTypeColor(c.type);
+    return`<div class="fill-cable-chip" style="background:${col}20"><span class="chip-idx">${c.displayIndex}</span><span class="chip-name">${c.name}</span><span class="chip-od">Ø${c.od}</span></div>`;
+  }).join('');
+}
+
+function fillUpdateInfoBar(){
+  const el=document.getElementById('fillInfoBar');if(!el)return;
+  const sr=fillState.systemResult;
+  if(!sr){el.innerHTML='<span class="fi-stat" style="color:var(--t3)">데이터 없음</span>';return}
+  const totalCount=sr.tiers.reduce((s,t)=>s+t.cables.length,0);
+  const totalOD=sr.tiers.reduce((s,t)=>s+t.cables.reduce((s2,c)=>s2+c.od,0),0);
+  el.innerHTML=`
+    <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+      <span class="fi-stat">W <span class="fiv">${sr.systemWidth}</span></span>
+      <span class="fi-stat">H <span class="fiv">${sr.maxHeightPerTier}</span></span>
+      <span class="fi-stat">${sr.tiers.length}단</span>
+      <span class="fi-stat">${totalCount}개</span>
+      <span class="fi-stat">Σ <span class="fiv">${totalOD.toFixed(0)}</span></span>
+    </div>
+    <span class="fi-badge ${sr.success?'ok':'fail'}">${sr.success?'✓ OK':'✕ FAIL'}</span>`;
+}
+
+function fillAdjustWidth(delta){
+  const curW=fillState.systemResult?.systemWidth||100;
+  const nextW=Math.max(100,curW+delta);
+  fillState.manualWidth=nextW;
+  fillCalculate(nextW);
+}
+
+function fillResetWidth(){
+  fillState.manualWidth=null;
+  fillCalculate(null);
+}
+
+function fillSetTiers(n){
+  fillState.numberOfTiers=n;
+  document.querySelectorAll('.fill-tier-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelector(`.fill-tier-btn[data-t="${n}"]`)?.classList.add('active');
+  fillState.manualWidth=null;
+  fillCalculate(null);
+}
+
+function renderTrayNodeList(){
+  const el=document.getElementById('trayNodeList');if(!el)return;
+  const nodeCableCnt={};
+  cableData.forEach(c=>{if(!c.calculatedPath)return;c.calculatedPath.split(/\s*[,→]\s*/).filter(Boolean).forEach(n=>{nodeCableCnt[n]=(nodeCableCnt[n]||0)+1})});
+  nodeData.forEach(n=>{if(!nodeCableCnt[n.name])nodeCableCnt[n.name]=n.connectedCables||0});
+  const entries=Object.entries(nodeCableCnt).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]);
+  el.innerHTML=entries.length?entries.map(([name,cnt])=>`<div class="tray-node-item" onclick="fillLoadFromNode('${name}')">${name} <span class="cnt">${cnt}</span></div>`).join(''):'<div style="color:var(--t3);font-size:11px;padding:8px">경로를 먼저 산출해주세요</div>';
+}
+
+// Default data for FILL
+const FILL_DEFAULT_TEXT=`P-UV-01\tMY4\t13.2
+P-UPS-03\tMY4\t13.2
+P-UPS-02\tDY4\t15.9
+P-UPS-01\tDY4\t15.9
+P-TW-04J\tMYS7\t15.4
+P-TW-04H\tMYS4\t13.4
+P-TW-04G\tMY12\t19
+P-TW-04F\tMY12\t19
+P-TW-04E\tMY4\t13.2
+P-TW-04D\tMY4\t13.2
+P-TW-04C\tMY12\t19
+P-TW-04B\tDY1\t13.7
+P-TW-04A\tDY1\t13.7
+P-TW-04\tTY50\t35
+P-TW-03J\tMYS7\t15.4
+P-TW-03H\tMYS4\t13.4
+P-TW-03G\tMY12\t19
+P-TW-03F\tMY12\t19
+P-TW-03E\tMY4\t13.2
+P-TW-03D\tMY4\t13.2
+P-TW-03C\tMY12\t19
+P-TW-03B\tDY1\t13.7
+P-TW-03A\tDY1\t13.7
+P-TW-03\tTY50\t35
+P-TW-02K\tMY12\t19
+P-TW-02J\tMYS7\t15.4
+P-TW-02H\tMYS4\t13.4
+P-TW-02G\tMY12\t19
+P-TW-02F\tMY12\t19
+P-TW-02E\tMY4\t13.2
+P-TW-02D\tMY4\t13.2
+P-TW-02C\tMY12\t19
+P-TW-02B\tDY1\t13.7
+P-TW-02A\tDY1\t13.7
+P-TW-02\tTY50\t35
+P-TW-01K\tMY12\t19
+P-TW-01J\tMYS7\t15.4`;
+
+function initFillPanel(){
+  fillState.inputText=FILL_DEFAULT_TEXT;
+  const ta=document.getElementById('fillTextArea');if(ta)ta.value=FILL_DEFAULT_TEXT;
+  fillParseTextData(FILL_DEFAULT_TEXT);
 }
 
 // ---- BOM ----
@@ -1116,21 +1346,77 @@ function buildAppHTML(){
             <div class="card"><div class="card-hdr"><div class="card-title">🔗 TOP CONNECTED NODES</div></div><div class="card-body" style="overflow:auto;max-height:300px" id="topNodes"><div style="color:var(--t3);font-size:11px">데이터 로드 필요</div></div></div>
           </div>
         </div>
-        <!-- TRAY PHYSICS -->
-        <div class="panel" id="panel-tray">
-          <div class="card"><div class="card-hdr"><div class="card-title">🔧 TRAY PHYSICS SOLVER</div>
-            <div class="toolbar"><button class="btn btn-c" onclick="runTrayOptimization()">⚡ 최적화</button></div></div>
-          <div class="card-body">
-            <div class="sb-lbl" style="margin-bottom:6px">📋 전체 노드 리스트 (클릭하여 Fill 시뮬레이션)</div>
-            <div id="trayNodeList" class="tray-node-list"><div style="color:var(--t3);font-size:11px;padding:8px">경로 산출 후 표시됩니다</div></div>
-            <div class="row" style="margin-top:10px;margin-bottom:10px">
-              <div class="fg"><div class="fl">Target Node</div><input class="fi" id="trayTargetNode" placeholder="노드 이름"></div>
-              <div class="fg" style="max-width:100px"><div class="fl">Max H(mm)</div><input type="number" class="fi" id="trayMaxHeight" value="150"></div>
-              <div class="fg" style="max-width:100px"><div class="fl">Fill(%)</div><input type="number" class="fi" id="trayTargetFill" value="40"></div>
+        <!-- TRAY PHYSICS (FILL) -->
+        <div class="panel" id="panel-tray" style="padding:0;overflow:hidden">
+          <div class="fill-wrap">
+            <!-- FILL Header -->
+            <div class="fill-header">
+              <div class="fill-logo"><div class="fill-icon">■</div>FILL</div>
+              <div class="fill-controls">
+                <!-- Tier -->
+                <div class="fill-tier-btns">
+                  <button class="fill-tier-btn active" data-t="1" onclick="fillSetTiers(1)">1단</button>
+                  <button class="fill-tier-btn" data-t="2" onclick="fillSetTiers(2)">2단</button>
+                  <button class="fill-tier-btn" data-t="3" onclick="fillSetTiers(3)">3단</button>
+                </div>
+                <!-- Height -->
+                <div class="fill-ctrl-grp"><label>H</label><input type="range" min="40" max="100" step="5" value="60" oninput="fillState.maxHeightLimit=+this.value;document.getElementById('fillHVal').textContent=this.value;fillState.manualWidth=null;fillCalculate(null)"><span class="val" id="fillHVal">60</span></div>
+                <!-- Fill -->
+                <div class="fill-ctrl-grp"><label>F</label><input type="range" min="10" max="60" step="5" value="40" oninput="fillState.fillRatioLimit=+this.value;document.getElementById('fillFVal').textContent=this.value+'%';fillState.manualWidth=null;fillCalculate(null)"><span class="val" id="fillFVal">40%</span></div>
+                <!-- Width adjust -->
+                <div class="fill-width-ctrl">
+                  <button onclick="fillAdjustWidth(-100)">◀</button>
+                  <span class="wval" id="fillWVal">${fillState.systemResult?.systemWidth||0}</span>
+                  <button onclick="fillAdjustWidth(100)">▶</button>
+                  <button onclick="fillResetWidth()" title="Auto" style="font-size:10px;color:var(--amber)">↻</button>
+                </div>
+                <!-- Calc -->
+                <button class="fill-calc-btn" onclick="fillCalculate(fillState.manualWidth)">▶ 계산</button>
+              </div>
             </div>
-            <div id="trayResultWrap" style="background:var(--bg0);border:1px solid var(--border);border-radius:4px;padding:10px;color:var(--t3);font-size:11px">노드를 선택하거나 입력하세요</div>
-            <div style="margin-top:10px;width:100%;border:1px solid var(--border);background:#0c131b;height:300px"><canvas id="trayCanvas" style="width:100%;height:100%;display:block"></canvas></div>
-          </div></div>
+
+            <!-- Size Selector -->
+            <div class="fill-size-selector">
+              <span class="ssl">TRAY SIZE:</span>
+              <div class="fill-size-chips" id="fillSizeChips"></div>
+            </div>
+
+            <!-- Body: Sidebar + Visualization -->
+            <div class="fill-body">
+              <!-- Sidebar: Data Input -->
+              <div class="fill-sidebar">
+                <div class="fill-sidebar-hdr">
+                  <h3>📋 Data Source</h3>
+                  <div class="fill-sidebar-btns">
+                    <button class="fill-upload-btn" onclick="document.getElementById('fillFileInput').click()">📄 Excel</button>
+                    <input type="file" id="fillFileInput" accept=".xlsx,.xls,.csv" onchange="fillHandleFileUpload(event)" style="display:none">
+                  </div>
+                </div>
+                <div class="fill-data-info" id="fillDataInfo"><span class="fill-data-badge blue">0 cables</span></div>
+                <div style="padding:6px 12px;border-bottom:1px solid var(--border);flex-shrink:0">
+                  <div class="sb-lbl" style="margin-bottom:4px">📋 NODE → FILL (클릭)</div>
+                  <div id="trayNodeList" class="tray-node-list" style="max-height:120px"><div style="color:var(--t3);font-size:11px;padding:8px">경로 산출 후 표시됩니다</div></div>
+                </div>
+                <div style="padding:4px 12px;font-size:9px;color:var(--t3);border-bottom:1px solid var(--border);flex-shrink:0">Format: <strong>Name | Type | OD</strong> (Tab/Comma separated)</div>
+                <div class="fill-textarea">
+                  <textarea id="fillTextArea" spellcheck="false" placeholder="데이터를 붙여넣으세요..." oninput="fillState.inputText=this.value;fillParseTextData(this.value)"></textarea>
+                </div>
+                <div class="fill-textarea-btns">
+                  <button class="fill-txt-btn rst" onclick="fillState.inputText=FILL_DEFAULT_TEXT;document.getElementById('fillTextArea').value=FILL_DEFAULT_TEXT;fillParseTextData(FILL_DEFAULT_TEXT)">↺ Reset</button>
+                  <button class="fill-txt-btn clr" onclick="fillState.inputText='';document.getElementById('fillTextArea').value='';fillParseTextData('')">✕ Clear</button>
+                </div>
+              </div>
+
+              <!-- Visualization -->
+              <div class="fill-main">
+                <div class="fill-viz" id="fillVizWrap">
+                  <div class="no-data"><div class="icon">📦</div><h3>데이터를 입력하세요</h3><p style="font-size:10px">왼쪽 패널에서 Excel 업로드 또는 직접 입력</p></div>
+                </div>
+                <div class="fill-info-bar" id="fillInfoBar"><span class="fi-stat" style="color:var(--t3)">데이터 없음</span></div>
+                <div class="fill-cable-list" id="fillCableList"></div>
+              </div>
+            </div>
+          </div>
         </div>
         <!-- BOM -->
         <div class="panel" id="panel-bom" style="flex-direction:column;gap:0;padding:0;overflow:hidden">
