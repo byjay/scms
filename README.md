@@ -6,9 +6,6 @@
 - **Tech Stack**: Hono + TypeScript + Cloudflare Pages + D1 Database + Three.js
 - **Features**: 사용자 인증, 케이블 경로 산출(Dijkstra), 3D 노드맵, Tray Physics, BOM, 프로젝트 저장
 
-## URLs
-- **Sandbox**: https://3000-ipsr5xrf3dy98qeeo522n-3844e1b6.sandbox.novita.ai
-- **Login**: admin / admin123
 
 ## 현재 완성된 기능
 
@@ -107,4 +104,4 @@
 ## Deployment
 - **Platform**: Cloudflare Pages + D1
 - **Status**: ✅ 로컬 개발 서버 활성
-- **Last Updated**: 2026-03-10
+- **Last Updated**: 2023-03-10
