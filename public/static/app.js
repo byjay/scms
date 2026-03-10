@@ -13,6 +13,62 @@ let editingCell=null, projectCreated=null;
 let currentUser=null, currentGroup=null, currentShip=null;
 let undoStack=[], redoStack=[];
 
+// ---- 작업 로그 시스템 ----
+let operationLog=[]; // 작업 이력 저장 배열
+
+// ---- 작업 로그 시스템 ----
+let undoStack=[], redoStack=[];
+
+// ---- 작업 로그 시스템 ----
+let operationLog=[]; // 작업 이력 저장 배열
+
+// 작업 로그 기록 함수
+function logOperation(action, details, isBatch=false){
+  const timestamp=new Date().toISOString();
+  const entry={
+    timestamp,
+    action,
+    details,
+    isBatch,
+    currentUser:currentUser?.username||'anonymous'
+  };
+  operationLog.push(entry);
+  console.log('[WORKLOG]', entry);
+}
+
+// 작업 로그 파일로 내보내기
+function exportOperationLog(){
+  if(operationLog.length===0){
+    notify('작업 로그가 없습니다.','warning');
+    return;
+  }
+  
+  const csvContent='timestamp,action,details,isBatch,user\n'+
+    operationLog.map(log=>
+      `${log.timestamp},${log.action},${log.details||''},${log.isBatch},${log.currentUser}`
+    ).join('\n');
+  
+  const blob=new Blob([csvContent],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download=`operation_log_${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  
+  notify(`작업 로그 내보내기 완료: ${operationLog.length}개 기록`,'success');
+}
+
+// 배치 작업 시작/종료 기록
+function logBatchStart(action){
+  logOperation(action+'(배치 시작)',true,true);
+}
+
+function logBatchEnd(action, count){
+  logOperation(action+'(배치 완료) - '+count+'개 항목',true,true);
+}
 const API = '';
 
 // ---- EMBEDDED NODE DATA (subset for graph structure) ----
@@ -209,6 +265,19 @@ async function deleteShip(id){
 }
 
 async function saveShipProject(){
+  if(!currentShip){notify('호선을 먼저 선택하세요','warning');return}
+  showLoader('프로젝트 저장 중...');
+  
+  // 작업 로그 기록 (배치 작업 제외)
+  logOperation('프로젝트 저장', `호선: ${currentShip.name}, 케이블: ${cableData.length}개, 노드: ${nodeData.length}개`, false);
+  
+  try{
+    const data={cables:cableData.map(c=>({name:c.name,type:c.type,system:c.system,fromNode:c.fromNode,toNode:c.toNode,fromRoom:c.fromRoom||'',toRoom:c.toRoom||'',fromEquip:c.fromEquip||'',toEquip:c.toEquip||'',fromRest:c.fromRest||0,toRest:c.toRest||0,length:c.length,outDia:c.outDia,checkNode:c.checkNode||'',calculatedPath:c.calculatedPath||'',calculatedLength:c.calculatedLength||0})),nodes:nodeData.map(n=>({name:n.name,structure:n.structure||'',type:n.type||'',relation:n.relation||'',linkLength:n.linkLength,areaSize:n.areaSize,x:n.x,y:n.y,z:n.z,relations:n.relations||[]})),meta:{ship:currentShip.name,savedAt:new Date().toISOString()}};
+    await fetch(API+'/api/projects/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({shipId:currentShip.id,data,userId:currentUser?.id})});
+    notify(`프로젝트 저장 완료 (${currentShip.name})`,'success');
+  }catch(e){notify('저장 실패','error')}
+  hideLoader();
+}
   if(!currentShip){notify('호선을 먼저 선택하세요','warning');return}
   showLoader('프로젝트 저장 중...');
   try{
@@ -751,9 +820,69 @@ function fillSolveAtWidth(allCables,tiers,width,maxH,targetFill){
   [...allCables].sort((a,b)=>b.od-a.od).forEach((c,i)=>buckets[i%tiers].push(c));
   const final=buckets.map((b,i)=>{const res=fillTryPlaceAtWidth(b,width,maxH,3);return{tierIndex:i,width,cables:res.placed,success:res.success,fillRatio:res.fillRatio,totalODSum:b.reduce((a,c)=>a+c.od,0),totalCableArea:res.totalArea}});
   return{systemWidth:width,tiers:final,success:final.every(r=>r.success),maxHeightPerTier:maxH};
+  return{systemWidth:width,tiers:final,success:final.every(r=>r.success),maxHeightPerTier:maxH};
+};
+
+function fillCalculateOptimizationMatrix(allCables, maxHeight, targetFill){
+
+const FILL_MARGIN_X=10, FILL_LARGE_CABLE_THRESHOLD=20, FILL_TARGET_FILL_RATE=60, FILL_LOW_FILL_THRESHOLD=35;
+let fillState={cableData:[],systemResult:null,fillRatioLimit:40,maxHeightLimit:60,numberOfTiers:1,manualWidth:null,isCalculating:false,inputText:'',parsedCount:0,dupCount:0,selectedSizeIdx:-1,sizeResults:[],optimizationMatrix:[]};
+function fillCalculateOptimizationMatrix(allCables, maxHeight, targetFill){
+  const widths = [200, 300, 400, 500, 600, 700, 800, 900];
+  const tierCounts = [1, 2, 3, 4, 5];
+  const matrix = [];
+  const totalCableArea = allCables.reduce((acc, c) => acc + Math.PI * Math.pow(c.od/2, 2), 0);
+  const sortedAll = [...allCables].sort((a, b) => b.od - a.od);
+  
+  for(const t of tierCounts){
+    const row = [];
+    const tierBuckets = Array.from({length: t}, () => []);
+    
+    // Round Robin 분배
+    sortedAll.forEach((c, i) => tierBuckets[i % t].push(c));
+    
+    // 최악 케이스 티어 찾기 (가장 많은 OD 합)
+    const worstTierCables = tierBuckets.reduce((prev, curr) => 
+      curr.reduce((a,c) => a + c.od, 0) > prev.reduce((a,c) => a + c.od, 0) ? curr : prev
+    );
+    
+    for(const w of widths){
+      const area = w * maxHeight * t;
+      const systemFill = (totalCableArea / area) * 100;
+      
+      // 해당 너비에서 최악 티어 시뮬레이션
+      const res = fillTryPlaceAtWidth(worstTierCables, w, maxHeight, 3);
+      
+      const isOptimal = systemFill <= targetFill && res.success;
+      
+      row.push({
+        tiers: t,
+        width: w,
+        area: area,
+        fillRatio: systemFill,
+        success: res.success,
+        isOptimal: isOptimal
+      });
+    }
+    matrix.push(row);
+  }
+  return matrix;
 }
 
-// Fill calculate with standard sizes
+// Fill calculate with standard sizes + Matrix
+function fillCalculateAllSizes(){
+  if(!fillState.cableData.length)return;
+  const stdWidths=[100,200,300,400,500,600,700,800,900,1000,1200,1500,2000];
+  const results=[];
+  for(const w of stdWidths){
+    const res=fillSolveAtWidth(fillState.cableData,fillState.numberOfTiers,w,fillState.maxHeightLimit,fillState.fillRatioLimit);
+    results.push({width:w,...res});
+  }
+  fillState.sizeResults=results;
+  
+  // 메트릭스 계산 (tray-fill 스타일)
+  fillState.optimizationMatrix = fillCalculateOptimizationMatrix(fillState.cableData, fillState.maxHeightLimit, fillState.fillRatioLimit);
+}
 function fillCalculateAllSizes(){
   if(!fillState.cableData.length)return;
   const stdWidths=[100,200,300,400,500,600,700,800,900,1000,1200,1500,2000];
@@ -773,12 +902,29 @@ function fillCalculate(overrideWidth){
     if(overrideWidth!=null)sol=fillSolveAtWidth(fillState.cableData,fillState.numberOfTiers,overrideWidth,fillState.maxHeightLimit,fillState.fillRatioLimit);
     else sol=fillSolveSystem(fillState.cableData,fillState.numberOfTiers,fillState.maxHeightLimit,fillState.fillRatioLimit);
     fillState.systemResult=sol;
+    fillState.systemResult=sol;
     fillState.isCalculating=false;
     fillCalculateAllSizes();
+    fillRenderSizeSelector();
+    fillRenderOptimizationMatrix();
+    fillRenderViz();
+    fillRenderCableList();
+    fillUpdateInfoBar();
+    let wv=document.getElementById('fillWVal');if(wv)wv.textContent=sol.systemWidth||0;
+  }, 10);
+    fillState.isCalculating=false;
+    fillCalculateAllSizes();
+    fillRenderSizeSelector();
+    fillRenderOptimizationMatrix();
+    fillRenderViz();
+    fillRenderCableList();
+    fillUpdateInfoBar();
+    let wv=document.getElementById('fillWVal');if(wv)wv.textContent=sol.systemWidth||0;
     fillRenderSizeSelector();
     fillRenderViz();
     fillRenderCableList();
     fillUpdateInfoBar();
+  }, 10);
     const wv=document.getElementById('fillWVal');if(wv)wv.textContent=sol.systemWidth||0;
   },10);
 }
@@ -798,6 +944,23 @@ function fillParseTextData(text){
 }
 
 function fillLoadFromNode(nodeName){
+  // 완벽한 노드별 케이블 매칭 - calculatedPath 배열 처리
+  const cablesInNode = cableData.filter(c => {
+    if (!c.calculatedPath) return false;
+    // calculatedPath가 배열이거나 콤마로 구분된 문자열인 경우 모두 처리
+    const path = Array.isArray(c.calculatedPath) ? c.calculatedPath : c.calculatedPath.split(',').map(n=>n.trim());
+    return path.includes(nodeName);
+  });
+  if (!cablesInNode.length) { notify(`"${nodeName}" 노드를 지나는 케이블이 없습니다.`,'warning'); return }
+  
+  // 케이블 정보 완벽 추출: Name, Type, OD
+  const text = cablesInNode.map(c => `${c.name}\t${c.type || '?'}\t${c.outDia || 20}`).join('\n');
+  fillState.inputText = text;
+  const ta = document.getElementById('fillTextArea');
+  if (ta) ta.value = text;
+  fillParseTextData(text);
+  notify(`"${nodeName}" 노드: ${cablesInNode.length}개 케이블 로드`,'success');
+}
   const cablesInNode=cableData.filter(c=>{if(!c.calculatedPath)return false;return c.calculatedPath.split(',').map(n=>n.trim()).includes(nodeName)});
   if(!cablesInNode.length){notify(`"${nodeName}" 노드를 지나는 케이블이 없습니다.`,'warning');return}
   const text=cablesInNode.map(c=>`${c.name}\t${c.type||'?'}\t${c.outDia||20}`).join('\n');
@@ -852,6 +1015,121 @@ function fillSelectSize(w,idx){
   fillState.manualWidth=w;
   fillState.selectedSizeIdx=idx;
   fillCalculate(w);
+}
+
+// 자동 최적화 기능 (tray-fill 스타일)
+function fillAutoOptimize(){
+  if (!fillState.cableData.length) {
+    notify('데이터가 없습니다.', 'warning');
+    return;
+  }
+  
+  // 임시로 1단으로 최적 솔루션 계산
+  const tempRes = fillSolveSystem(fillState.cableData, 1, fillState.maxHeightLimit, fillState.fillRatioLimit);
+  
+  if (tempRes.optimizationMatrix) {
+    const candidates = tempRes.optimizationMatrix.flat().filter(c => c.isOptimal);
+    if (candidates.length > 0) {
+      // 최소 면적으로 정렬
+      candidates.sort((a,b) => a.area - b.area);
+      const best = candidates[0];
+      
+      // 최적 티어와 너비 자동 선택
+      fillSetTiers(best.tiers);
+      fillState.manualWidth = best.width;
+      
+      setTimeout(() => {
+        fillCalculate(best.width, best.tiers);
+      }, 50);
+      
+      notify(`✅ 최적화 완료: L${best.tiers}단, W${best.width}mm (Fill: ${best.fillRatio.toFixed(0)}%)`, 'success');
+    } else {
+      // 최적 솔루션 없음
+      fillCalculate(null);
+    }
+  } else {
+    fillCalculate(null);
+  }
+}
+  fillState.manualWidth=w;
+  fillState.selectedSizeIdx=idx;
+  fillCalculate(w);
+  fillCalculate(w);
+}
+
+// ---- MATRIX VISUALIZATION (tray-fill 스타일) ----
+function fillRenderOptimizationMatrix(){
+  const el = document.getElementById('fillOptimizationMatrix');
+  if (!el) return;
+  if (!fillState.optimizationMatrix.length) { el.innerHTML = ''; return; }
+  
+  const matrix = fillState.optimizationMatrix;
+  const widths = [200, 300, 400, 500, 600, 700, 800, 900];
+  const tierCounts = matrix.map(row => row[0].tiers);
+  
+  let html = '<div style="background:#020c1b;border:1px solid #1a4270;border-radius:4px;padding:8px;">';
+  html += '<div style="font-size:10px;font-weight:bold;color:#d4eeff;margin-bottom:8px;">최적화 매트릭스 (Tiers × Width)</div>';
+  
+  // Header row
+  html += '<div style="display:flex;gap:4px;margin-bottom:4px;">';
+  html += '<div style="width:60px;font-size:9px;color:#85bedd;">Tiers</div>';
+  widths.forEach(w => {
+    html += `<div style="flex:1;text-align:center;font-size:9px;color:#85bedd;">${w}mm</div>`;
+  });
+  html += '</div>';
+  
+  // Data rows
+  matrix.forEach((row, i) => {
+    const t = row[0].tiers;
+    html += '<div style="display:flex;gap:4px;margin-bottom:2px;">';
+    html += `<div style="width:60px;font-size:9px;font-weight:bold;color:#d4eeff;display:flex;align-items:center;">${t}단</div>`;
+    
+    row.forEach(cell => {
+      let bgColor = '#122d4a';
+      let textColor = '#85bedd';
+      
+      if (cell.isOptimal) {
+        bgColor = '#00c8f020';
+        textColor = '#00e5a0';
+      } else if (!cell.success) {
+        bgColor = '#ff4d4d20';
+        textColor = '#ff4d4d';
+      } else if (cell.fillRatio > fillState.fillRatioLimit) {
+        bgColor = '#ffc10720';
+        textColor = '#ffc107';
+      }
+      
+      const isSelected = fillState.manualWidth === cell.width && fillState.numberOfTiers === t;
+      const borderStyle = isSelected ? 'border:2px solid #00c8f0;' : 'border:1px solid #1a4270;';
+      
+      html += `<div style="flex:1;${borderStyle}border-radius:3px;padding:6px 4px;background:${bgColor};cursor:pointer;text-align:center;" 
+        onclick="fillSetMatrixSelection(${t}, ${cell.width})" 
+        title="Fill: ${cell.fillRatio.toFixed(0)}% | Area: ${cell.area}">
+        <div style="font-size:10px;font-weight:bold;color:${textColor};">${cell.fillRatio.toFixed(0)}%</div>
+      </div>`;
+    });
+    
+    html += '</div>';
+  });
+  
+  // Legend
+  html += '<div style="display:flex;gap:10px;margin-top:8px;font-size:9px;color:#4d7fa0;">';
+  html += '<div><span style="display:inline-block;width:12px;height:12px;background:#00e5a040;border:1px solid #1a4270;border-radius:2px;margin-right:4px;"></span>최적 (Fill ≤ ' + fillState.fillRatioLimit + '%)</div>';
+  html += '<div><span style="display:inline-block;width:12px;height:12px;background:#ffc10740;border:1px solid #1a4270;border-radius:2px;margin-right:4px;"></span>초과 (Fill > ' + fillState.fillRatioLimit + '%)</div>';
+  html += '<div><span style="display:inline-block;width:12px;height:12px;background:#ff4d4d40;border:1px solid #1a4270;border-radius:2px;margin-right:4px;"></span>불가</div>';
+  html += '</div>';
+  
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+function fillSetMatrixSelection(tiers, width){
+  fillState.numberOfTiers = tiers;
+  fillState.manualWidth = width;
+  document.querySelectorAll('.fill-tier-btn').forEach(b => b.classList.remove('active'));
+  const btn = document.querySelector(`.fill-tier-btn[data-t="${tiers}"]`);
+  if (btn) btn.classList.add('active');
+  fillCalculate(width);
 }
 
 function fillRenderViz(){
@@ -1083,7 +1361,98 @@ function exportExcel(){
   const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(ws),'Cables');
   XLSX.writeFile(wb,`SEASTAR_CableList_${new Date().toISOString().slice(0,10)}.xlsx`);notify('Excel 다운로드','success');
 }
+}// ---- EXPORT (ref.html 완전 기능 복원) ----
+function exportExcel(){
+  if (!cableData.length || typeof XLSX==='undefined') { notify('내보낼 데이터가 없습니다.', 'warning'); return; }
+  
+  const ws_data = [['CABLE_NAME', 'CABLE_TYPE', 'CABLE_SYSTEM', 'FROM_NODE', 'TO_NODE', 'CALC_LENGTH', 'CABLE_PATH', 'CHECK_NODE', 'OUT_DIA']];
+  cableData.forEach(c => {
+    ws_data.push([c.name, c.type, c.system, c.fromNode, c.toNode,
+      c.calculatedLength > 0 ? c.calculatedLength : (c.length || 0),
+      c.calculatedPath || c.path || '', c.checkNode || '', c.outDia || '']);
+  });
+  
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(ws_data);
+  ws['!cols'] = [{ wch: 25 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 12 }, { wch: 50 }, { wch: 20 }, { wch: 10 }];
+  XLSX.utils.book_append_sheet(wb, ws, 'Cable List');
+  XLSX.writeFile(wb, `SEASTAR_CableList_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  notify('케이블 리스트 Excel 다운로드', 'success');
+}
 
+function exportNodeExcel(){
+  if (!nodeData.length || typeof XLSX==='undefined') { notify('내보낼 노드 데이터가 없습니다.', 'warning'); return; }
+  
+  const ws_data = [['NODE_NAME', 'STRUCTURE', 'TYPE', 'RELATION', 'LINK_LENGTH', 'AREA_SIZE', 'CONNECTED_CABLES', 'FILL_PCT']];
+  nodeData.forEach(n => {
+    ws_data.push([n.name, n.structure, n.type, n.relation || '', n.linkLength, n.areaSize, n.connectedCables, n.fillPct || 0]);
+  });
+  
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(ws_data);
+  XLSX.utils.book_append_sheet(wb, ws, 'Node Info');
+  XLSX.writeFile(wb, `SEASTAR_NodeInfo_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  notify('노드 정보 Excel 다운로드', 'success');
+}
+
+function exportFullReport(){
+  if (!cableData.length && !nodeData.length || typeof XLSX==='undefined') { notify('데이터가 없습니다.', 'warning'); return; }
+  
+  const wb = XLSX.utils.book_new();
+  
+  // Sheet 1: Cables
+  const cableRows = [['CABLE_NAME', 'TYPE', 'SYSTEM', 'FROM_NODE', 'TO_NODE', 'CALC_LENGTH', 'PATH', 'CHECK_NODE', 'DIA']];
+  cableData.forEach(c => cableRows.push([c.name, c.type, c.system, c.fromNode, c.toNode, c.calculatedLength || c.length || 0, c.calculatedPath || c.path || '', c.checkNode || '', c.outDia || '']));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(cableRows), 'Cables');
+  
+  // Sheet 2: Nodes
+  const nodeRows = [['NODE', 'STRUCTURE', 'TYPE', 'RELATIONS', 'LINK_LENGTH', 'AREA_SIZE', 'CABLES', 'FILL_PCT']];
+  nodeData.forEach(n => nodeRows.push([n.name, n.structure, n.type, n.relation || '', n.linkLength, n.areaSize, n.connectedCables, n.fillPct || 0]));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(nodeRows), 'Nodes');
+  
+  // Sheet 3: Summary
+  const sys = {};
+  cableData.forEach(c => { const s = c.system || 'Unknown'; if (!sys[s]) sys[s] = { cnt: 0, len: 0 }; sys[s].cnt++; sys[s].len += c.calculatedLength || c.length || 0; });
+  const sumRows = [['System', 'Count', 'Total Length (m)'], ...Object.entries(sys).map(([s, d]) => [s, d.cnt, Math.round(d.len)])];
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sumRows), 'Summary');
+  
+  XLSX.writeFile(wb, `SEASTAR_Report_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  notify('전체 보고서 Excel 다운로드', 'success');
+}
+
+function exportCSV(){
+  if (!cableData.length) { notify('데이터가 없습니다.', 'warning'); return; }
+  
+  const csvContent = "data:text/csv;charset=utf-8," + 
+    ['CABLE_NAME,TYPE,SYSTEM,FROM_NODE,TO_NODE,CALC_LENGTH,PATH,CHECK_NODE,DIA'].join(',') + '\n' +
+    cableData.map(c => `${c.name},${c.type},${c.system},${c.fromNode},${c.toNode},${c.calculatedLength||c.length||0},${c.calculatedPath||c.path||''},${c.checkNode||''},${c.outDia||''}`).join('\n');
+  
+  const link = document.createElement('a');
+  link.setAttribute('href', encodeURI(csvContent));
+  link.setAttribute('download', `SEASTAR_Cables_${new Date().toISOString().slice(0, 10)}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  notify('CSV 다운로드', 'success');
+}
+
+function exportJSON(){
+  if (!cableData.length && !nodeData.length) { notify('데이터가 없습니다.', 'warning'); return; }
+  
+  const data = { cables: cableData, nodes: nodeData, exportDate: new Date().toISOString() };
+  const jsonContent = JSON.stringify(data, null, 2);
+  
+  const blob = new Blob([jsonContent], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `SEASTAR_Data_${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+  notify('JSON 다운로드', 'success');
+}
 // ---- ANALYSIS ----
 function runAnalysisUpdate(){runCapacityAnalysis();updateSystemSummary();updateLengthStats();updateTopNodes()}
 function runCapacityAnalysis(){
@@ -1277,6 +1646,28 @@ function buildAppHTML(){
           <div class="card" style="flex-shrink:0"><div class="card-hdr"><div class="card-title">📌 CABLE LIST</div>
             <div class="toolbar">
               <button class="btn btn-c" onclick="calculateAllPaths()">⚡ 경로 산출</button>
+              <button class="btn btn-g" onclick="exportExcel()">📋 케이블 리스트 (Excel)</button>
+              <button class="btn btn-a" onclick="exportFullReport()">📄 전체 보고서 (Excel)</button>
+              <button class="btn btn-gh" style="background:var(--purple)" onclick="exportOperationLog()">📊 작업 로그 (CSV)</button>
+              <button class="btn btn-a" onclick="exportFullReport()">📄 전체 보고서 (Excel)</button>
+              <button class="btn btn-gh" onclick="selectAllCables()">☑ 전체</button>
+              <button class="btn btn-gh" onclick="deselectAllCables()">☐ 해제</button>
+              <div style="margin-left:auto;display:flex;align-items:center;gap:4px;">
+                <button class="btn btn-gh" onclick="changeFontSize(-1)" style="font-size:10px;padding:4px 8px;">A-</button>
+                <span style="font-size:10px;color:var(--t2)" id="cableFontSize">12px</span>
+                <button class="btn btn-gh" onclick="changeFontSize(1)" style="font-size:10px;padding:4px 8px;">A+</button>
+              </div>
+            </div>
+            <div class="toolbar">
+              <button class="btn btn-c" onclick="calculateAllPaths()">⚡ 경로 산출</button>
+              <button class="btn btn-g" onclick="exportExcel()">📋 케이블 리스트 (Excel)</button>
+              <button class="btn btn-a" onclick="exportFullReport()">📄 전체 보고서 (Excel)</button>
+              <button class="btn btn-gh" onclick="selectAllCables()">☑ 전체</button>
+              <button class="btn btn-gh" onclick="deselectAllCables()">☐ 해제</button>
+            </div>
+          </div>
+            <div class="toolbar">
+              <button class="btn btn-c" onclick="calculateAllPaths()">⚡ 경로 산출</button>
               <button class="btn btn-g" onclick="exportExcel()">📋 Excel</button>
               <button class="btn btn-gh" onclick="selectAllCables()">☑ 전체</button>
               <button class="btn btn-gh" onclick="deselectAllCables()">☐ 해제</button>
@@ -1295,7 +1686,12 @@ function buildAppHTML(){
           <div style="flex:1;overflow:auto"><table class="dt"><thead><tr>${CABLE_COLS.map(c=>`<th style="min-width:${c.w}px">${c.label}</th>`).join('')}</tr></thead><tbody id="cableTbody"></tbody></table></div>
         </div>
         <!-- NODES -->
-        <div class="panel" id="panel-nodes">
+          <div class="card"><div class="card-hdr"><div class="card-title">🗂 NODE INFORMATION</div>
+            <div class="toolbar">
+              <input class="fi" id="nodeSearch" placeholder="🔍 검색..." oninput="filterNodes()" style="max-width:200px">
+              <button class="btn btn-g" onclick="exportNodeExcel()">📋 노드 정보 (Excel)</button>
+            </div>
+          </div>
           <div class="card"><div class="card-hdr"><div class="card-title">🗂 NODE INFORMATION</div>
             <div class="toolbar"><input class="fi" id="nodeSearch" placeholder="🔍 검색..." oninput="filterNodes()" style="max-width:200px"></div>
           </div></div>
@@ -1351,7 +1747,7 @@ function buildAppHTML(){
           <div class="fill-wrap">
             <!-- FILL Header -->
             <div class="fill-header">
-              <div class="fill-logo"><div class="fill-icon">■</div>FILL</div>
+              <div class="fill-logo"><img src="./static/logo.jpg" alt="FILL" style="height:24px;width:auto;object-fit:contain;" /><span style="margin-left:8px;font-weight:900;font-size:14px;color:var(--cyan)">TRAY OPTIMIZER</span></div>
               <div class="fill-controls">
                 <!-- Tier -->
                 <div class="fill-tier-btns">
@@ -1359,6 +1755,9 @@ function buildAppHTML(){
                   <button class="fill-tier-btn" data-t="2" onclick="fillSetTiers(2)">2단</button>
                   <button class="fill-tier-btn" data-t="3" onclick="fillSetTiers(3)">3단</button>
                 </div>
+                <!-- Auto Optimize -->
+                <button onclick="fillAutoOptimize()" class="fill-auto-opt-btn" style="background:#00e5a0;color:#020c1b;border:none;padding:6px 12px;border-radius:4px;font-weight:900;font-size:10px;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;gap:4px;" title="메트릭스에서 최적 조합을 자동으로 선택합니다">✨ Auto-Opt</button>
+                <!-- Height -->
                 <!-- Height -->
                 <div class="fill-ctrl-grp"><label>H</label><input type="range" min="40" max="100" step="5" value="60" oninput="fillState.maxHeightLimit=+this.value;document.getElementById('fillHVal').textContent=this.value;fillState.manualWidth=null;fillCalculate(null)"><span class="val" id="fillHVal">60</span></div>
                 <!-- Fill -->
