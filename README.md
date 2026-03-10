@@ -1,4 +1,4 @@
-# SEASTAR CMS V6 — Cable Management System
+# SCMS — SEASTAR Cable Management System V6
 
 ## Project Overview
 - **Name**: SEASTAR CMS V6
