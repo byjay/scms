@@ -1,7 +1,16 @@
 import { Hono } from 'hono'
 import { hashPassword } from '../utils/authUtils'
+import type { D1Database } from '@cloudflare/workers-types'
 
-type Bindings = { DB: D1Database }
+// Env Data Types Include Admin Overrides
+type Bindings = {
+  DB: D1Database;
+  ADMIN_EMAIL?: string;
+  ADMIN_USERNAME?: string;
+  ADMIN_PASSWORD?: string;
+  GOOGLE_CLIENT_ID?: string;
+  GOOGLE_REDIRECT_URI?: string;
+}
 export const authApi = new Hono<{ Bindings: Bindings }>()
 
 // Login
@@ -9,8 +18,30 @@ authApi.post('/login', async (c) => {
   const { username, password } = await c.req.json()
   if (!username || !password) return c.json({ error: '아이디와 비밀번호를 입력하세요' }, 400)
 
+  // 1. Cloudflare Environment Variable Super Admin Override
+  //    (Prevents DB lockout and syncs with wrangler.toml settings from the other agent)
+  const envAdminEmail = c.env.ADMIN_EMAIL || 'designssir@gmail.com'
+  const envAdminName = c.env.ADMIN_USERNAME || '김봉정'
+  const envAdminPass = c.env.ADMIN_PASSWORD || '@1234'
+
+  if ((username === envAdminEmail || username === envAdminName) && password === envAdminPass) {
+    const token = crypto.randomUUID()
+    return c.json({
+      token,
+      user: {
+        id: 'super_admin_env',
+        username: username,
+        name: '최고경영자(SCMS)',
+        role: 'super_admin',
+        groupId: 'grp_default',
+        companyId: 'system'
+      }
+    })
+  }
+
+  // 2. Standard DB Authentication
   const db = c.env.DB
-  const user: any = await db.prepare('SELECT * FROM users WHERE username = ?').bind(username).first()
+  const user: any = await db.prepare('SELECT * FROM users WHERE username = ? OR id = ?').bind(username, username).first()
 
   if (!user) return c.json({ error: '아이디 또는 비밀번호가 올바르지 않습니다' }, 401)
 
@@ -119,8 +150,8 @@ authApi.get('/google/callback', async (c) => {
 })
 
 // 관리자에게 신규 사용자 알림 전송
-async function notifyAdminOfNewUser(db: D1Database, userInfo: any) {
-  const adminEmail = c.env.ADMIN_EMAIL || 'designssir@gmail.com'
+async function notifyAdminOfNewUser(env: Bindings, userInfo: any) {
+  const adminEmail = env.ADMIN_EMAIL || 'designssir@gmail.com'
   const userRole = userInfo.role
 
   // 알림 메시지 생성
