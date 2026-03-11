@@ -76,6 +76,21 @@ const EMBEDDED_NODES=[];
 
 // ---- COLUMN DEFINITIONS ----
 const CABLE_COLS=[
+  {key:'_idx',label:'#',w:44},
+  {key:'name',label:'CABLE NAME',w:160,edit:1},
+  {key:'type',label:'TYPE',w:90,edit:1},
+  {key:'system',label:'SYSTEM',w:100,edit:1},
+  {key:'fromNode',label:'FROM',w:110,edit:1},
+  {key:'toNode',label:'TO',w:110,edit:1},
+  {key:'outDia',label:'DIA(mm)',w:70,edit:1},
+  {key:'checkNode',label:'CHECK NODE',w:120,edit:1},
+  {key:'calcLen',label:'LENGTH(m)',w:80},
+  {key:'calculatedPath',label:'PATH',w:240},
+  {key:'route',label:'ROUTE',w:60,edit:0}
+];
+// 케이블 레아우팅 컬럼: Route 버튼 추가
+// selectedCables에 선택된 케이블 ID 저장
+let selectedRouteCableId = null; // 현재 레아우팅 중인 케이블 ID
   {key:'_idx',label:'#',w:44},{key:'name',label:'CABLE NAME',w:160,edit:1},
   {key:'type',label:'TYPE',w:90,edit:1},{key:'system',label:'SYSTEM',w:100,edit:1},
   {key:'fromNode',label:'FROM',w:110,edit:1},{key:'toNode',label:'TO',w:110,edit:1},
@@ -321,9 +336,19 @@ async function loadFiles(){
   const nf=document.getElementById('nodeFile').files[0];
   if(!cf&&!nf){notify('파일을 선택해주세요','warning');return}
   cableData=[];nodeData=[];filteredCableData=[];filteredNodeData=[];_nodeMap=null;selectedCables.clear();selectedRoutes.clear();
+  // Bongjeong 데이터 관련 변수 초기화
+  let bongjeongData = null;
+  let bongjeongLastUpdate = null;
+  let bongjeongEnabled = false;
+  if(!cf&&!nf){notify('파일을 선택해주세요','warning');return}
   showLoader('파일 로드 중...');
   try{
     if(cf)await loadExcel(cf,'cable');
+    // Bongjeong 데이터 가져오기
+    if(bongjeongEnabled){
+      await loadBongjeongData();
+    }
+    if(nf)await loadExcel(nf,'node');
     if(nf)await loadExcel(nf,'node');
     projectCreated=new Date();
     notify(`로드 완료: 케이블 ${cableData.length}개, 노드 ${nodeData.length}개`,'success');
@@ -351,6 +376,74 @@ function processCable(raw){
     id:i,name:idx.name>=0?String(r[idx.name]||''):'',type:idx.type>=0?String(r[idx.type]||''):'',system:idx.system>=0?String(r[idx.system]||''):'',fromNode:idx.fromNode>=0?String(r[idx.fromNode]||''):'',toNode:idx.toNode>=0?String(r[idx.toNode]||''):'',fromRoom:idx.fromRoom>=0?String(r[idx.fromRoom]||''):'',toRoom:idx.toRoom>=0?String(r[idx.toRoom]||''):'',fromEquip:idx.fromEquip>=0?String(r[idx.fromEquip]||''):'',toEquip:idx.toEquip>=0?String(r[idx.toEquip]||''):'',fromRest:idx.fromRest>=0?safePF(r[idx.fromRest]):0,toRest:idx.toRest>=0?safePF(r[idx.toRest]):0,length:idx.length>=0?safePF(r[idx.length]):0,path:idx.path>=0?String(r[idx.path]||''):'',outDia:idx.outDia>=0?safePF(r[idx.outDia]):0,checkNode:idx.checkNode>=0?String(r[idx.checkNode]||''):'',calculatedPath:'',calculatedLength:0
   })).filter(c=>c.name);
   filteredCableData=[...cableData];
+  }).filter(c=>c.name);
+  filteredCableData=[...cableData];
+}
+
+// Bongjeong 데이터 가져오기 함수
+async function loadBongjeongData(){
+  if(!bongjeongEnabled){return}
+  showLoader('Bongjeong 데이터 동기화 중...');
+  try{
+    // Bongjeong API 엔드포인트 (실제 URL 필요)
+    // const API_URL = 'https://bongjeong.seastar.work/api'; // 예시
+    // const response = await fetch(API_URL + '/cables');
+    // const data = await response.json();
+    
+    // 현재는 데모 데이터 사용
+    const demoData = [
+      {name: 'BC-001', type: 'Power', system: 'Power', fromNode: 'SF-01', toNode: 'SF-02', length: 150, outDia: 25},
+      {name: 'BC-002', type: 'Control', system: 'Control', fromNode: 'SF-01', toNode: 'SF-03', length: 200, outDia: 20},
+      {name: 'BC-003', type: 'Signal', system: 'Signal', fromNode: 'SF-01', toNode: 'SF-04', length: 180, outDia: 15}
+    ];
+    
+    // 데이터 병합
+    const existingNames = new Set(cableData.map(c => c.name));
+    demoData.forEach(c => {
+      if (!existingNames.has(c.name)) {
+        cableData.push({
+          id: cableData.length,
+          name: c.name,
+          type: c.type,
+          system: c.system,
+          fromNode: c.fromNode,
+          toNode: c.toNode,
+          fromRoom: '',
+          toRoom: '',
+          fromEquip: '',
+          toEquip: '',
+          fromRest: 0,
+          toRest: 0,
+          length: c.length,
+          outDia: c.outDia,
+          checkNode: '',
+          calculatedPath: '',
+          calculatedLength: 0
+        });
+      }
+    });
+    
+    // 실시간 데이터 업데이트
+    bongjeongLastUpdate = new Date();
+    
+    notify(`✅ Bongjeong 데이터 ${demoData.length}개 병합됨`, 'success');
+    hideLoader();
+  }catch(e){
+    notify('Bongjeong 데이터 로드 실패: ' + e.message, 'error');
+    hideLoader();
+  }
+}
+
+function enableBongjeongSync(){
+  bongjeongEnabled = true;
+  notify('✅ Bongjeong 동기화 활성화', 'success');
+  updateStatusBar();
+}
+
+function disableBongjeongSync(){
+  bongjeongEnabled = false;
+  notify('⚠ Bongjeong 동기화 비활성화', 'warning');
+  updateStatusBar();
 }
 
 function processNode(raw){
@@ -493,7 +586,17 @@ function renderCableTable(){
     const cl=c.calculatedLength>0?c.calculatedLength:(c.length||0);
     const haspath=!!c.calculatedPath;
     const pathText=haspath?c.calculatedPath.split(/\s*[,→]\s*/).filter(Boolean).join(' → '):'<span style="color:var(--t3);font-style:italic">미산출</span>';
+    const haspath=!!c.calculatedPath;
+    const pathText=haspath?c.calculatedPath.split(/\s*[,→]\s*/).filter(Boolean).join(' → '):'<span style="color:var(--t3);font-style:italic">미산출</span>';
     return `<tr class="${selectedCables.has(c.id)?'sel':''}" onclick="selectCableRow(${c.id},event)">
+      <td style="color:var(--t3);font-size:10px;">${i+1}</td>
+      <td title="${c.name}">${c.name}</td>
+      <td>${c.type||'-'}</td><td>${c.system||'-'}</td><td>${c.fromNode||'-'}</td><td>${c.toNode||'-'}</td><td>${c.outDia||'-'}</td>
+      <td>${c.checkNode||'-'}</td>
+      <td class="data">${cl>0?cl.toFixed(1):'-'}</td>
+      <td title="${c.calculatedPath||''}" class="data">${haspath?'<span style="color:var(--green)">✓</span> ':''}<span style="font-size:10px;">${pathText}</span></td>
+      <td style="padding:4px;"><button class="btn btn-c" style="font-size:9px;padding:3px 8px;" onclick="showRouteModal('${c.name}','${c.fromNode}','${c.toNode}')">🗺 Route</button></td>
+    </tr>`;
       <td style="color:var(--t3);font-size:10px">${i+1}</td>
       <td title="${c.name}">${c.name}</td>
       <td>${c.type||'-'}</td><td>${c.system||'-'}</td>
@@ -726,7 +829,85 @@ function calcSingleRoute(){
   document.getElementById('routeResult').innerHTML=uniquePath.map((n,i)=>`<span class="path-node">${n}</span>${i<uniquePath.length-1?'<span class="path-arrow">→</span>':''}`).join('');
   document.getElementById('routeMeta').innerHTML=`노드: <span style="color:var(--cyan)">${uniquePath.length}</span> | 길이: <span style="color:var(--amber)">${total} m</span>`;
   notify(`경로 산출: ${uniquePath.length}노드 / ${total}m`,'success');
+  notify(`경로 산출: ${uniquePath.length}노드 / ${total}m`,'success');
 }
+
+// 케이블 Route 모달창 표시 함수
+function showRouteModal(cableName, fromNode, toNode){
+  // 모달창 생성 및 표시
+  const modal = document.createElement('div');
+  modal.style.cssText = `
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--bg1);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    z-index: 9999;
+    min-width: 500px;
+  `;
+  
+  modal.innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <h2 style="color:var(--cyan);margin:0 0 10px 0;">🗺 케이블 Route</h2>
+      <div style="background:var(--bg0);border:1px solid var(--border);border-radius:4px;padding:12px;">
+        <div style="color:var(--t2);margin-bottom:8px;">케이블: <strong>${cableName}</strong></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <div>
+            <label style="display:block;color:var(--t2);margin-bottom:4px;">FROM 노드:</label>
+            <input type="text" id="routeModalFrom" value="${fromNode}" readonly style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:6px;color:var(--t1);font-size:11px;">
+          </div>
+          <div>
+            <label style="display:block;color:var(--t2);margin-bottom:4px;">TO 노드:</label>
+            <input type="text" id="routeModalTo" value="toNode}" readonly style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:6px;color:var(--t1);font-size:11px;">
+          </div>
+          <div>
+            <label style="display:block;color:var(--t2);margin-bottom:4px;">CHECK NODE (콤마로 구분):</label>
+            <input type="text" id="routeModalCheck" placeholder="경유지 노드..." style="width:100%;background:var(--bg0);border:1px solid var(--border);border-radius:4px;padding:6px;color:var(--t1);font-size:11px;">
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:12px;justify-content:flex-end;">
+          <button onclick="closeRouteModal()" style="background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:6px 16px;color:var(--t2);cursor:pointer;">닫기</button>
+          <button onclick="calculateRouteFromModal()" style="background:var(--purple);border:1px solid var(--border);border-radius:4px;padding:6px 16px;color:var(--t0);font-weight:900;cursor:pointer;">🗺 경로 계산</button>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+  
+  // 외부 클릭 시 닫기
+  modal.onclick = (e) => {
+    if (e.target === modal) {
+      closeRouteModal();
+    }
+  };
+}
+  
+  // 경로 계산 함수
+  function calculateRouteFromModal(){
+    const checkNode = document.getElementById('routeModalCheck').value.trim();
+    // 현재는 ROUTING 탭의 rtFrom, rtTo, rtCheck 입력을 사용
+    document.getElementById('rtFrom').value = fromNode;
+    document.getElementById('rtTo').toNode = toNode;
+    document.getElementById('rtCheck').value = checkNode;
+    // 경로 계산 실행
+    calcSingleRoute();
+  }
+  
+  // 모달창 닫기 함수
+  function closeRouteModal(){
+    const modal = document.querySelector('.route-modal');
+    if(modal){
+      document.body.removeChild(modal);
+    }
+  }
+}
+
+// ---- FILL SOLVER (Advanced Tray Physics) ----
 
 // ---- FILL SOLVER (Advanced Tray Physics) ----
 const FILL_MARGIN_X=10, FILL_LARGE_CABLE_THRESHOLD=20, FILL_TARGET_FILL_RATE=60, FILL_LOW_FILL_THRESHOLD=35;
@@ -1476,7 +1657,34 @@ function updateLengthStats(){
   if(!lens.length){el.innerHTML='<div style="color:var(--t3);font-size:11px">길이 데이터 없음</div>';return}
   const total=lens.reduce((s,l)=>s+l,0),avg=total/lens.length,med=lens[Math.floor(lens.length/2)];
   el.innerHTML=[['총 길이',Math.round(total)+'m'],['평균',avg.toFixed(1)+'m'],['중간값',med.toFixed(1)+'m'],['최소',lens[0].toFixed(1)+'m'],['최대',lens[lens.length-1].toFixed(1)+'m'],['산출',cableData.filter(c=>c.calculatedPath).length+'/'+cableData.length]].map(([k,v])=>`<div class="stat-row"><div class="srl">${k}</div><div class="srr">${v}</div></div>`).join('');
-}
+  const setT=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v};
+  // 실시간 업데이트 관련 변수 초기화
+  let lastUpdateTime=null;
+  let deadline = new Date(new Date().getTime() + 8*60*1000); // 8시간 타임아웃
+  
+  // 실시간 업데이트 함수
+  function updateRealtimeStats(){
+    if(document.getElementById('deadline')){
+      const now = new Date();
+      const elapsed = Math.floor((deadline - now.getTime()) / 1000);
+      const mins = Math.floor(elapsed / 60000);
+      if (elapsed > 0) {
+        document.getElementById('deadline').textContent = `${mins}분 남음`;
+      } else {
+        document.getElementById('deadline').textContent = `마감 완료`;
+      }
+    }
+    setT('sbCables',cableData.length);
+    setT('sbNodes',nodeData.length);
+    setT('sbFiltered',`${filteredCableData.length}/${cableData.length}`);
+    setT('sbTime',now());
+    // 초마다 updateRealtimeStats() 호출 (WebSocket 실시간 업데이트 구현 시 사용 예정)
+    setInterval(()=>{updateRealtimeStats();updateStatusBar();}, 1000);
+  }
+  setT('sbCables',cableData.length);
+  setT('sbNodes',nodeData.length);
+  setT('sbFiltered',`${filteredCableData.length}/${cableData.length}`);
+  setT('sbTime',now());
 function updateTopNodes(){
   const el=document.getElementById('topNodes');if(!el||!nodeData.length)return;
   const top=nodeData.slice().sort((a,b)=>b.connectedCables-a.connectedCables).slice(0,15);
@@ -1504,6 +1712,15 @@ async function renderAdminPanels(){
     </tr>`).join('')}</tbody></table>`;
     const gl=document.getElementById('adminGroupList');
     if(gl)gl.innerHTML=`<table class="dt" style="font-size:11px"><thead><tr><th>ID</th><th>이름</th><th>작업</th></tr></thead><tbody>${groups.map(g=>`<tr>
+      <td>${g.id}</td><td>${g.name}</td>
+      <td>${g.id!=='grp_default'?`<button class="btn btn-r" style="font-size:8px;padding:2px 5px" onclick="deleteGroup('${g.id}')">삭제</button>`:''}</td>
+    </tr>`).join('')}</tbody></table>`;
+    // 프로젝트 이름 표시
+    const projectNameSpan=document.getElementById('hdrShipName');
+    if(projectNameSpan){
+      projectNameSpan.textContent=currentShip?.name||'';
+    }
+    const users=ur.users||[],groups=gr.groups||[];
       <td>${g.id}</td><td>${g.name}</td>
       <td>${g.id!=='grp_default'?`<button class="btn btn-r" style="font-size:8px;padding:2px 5px" onclick="deleteGroup('${g.id}')">삭제</button>`:''}</td>
     </tr>`).join('')}</tbody></table>`;
@@ -1569,7 +1786,14 @@ function buildAppHTML(){
       <div class="hdr-stat">📌 Cables: <span id="hdrCableCount" style="color:var(--cyan)">0</span></div>
       <div class="hdr-stat">🗂 Nodes: <span id="hdrNodeCount" style="color:var(--green)">0</span></div>
       <div class="hdr-stat">🗺 Paths: <span id="hdrPathCount" style="color:var(--amber)">0</span></div>
-      <div class="hdr-actions">
+      <div class="hdr-right">
+        <div class="hdr-stat">📌 Cables: <span id="headerCableCount">0</span></div>
+        <div class="hdr-stat">🗂 Nodes: <span id="headerNodeCount">0</span></div>
+        <div class="hdr-stat">🗺 Paths: <span id="headerPathCount">0</span></div>
+        <div class="live-indicator" style="display:none;font-size:9px;padding:2px 6px;background:#ff4d4d;color:#fff;border-radius:3px;">🔴 LIVE</span>
+        <span id="headerCableCount">0</span> cables
+        <span id="headerNodeCount">0</span> nodes
+        </div>
         <button class="btn btn-gh" onclick="undoAction()" title="Ctrl+Z">↩</button>
         <button class="btn btn-gh" onclick="redoAction()" title="Ctrl+Y">↪</button>
       </div>
@@ -1611,6 +1835,8 @@ function buildAppHTML(){
       <div class="sb-sec"><div class="sb-lbl">💾 Project</div>
         <button class="sb-btn g" onclick="saveShipProject()">💾 프로젝트 저장</button>
         <button class="sb-btn" onclick="showShipSelectModal()">📂 프로젝트 열기</button>
+        <button class="sb-btn" onclick="showShipSelectModal()">📂 프로젝트 열기</button>
+        <button class="sb-btn" style="background:var(--purple);" onclick="showNewShipModal()">✨ 새로드 (Bongjeong)</button>
       </div>
       <div class="sb-sec"><div class="sb-lbl">📤 Export</div>
         <button class="sb-btn g" onclick="exportExcel()">📋 Excel 내보내기</button>
