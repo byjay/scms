@@ -6,6 +6,9 @@ on:
       - main
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -17,7 +20,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
 
       - name: Rebuild runtime bundle
         run: node ./tools/build-seastar-v3.js
@@ -25,9 +28,27 @@ jobs:
       - name: Validate bundle and worker
         run: node ./tools/check-seastar-v3.js
 
+      - name: Check Cloudflare secrets
+        id: cloudflare-secrets
+        env:
+          CF_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -n "$CF_API_TOKEN" ] && [ -n "$CF_ACCOUNT_ID" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "Cloudflare deployment skipped because repository secrets are not configured."
+          fi
+
       - name: Deploy to Cloudflare Workers
+        if: steps.cloudflare-secrets.outputs.configured == 'true'
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: deploy
+
+      - name: Skip deploy notice
+        if: steps.cloudflare-secrets.outputs.configured != 'true'
+        run: echo "Cloudflare deployment was skipped. Configure CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID to enable GitHub Actions deploys."
