@@ -144,7 +144,8 @@ button {
 }
 
 .login-video {
-  object-fit: cover;
+  object-fit: contain;
+  background: #081421;
 }
 
 .login-media-fallback {
