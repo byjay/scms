@@ -1,6 +1,9 @@
 backend/
 tools/
 .github/
+.git/
+.wrangler/
+ops-skills/
 *.md
 package.json
 package-lock.json
