@@ -149,9 +149,7 @@ button {
 }
 
 .login-media-fallback {
-  background:
-    linear-gradient(180deg, rgba(8, 20, 33, 0.3), rgba(8, 20, 33, 0.92)),
-    url("./logo.jpg") center / 180px auto no-repeat;
+  background: linear-gradient(180deg, rgba(8, 20, 33, 0.12), rgba(8, 20, 33, 0.48));
   pointer-events: none;
 }
 
