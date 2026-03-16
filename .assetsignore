@@ -1,0 +1,10 @@
+backend/
+tools/
+.github/
+*.md
+package.json
+package-lock.json
+node_modules/
+.gitignore
+.assetsignore
+wrangler.toml

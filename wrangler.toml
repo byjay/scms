@@ -1,0 +1,10 @@
+name = "scms"
+main = "./backend/auth-worker.js"
+compatibility_date = "2026-03-16"
+workers_dev = true
+
+[assets]
+directory = "."
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+run_worker_first = ["/api/*"]
