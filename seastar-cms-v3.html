@@ -24,44 +24,21 @@
 
   <div id="loginOverlay" class="login-overlay">
     <div class="login-shell">
-      <section class="login-media">
+      <section class="login-media" aria-label="SCMS video background">
         <video class="login-video" autoplay muted loop playsinline>
           <source src="./assets/scms.mp4" type="video/mp4">
         </video>
-        <div class="login-media-fallback"></div>
-        <div class="login-media-copy">
-          <p class="eyebrow">SEASTAR CMS V3</p>
-          <h1>Routing, Validation, and Auth in one control deck</h1>
-          <p class="lead">
-            경로 산출, 3중 크로스 검증, 상단 고정 편집기, 2D/3D 맵, Google/Naver/관리자 로그인을
-            하나의 작업 화면으로 정리한 최종 작업본입니다.
-          </p>
-          <div class="login-stat-grid">
-            <div class="login-stat">
-              <span class="login-stat-label">Validation</span>
-              <strong>Graph + Route + Map</strong>
-            </div>
-            <div class="login-stat">
-              <span class="login-stat-label">Length Rule</span>
-              <strong>Graph + FROM_REST + TO_REST</strong>
-            </div>
-            <div class="login-stat">
-              <span class="login-stat-label">Editor</span>
-              <strong>Always-on 3 Row Dock</strong>
-            </div>
-          </div>
-        </div>
+        <div class="login-media-fallback" aria-hidden="true"></div>
       </section>
 
       <section class="login-card">
         <div class="login-card-head">
-          <img src="./assets/logo.jpg" alt="Seastar logo" class="login-logo">
           <div>
             <p class="eyebrow">Secure Access</p>
             <h2>SEASTAR CMS V3</h2>
             <p class="muted">
-              백엔드가 연결되면 Google/Naver/로컬 로그인이 모두 동작하고,
-              상용 배포에서는 인증 워커와 서버 환경설정이 연결된 상태로만 로그인할 수 있습니다.
+              Google, Naver, 관리자 계정으로 로그인할 수 있습니다.
+              운영 배포에서는 인증 워커와 서버 환경설정이 연결된 상태에서만 로그인 기능이 활성화됩니다.
             </p>
           </div>
         </div>
@@ -72,7 +49,7 @@
         <button id="overlayLogoutBtn" class="toolbar-btn subtle hidden" type="button">로그아웃</button>
 
         <div class="auth-group">
-          <div class="group-title">Social Login</div>
+          <div class="group-title">소셜 로그인</div>
           <div id="googleButtonHost" class="google-button-host"></div>
           <button id="naverLoginBtn" class="auth-btn naver" type="button">Naver 로그인</button>
         </div>
@@ -89,12 +66,12 @@
           </label>
           <button id="localLoginBtn" class="auth-btn local" type="button">관리자 로그인</button>
           <p id="loginHint" class="login-hint">
-            관리자 계정은 서버 환경설정에서만 관리됩니다.
+            관리자 계정은 서버 환경설정에서만 활성화됩니다.
           </p>
         </details>
 
         <div id="authBackendHint" class="login-note">
-          인증 워커가 없으면 모든 로그인 버튼이 제한됩니다. 운영 환경에서는 인증 워커와 환경변수를 먼저 연결하세요.
+          로그인 방식을 선택해 주세요. Google, Naver 로그인은 OAuth 설정이 연결되어야 사용할 수 있습니다.
         </div>
       </section>
     </div>
