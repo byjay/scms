@@ -5479,15 +5479,10 @@
       mediaCopy.remove();
     }
 
-    const loginLogo = document.querySelector('.login-card-head .login-logo');
-    if (loginLogo) {
-      loginLogo.remove();
-    }
-
     const loginCardHead = document.querySelector('.login-card-head');
     if (loginCardHead) {
-      loginCardHead.style.gridTemplateColumns = '1fr';
-      loginCardHead.style.gap = '0';
+      loginCardHead.style.gridTemplateColumns = '';
+      loginCardHead.style.gap = '';
     }
 
     const loginVideo = document.querySelector('.login-video');

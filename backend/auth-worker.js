@@ -26,13 +26,13 @@ export default {
 
       if (path === '/local/login' && request.method === 'POST') {
         const body = await safeJson(request);
-        const username = String(body.username || '').trim();
-        const password = String(body.password || '');
+        const username = normalizeCredential(body.username);
+        const password = normalizeCredential(body.password);
         const adminIdentity = getAdminIdentity(env);
         if (!adminIdentity.enabled) {
           return json(request, { success: false, message: 'Local admin login is not configured.' }, 503);
         }
-        if (username !== adminIdentity.username || password !== adminIdentity.password) {
+        if (!matchesAdminLogin(username, adminIdentity) || password !== adminIdentity.password) {
           return json(request, { success: false, message: '관리자 로그인 정보가 올바르지 않습니다.' }, 401);
         }
         const store = await loadStore(env);
@@ -879,16 +879,32 @@ function base64urlDecode(value) {
 }
 
 function getAdminIdentity(env) {
-  const username = String(env.ADMIN_USERNAME || '').trim();
-  const password = String(env.ADMIN_PASSWORD || '');
+  const username = normalizeCredential(env.ADMIN_USERNAME);
+  const password = normalizeCredential(env.ADMIN_PASSWORD);
   const name = String(env.ADMIN_NAME || '').trim();
   return {
     enabled: Boolean(username && password),
     username,
     password,
     name: name || '관리자',
-    email: String(env.ADMIN_EMAIL || '').trim()
+    email: normalizeCredential(env.ADMIN_EMAIL)
   };
+}
+
+function matchesAdminLogin(input, adminIdentity) {
+  const normalized = normalizeCredential(input);
+  if (!normalized) return false;
+  const candidates = [adminIdentity.username, adminIdentity.name, adminIdentity.email]
+    .map((value) => String(value || '').trim())
+    .filter(Boolean);
+  return candidates.includes(normalized);
+}
+
+function normalizeCredential(value) {
+  return String(value || '')
+    .normalize('NFKC')
+    .replace(/[\u0000-\u001f\u007f\u00a0\u200b\uFEFF]/g, '')
+    .trim();
 }
 
 function getAdminDisplayName(env) {

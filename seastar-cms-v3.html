@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -18,7 +18,7 @@
   <div id="busyOverlay" class="busy-overlay hidden">
     <div class="busy-card">
       <div class="busy-spinner"></div>
-      <div id="busyText" class="busy-text">준비 중...</div>
+      <div id="busyText" class="busy-text">以鍮?以?..</div>
     </div>
   </div>
 
@@ -31,14 +31,14 @@
         <div class="login-media-fallback" aria-hidden="true"></div>
       </section>
 
-      <section class="login-card">
+            <section class="login-card">
         <div class="login-card-head">
+          <img src="./assets/logo.jpg" alt="Seastar logo" class="login-logo">
           <div>
             <p class="eyebrow">Secure Access</p>
             <h2>SEASTAR CMS V3</h2>
             <p class="muted">
-              Google, Naver, 관리자 계정으로 로그인할 수 있습니다.
-              운영 배포에서는 인증 워커와 서버 환경설정이 연결된 상태에서만 로그인 기능이 활성화됩니다.
+              Google, Naver, 관리자 계정으로 로그인할 수 있습니다. 운영 배포에서는 인증 워커와 서버 환경설정이 연결된 상태에서만 로그인 기능이 활성화됩니다.
             </p>
           </div>
         </div>
@@ -65,9 +65,7 @@
             <input id="loginPw" type="password" autocomplete="current-password" placeholder="관리자 비밀번호">
           </label>
           <button id="localLoginBtn" class="auth-btn local" type="button">관리자 로그인</button>
-          <p id="loginHint" class="login-hint">
-            관리자 계정은 서버 환경설정에서만 활성화됩니다.
-          </p>
+          <p id="loginHint" class="login-hint">관리자 계정은 서버 환경설정에서만 활성화됩니다.</p>
         </details>
 
         <div id="authBackendHint" class="login-note">
@@ -102,7 +100,7 @@
             <span id="userProvider" class="badge badge-neutral">local</span>
             <span id="userGroup" class="badge badge-success">NO GROUP</span>
           </div>
-          <button id="logoutBtn" class="toolbar-btn subtle" type="button">로그아웃</button>
+          <button id="logoutBtn" class="toolbar-btn subtle" type="button">濡쒓렇?꾩썐</button>
         </div>
       </div>
     </header>
@@ -129,13 +127,13 @@
 
       <div class="toolbar-right">
         <label class="toolbar-field">
-          <span>검색</span>
-          <input id="searchInput" type="search" placeholder="케이블명, 노드, 시스템">
+          <span>寃??/span>
+          <input id="searchInput" type="search" placeholder="耳?대툝紐? ?몃뱶, ?쒖뒪??>
         </label>
         <label class="toolbar-field">
-          <span>검증</span>
+          <span>寃利?/span>
           <select id="validationFilter">
-            <option value="ALL">전체</option>
+            <option value="ALL">?꾩껜</option>
             <option value="PASS">PASS</option>
             <option value="WARN">WARN</option>
             <option value="FAIL">FAIL</option>
@@ -143,9 +141,9 @@
           </select>
         </label>
         <label class="toolbar-field">
-          <span>시스템</span>
+          <span>?쒖뒪??/span>
           <select id="systemFilter">
-            <option value="ALL">전체</option>
+            <option value="ALL">?꾩껜</option>
           </select>
         </label>
       </div>
@@ -153,19 +151,19 @@
 
     <section class="summary-strip">
       <div class="summary-card">
-        <span>케이블</span>
+        <span>耳?대툝</span>
         <strong id="metricCables">0</strong>
       </div>
       <div class="summary-card">
-        <span>업로드 노드</span>
+        <span>?낅줈???몃뱶</span>
         <strong id="metricUploadedNodes">0</strong>
       </div>
       <div class="summary-card">
-        <span>병합 노드</span>
+        <span>蹂묓빀 ?몃뱶</span>
         <strong id="metricMergedNodes">0</strong>
       </div>
       <div class="summary-card">
-        <span>산출 완료</span>
+        <span>?곗텧 ?꾨즺</span>
         <strong id="metricRouted">0</strong>
       </div>
       <div class="summary-card">
@@ -173,7 +171,7 @@
         <strong id="metricValidation">0 / 0 / 0</strong>
       </div>
       <div class="summary-card">
-        <span>그래프 이슈</span>
+        <span>洹몃옒???댁뒋</span>
         <strong id="metricGraphIssues">0</strong>
       </div>
     </section>
@@ -332,7 +330,7 @@
             <div class="panel-header">
               <div>
                 <p class="eyebrow">Master List</p>
-                <h3>필수 양식 고정 리스트</h3>
+                <h3>?꾩닔 ?묒떇 怨좎젙 由ъ뒪??/h3>
               </div>
               <div id="listCount" class="panel-meta">0 / 0</div>
             </div>
@@ -349,12 +347,12 @@
             <div class="panel-header">
               <div>
                 <p class="eyebrow">Selected Cable</p>
-                <h3>길이 분해와 검증 결과</h3>
+                <h3>湲몄씠 遺꾪빐? 寃利?寃곌낵</h3>
               </div>
             </div>
 
             <div id="detailEmpty" class="empty-state">
-              케이블을 선택하면 상세 경로, 검증 결과, 미니 2D 맵이 여기에 표시됩니다.
+              耳?대툝???좏깮?섎㈃ ?곸꽭 寃쎈줈, 寃利?寃곌낵, 誘몃땲 2D 留듭씠 ?ш린???쒖떆?⑸땲??
             </div>
 
             <div id="detailContent" class="detail-content hidden">
@@ -408,7 +406,7 @@
             <div class="panel-header">
               <div>
                 <p class="eyebrow">Manual Route</p>
-                <h3>수동 경로 검증과 경유 노드 체크</h3>
+                <h3>?섎룞 寃쎈줈 寃利앷낵 寃쎌쑀 ?몃뱶 泥댄겕</h3>
               </div>
             </div>
 
@@ -423,7 +421,7 @@
               </label>
               <label class="field">
                 <span>CHECK NODE</span>
-                <input id="routeCheck" type="text" placeholder="쉼표로 구분">
+                <input id="routeCheck" type="text" placeholder="?쇳몴濡?援щ텇">
               </label>
               <label class="field">
                 <span>FROM_REST</span>
@@ -436,23 +434,23 @@
             </div>
 
             <div class="editor-actions route-actions">
-              <button id="previewRouteBtn" class="toolbar-btn accent" type="button">경로 미리보기</button>
-              <button id="clearPreviewBtn" class="toolbar-btn subtle" type="button">미리보기 해제</button>
-              <button id="useSelectedRouteBtn" class="toolbar-btn" type="button">선택 케이블 값 가져오기</button>
+              <button id="previewRouteBtn" class="toolbar-btn accent" type="button">寃쎈줈 誘몃━蹂닿린</button>
+              <button id="clearPreviewBtn" class="toolbar-btn subtle" type="button">誘몃━蹂닿린 ?댁젣</button>
+              <button id="useSelectedRouteBtn" class="toolbar-btn" type="button">?좏깮 耳?대툝 媛?媛?몄삤湲?/button>
             </div>
 
             <div class="detail-block">
               <div class="block-title">Route Result</div>
-              <div id="routePreviewMeta" class="map-meta">선택된 경로가 없습니다.</div>
+              <div id="routePreviewMeta" class="map-meta">?좏깮??寃쎈줈媛 ?놁뒿?덈떎.</div>
               <div id="routePreviewPath" class="path-chip-list"></div>
             </div>
 
             <div class="detail-block">
-              <div class="block-title">3중 검증 방법</div>
+              <div class="block-title">3以?寃利?諛⑸쾿</div>
               <ol class="validation-steps">
-                <li>1차 Graph Cross Check: 노드 존재, relation 대상, 비대칭 relation, 단절 여부를 확인합니다.</li>
-                <li>2차 Route Cross Check: path의 연속 edge 실존 여부와 graphLength 합산, FROM_REST/TO_REST 반영을 확인합니다.</li>
-                <li>3차 Map Cross Check: 2D/3D가 같은 path를 사용하고 좌표 부족이 정확히 경고되는지 확인합니다.</li>
+                <li>1李?Graph Cross Check: ?몃뱶 議댁옱, relation ??? 鍮꾨?移?relation, ?⑥젅 ?щ?瑜??뺤씤?⑸땲??</li>
+                <li>2李?Route Cross Check: path???곗냽 edge ?ㅼ〈 ?щ?? graphLength ?⑹궛, FROM_REST/TO_REST 諛섏쁺???뺤씤?⑸땲??</li>
+                <li>3李?Map Cross Check: 2D/3D媛 媛숈? path瑜??ъ슜?섍퀬 醫뚰몴 遺議깆씠 ?뺥솗??寃쎄퀬?섎뒗吏 ?뺤씤?⑸땲??</li>
               </ol>
             </div>
 
@@ -469,7 +467,7 @@
                 <div class="panel-header">
                   <div>
                     <p class="eyebrow">2D Validation Map</p>
-                    <h3>경로와 연결 상태를 직접 확인</h3>
+                    <h3>寃쎈줈? ?곌껐 ?곹깭瑜?吏곸젒 ?뺤씤</h3>
                   </div>
                 </div>
                 <canvas id="routeMapCanvas" class="map-canvas"></canvas>
@@ -480,7 +478,7 @@
                 <div class="panel-header">
                   <div>
                     <p class="eyebrow">3D Companion View</p>
-                    <h3>동일 경로의 보조 시각화</h3>
+                    <h3>?숈씪 寃쎈줈??蹂댁“ ?쒓컖??/h3>
                   </div>
                 </div>
                 <div id="threeContainer" class="three-container"></div>
@@ -497,7 +495,7 @@
             <div class="panel-header">
               <div>
                 <p class="eyebrow">Node Menu</p>
-                <h3>전체 노드 리스트와 자동 Tray Width</h3>
+                <h3>?꾩껜 ?몃뱶 由ъ뒪?몄? ?먮룞 Tray Width</h3>
               </div>
               <div id="nodeListCount" class="panel-meta">0 / 0</div>
             </div>
@@ -552,9 +550,9 @@
             <div class="panel-header">
               <div>
                 <p class="eyebrow">Node Focus</p>
-                <h3 id="nodeDetailTitle">노드를 선택해 주세요</h3>
+                <h3 id="nodeDetailTitle">?몃뱶瑜??좏깮??二쇱꽭??/h3>
               </div>
-              <div id="nodeDetailMeta" class="panel-meta">리스트를 더블클릭하면 3D 맵에서 포커스됩니다.</div>
+              <div id="nodeDetailMeta" class="panel-meta">由ъ뒪?몃? ?붾툝?대┃?섎㈃ 3D 留듭뿉???ъ빱?ㅻ맗?덈떎.</div>
             </div>
 
             <div class="detail-cards node-detail-cards">
@@ -604,7 +602,7 @@
                 <div class="panel-header">
                   <div>
                     <p class="eyebrow">2D Node Map</p>
-                    <h3>리스트와 같은 노드 좌표를 2D로 확인</h3>
+                    <h3>由ъ뒪?몄? 媛숈? ?몃뱶 醫뚰몴瑜?2D濡??뺤씤</h3>
                   </div>
                 </div>
                 <canvas id="nodeMapCanvas" class="map-canvas"></canvas>
@@ -615,7 +613,7 @@
                 <div class="panel-header">
                   <div>
                     <p class="eyebrow">3D Node Focus</p>
-                    <h3>전체 노드 위에서 선택 노드를 강조</h3>
+                    <h3>?꾩껜 ?몃뱶 ?꾩뿉???좏깮 ?몃뱶瑜?媛뺤“</h3>
                   </div>
                 </div>
                 <div id="nodeThreeContainer" class="three-container"></div>
@@ -808,9 +806,9 @@
             <div class="panel-header">
               <div>
                 <p class="eyebrow">Group Space</p>
-                <h3>승인된 그룹별 전용 공간</h3>
+                <h3>?뱀씤??洹몃９蹂??꾩슜 怨듦컙</h3>
               </div>
-              <div id="spaceStatus" class="panel-meta">로그인 후 사용할 수 있습니다.</div>
+              <div id="spaceStatus" class="panel-meta">濡쒓렇?????ъ슜?????덉뒿?덈떎.</div>
             </div>
 
             <div class="detail-cards">
@@ -846,12 +844,12 @@
             <div class="space-grid">
               <div class="detail-block">
                 <div class="block-title">Announcement</div>
-                <textarea id="spaceAnnouncement" class="space-textarea" placeholder="그룹 공지와 공용 메모를 입력하세요."></textarea>
+                <textarea id="spaceAnnouncement" class="space-textarea" placeholder="洹몃９ 怨듭?? 怨듭슜 硫붾え瑜??낅젰?섏꽭??"></textarea>
               </div>
 
               <div class="detail-block">
                 <div class="block-title">Workspace Notes</div>
-                <textarea id="spaceNotes" class="space-textarea tall" placeholder="그룹별 작업 기준, 인수인계, 특이사항을 남기세요."></textarea>
+                <textarea id="spaceNotes" class="space-textarea tall" placeholder="洹몃９蹂??묒뾽 湲곗?, ?몄닔?멸퀎, ?뱀씠?ы빆???④린?몄슂."></textarea>
               </div>
             </div>
 
@@ -865,7 +863,7 @@
             <div class="panel-header">
               <div>
                 <p class="eyebrow">Admin Queue</p>
-                <h3>사용 요청 승인과 그룹 배정</h3>
+                <h3>?ъ슜 ?붿껌 ?뱀씤怨?洹몃９ 諛곗젙</h3>
               </div>
               <button id="refreshAdminBtn" class="toolbar-btn" type="button">Refresh Queue</button>
             </div>
@@ -885,7 +883,7 @@
               </div>
               <div class="detail-card">
                 <span>ADMIN</span>
-                <strong id="adminDisplayName">관리자</strong>
+                <strong id="adminDisplayName">愿由ъ옄</strong>
               </div>
             </div>
 
@@ -903,7 +901,7 @@
             <div class="panel-header">
               <div>
                 <p class="eyebrow">Validation Summary</p>
-                <h3>3중 크로스 검증 집계</h3>
+                <h3>3以??щ줈??寃利?吏묎퀎</h3>
               </div>
               <div id="diagnosticRunAt" class="panel-meta">-</div>
             </div>
@@ -937,7 +935,7 @@
             <div class="panel-header">
               <div>
                 <p class="eyebrow">Cable Diagnostics</p>
-                <h3>문제가 있는 케이블 우선 표시</h3>
+                <h3>臾몄젣媛 ?덈뒗 耳?대툝 ?곗꽑 ?쒖떆</h3>
               </div>
             </div>
             <div id="diagnosticCableTable" class="diagnostic-table grow"></div>
@@ -954,3 +952,4 @@
   <div id="toastStack" class="toast-stack"></div>
 </body>
 </html>
+
