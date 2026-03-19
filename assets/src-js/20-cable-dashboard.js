@@ -233,7 +233,7 @@
     }
 
     const before = structuredCloneCompatible(cable);
-    const normalizedCheckNode = parseNodeList(dom.editCheckNode.value).join(', ');
+    const normalizedCheckNode = parseNodeList(dom.editCheckNode.value, false).join(', ');
     const nextValues = {
       name: trimText(dom.editName.value),
       type: trimText(dom.editType.value),
@@ -290,7 +290,7 @@
       }
 
       if (options.forceRoute) {
-        cable.path = cable.calculatedPath || [cable.fromNode, ...parseNodeList(cable.checkNode), cable.toNode].join(' -> ');
+        cable.path = cable.calculatedPath || [cable.fromNode, ...parseNodeList(cable.checkNode, false), cable.toNode].join(' -> ');
       }
 
       if (options.validate || options.recalc || options.forceRoute || validationChanged) {

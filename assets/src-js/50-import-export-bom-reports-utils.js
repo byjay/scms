@@ -65,6 +65,8 @@
     const cableRows = resolveWorkbookRows(rawSheets, ['Cables', 'Cable List', 'CableList', 'Cable_List'], looksLikeCableRows, true);
     const nodeRows = resolveWorkbookRows(rawSheets, ['Nodes', 'ProjectNodes', 'UploadedNodes', 'Node Info', 'NodeInfo'], looksLikeNodeRows, false);
     const metaRows = resolveWorkbookRows(rawSheets, ['ProjectMeta', 'Meta', 'Summary'], looksLikeMetaRows, false);
+    const nodeTrayRows = resolveWorkbookRows(rawSheets, ['NodeTray', 'TrayOverrides', 'Tray_Overrides'], looksLikeNodeTrayRows, false);
+    const projectMeta = rowsToKeyValue(metaRows);
 
     return {
       workbook: true,
@@ -72,9 +74,27 @@
       sheets: {
         ...rawSheets,
         Cables: cableRows,
-        Nodes: nodeRows
+        Nodes: nodeRows,
+        NodeTray: nodeTrayRows
       },
-      projectMeta: rowsToKeyValue(metaRows),
+      projectMeta,
+      nodeTray: {
+        maxHeightLimit: Math.max(50, toNumber(projectMeta.nodeTrayMaxHeight, 150)),
+        fillRatioLimit: Math.max(10, Math.min(90, toNumber(projectMeta.nodeTrayFillRatioLimit, 40))),
+        tierCount: Math.max(1, Math.min(6, Math.round(toNumber(projectMeta.nodeTrayTierCount, 1)))),
+        overrides: nodeTrayRows.reduce((map, row) => {
+          const name = trimText(row.NODE_NAME || row.NodeName || row.node_name || row.nodeName);
+          if (!name) return map;
+          map[name] = {
+            width: Math.max(0, toNumber(row.TRAY_WIDTH || row.tray_width, 0)),
+            tierCount: Math.max(1, Math.min(6, Math.round(toNumber(row.TIER_COUNT || row.tier_count, 1)))),
+            maxHeightLimit: Math.max(50, toNumber(row.MAX_HEIGHT || row.max_height, Math.max(50, toNumber(projectMeta.nodeTrayMaxHeight, 150)))),
+            fillRatioLimit: Math.max(10, Math.min(90, toNumber(row.FILL_LIMIT || row.fill_limit, Math.max(10, Math.min(90, toNumber(projectMeta.nodeTrayFillRatioLimit, 40)))))),
+            updatedAt: trimText(row.UPDATED_AT || row.updated_at || '')
+          };
+          return map;
+        }, {})
+      },
       cables: cableRows,
       nodes: nodeRows
     };
@@ -117,6 +137,12 @@
     if (!Array.isArray(rows) || !rows.length) return false;
     const keys = Object.keys(rows[0] || {}).map((key) => normalizeKey(key));
     return keys.includes('key') && keys.includes('value');
+  }
+
+  function looksLikeNodeTrayRows(rows) {
+    if (!Array.isArray(rows) || !rows.length) return false;
+    const keys = Object.keys(rows[0] || {}).map((key) => normalizeKey(key));
+    return keys.includes('nodename') || (keys.includes('traywidth') && keys.includes('tiercount'));
   }
 
   function rowsToKeyValue(rows) {
@@ -200,7 +226,10 @@
       { KEY: 'cableCount', VALUE: state.cables.length },
       { KEY: 'uploadedNodeCount', VALUE: state.uploadedNodes.length },
       { KEY: 'mergedNodeCount', VALUE: state.mergedNodes.length },
-      { KEY: 'bomMarginPct', VALUE: state.bom.marginPct }
+      { KEY: 'bomMarginPct', VALUE: state.bom.marginPct },
+      { KEY: 'nodeTrayMaxHeight', VALUE: state.nodeTray.maxHeightLimit },
+      { KEY: 'nodeTrayFillRatioLimit', VALUE: state.nodeTray.fillRatioLimit },
+      { KEY: 'nodeTrayTierCount', VALUE: state.nodeTray.tierCount }
     ];
     const comparisonRows = VERSION_COMPARISON_ROWS.map((row) => ({
       VERSION: row.version,
@@ -208,11 +237,20 @@
       LIMITATIONS: row.gaps,
       V3_RESOLUTION: row.v3Delta
     }));
+    const nodeTrayRows = Object.entries(state.nodeTray.overrides || {}).map(([name, override]) => ({
+      NODE_NAME: name,
+      TRAY_WIDTH: override?.width || 0,
+      TIER_COUNT: override?.tierCount || 1,
+      MAX_HEIGHT: override?.maxHeightLimit || state.nodeTray.maxHeightLimit,
+      FILL_LIMIT: override?.fillRatioLimit || state.nodeTray.fillRatioLimit,
+      UPDATED_AT: override?.updatedAt || ''
+    }));
 
     const workbook = window.XLSX.utils.book_new();
     appendSheet(workbook, 'ProjectMeta', metaRows);
     appendSheet(workbook, 'Cables', allCableRows);
     appendSheet(workbook, 'Nodes', nodeRows);
+    appendSheet(workbook, 'NodeTray', nodeTrayRows);
     appendSheet(workbook, 'GraphNodes', graphRows);
     appendSheet(workbook, 'ValidationDetails', validationRows);
     appendSheet(workbook, 'BOM', bomRows);
@@ -294,8 +332,13 @@
       MAX_CABLE: maxCable,
       NODE_CABLE_COUNT: metric?.cableCount || 0,
       TOTAL_OUTDIA: metric?.totalOutDia || 0,
+      TOTAL_AREA: metric?.totalCrossSectionArea || 0,
+      AREA_FILL_PCT: metric?.areaFillRatio || 0,
       TRAY_WIDTH: metric?.recommendedTrayWidth || 0,
       TRAY_FILL_RATIO: metric?.fillRatio || 0,
+      TRAY_TIERS: metric?.effectiveTierCount || 1,
+      TRAY_OVERRIDE_WIDTH: metric?.overrideWidth || 0,
+      TRAY_OVERRIDE_TIERS: metric?.overrideTierCount || 0,
       NODE_SYSTEMS: metric?.systemsLabel || '',
       NODE_DECKS: metric?.decksLabel || '',
       POINT: node.pointRaw || buildPointText(node),
@@ -1123,18 +1166,18 @@
     return `MID : ${formatNumber(node.x)},${formatNumber(node.y)},${formatNumber(node.z)}`;
   }
 
-  function parseNodeList(value) {
-    if (Array.isArray(value)) {
-      return unique(value.map(trimText).filter(Boolean));
-    }
-    return unique(String(value || '')
-      .split(/\s*(?:,|;|\r?\n|->)\s*/g)
-      .map(trimText)
-      .filter(Boolean));
+  function parseNodeList(value, dedupe = true) {
+    const nodes = Array.isArray(value)
+      ? value.map(trimText).filter(Boolean)
+      : String(value || '')
+        .split(/\s*(?:,|;|\r?\n|->)\s*/g)
+        .map(trimText)
+        .filter(Boolean);
+    return dedupe ? unique(nodes) : nodes;
   }
 
   function parsePathString(value) {
-    return parseNodeList(String(value || '').replace(/\s*<->\s*/g, ' -> '));
+    return parseNodeList(String(value || '').replace(/\s*<->\s*/g, ' -> '), false);
   }
 
   function countDrawableSegments(pathNodes) {

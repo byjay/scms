@@ -38,6 +38,84 @@
     }
   }
 
+  function handleNodeTrayControlInput() {
+    state.nodeTray.maxHeightLimit = Math.max(50, toNumber(dom.nodeTrayMaxHeight?.value, state.nodeTray.maxHeightLimit || 150));
+    state.nodeTray.fillRatioLimit = Math.max(10, Math.min(90, toNumber(dom.nodeTrayFillLimit?.value, state.nodeTray.fillRatioLimit || 40)));
+    state.nodeTray.tierCount = Math.max(1, Math.min(6, Math.round(toNumber(dom.nodeTrayTierCount?.value, state.nodeTray.tierCount || 1))));
+    state.nodeTray.manualWidthDraft = trimText(dom.nodeTrayManualWidth?.value);
+    state.nodeTray.draftNodeName = state.selectedNodeName || state.nodeTray.draftNodeName;
+    renderNodesPanel();
+  }
+
+  function applyRecommendedNodeTray() {
+    const metric = state.nodeMetricMap[state.selectedNodeName];
+    if (!metric) {
+      pushToast('Select a node first.', 'warn');
+      return;
+    }
+    const model = buildNodeTrayModel(metric);
+    state.nodeTray.manualWidthDraft = model.recommended.width ? String(model.recommended.width) : '';
+    if (dom.nodeTrayManualWidth) {
+      dom.nodeTrayManualWidth.value = state.nodeTray.manualWidthDraft;
+    }
+    state.nodeTray.tierCount = Math.max(1, model.recommended.tierCount || state.nodeTray.tierCount || 1);
+    if (dom.nodeTrayTierCount) {
+      dom.nodeTrayTierCount.value = String(state.nodeTray.tierCount);
+    }
+    state.nodeTray.draftNodeName = metric.name;
+    renderNodesPanel();
+    pushToast(`Recommended tray loaded for ${metric.name}.`, 'success');
+  }
+
+  function saveNodeTrayOverride() {
+    const metric = state.nodeMetricMap[state.selectedNodeName];
+    if (!metric) {
+      pushToast('Select a node first.', 'warn');
+      return;
+    }
+    const width = Math.max(0, toNumber(dom.nodeTrayManualWidth?.value, 0));
+    const tierCount = Math.max(1, Math.min(6, Math.round(toNumber(dom.nodeTrayTierCount?.value, state.nodeTray.tierCount || 1))));
+    if (width <= 0) {
+      pushToast('Enter a tray width or load the recommended value first.', 'warn');
+      return;
+    }
+    state.nodeTray.overrides[metric.name] = {
+      width,
+      tierCount,
+      maxHeightLimit: Math.max(50, toNumber(dom.nodeTrayMaxHeight?.value, state.nodeTray.maxHeightLimit || 150)),
+      fillRatioLimit: Math.max(10, Math.min(90, toNumber(dom.nodeTrayFillLimit?.value, state.nodeTray.fillRatioLimit || 40))),
+      updatedAt: new Date().toISOString()
+    };
+    state.nodeTray.manualWidthDraft = String(width);
+    state.nodeTray.draftNodeName = metric.name;
+    state.project.dirty = true;
+    refreshNodeAnalytics();
+    renderNodesPanel();
+    updateProjectStatus('NODE TRAY OVERRIDE SAVED');
+    commitHistory('node-tray-override-save');
+    pushToast(`Tray override saved for ${metric.name}.`, 'success');
+  }
+
+  function clearNodeTrayOverride() {
+    const name = trimText(state.selectedNodeName);
+    if (!name) {
+      pushToast('Select a node first.', 'warn');
+      return;
+    }
+    delete state.nodeTray.overrides[name];
+    state.nodeTray.manualWidthDraft = '';
+    state.nodeTray.draftNodeName = name;
+    if (dom.nodeTrayManualWidth) {
+      dom.nodeTrayManualWidth.value = '';
+    }
+    state.project.dirty = true;
+    refreshNodeAnalytics();
+    renderNodesPanel();
+    updateProjectStatus('NODE TRAY OVERRIDE CLEARED');
+    commitHistory('node-tray-override-clear');
+    pushToast(`Tray override cleared for ${name}.`, 'success');
+  }
+
   function refreshNodeAnalytics() {
     syncSelectedNode();
     const metricMap = Object.create(null);
@@ -61,6 +139,7 @@
         cables: [],
         cableCount: 0,
         totalOutDia: 0,
+        totalCrossSectionArea: 0,
         totalCalculatedLength: 0,
         segmentTouches: 0
       };
@@ -73,6 +152,7 @@
       const uniqueNodes = unique(route.pathNodes.filter(Boolean));
       const deck = trimText(resolveCableDeck(cable)) || 'UNASSIGNED';
       const outDia = Math.max(0, toNumber(cable.outDia, 0));
+      const crossSectionArea = calculateCableArea(outDia);
       const totalLength = round2(cable.calculatedLength || route.totalLength || 0);
 
       uniqueNodes.forEach((name) => {
@@ -80,6 +160,7 @@
         if (!metric) return;
         metric.cableCount += 1;
         metric.totalOutDia = round2(metric.totalOutDia + outDia);
+        metric.totalCrossSectionArea = round2(metric.totalCrossSectionArea + crossSectionArea);
         metric.totalCalculatedLength = round2(metric.totalCalculatedLength + totalLength);
         if (trimText(cable.system)) metric.systems.add(trimText(cable.system));
         if (trimText(cable.type)) metric.types.add(trimText(cable.type));
@@ -90,6 +171,7 @@
           type: trimText(cable.type) || 'UNASSIGNED',
           deck,
           outDia,
+          crossSectionArea,
           totalLength,
           status: cable.validation?.status || 'PENDING'
         });
@@ -104,12 +186,12 @@
     });
 
     const metrics = Object.values(metricMap).map((metric) => {
-      const tray = calculateNodeTrayWidth(metric.totalOutDia);
+      const tray = buildNodeTraySummary(metric, state.graph.nodeMap[metric.name]);
       const systems = Array.from(metric.systems).sort();
       const types = Array.from(metric.types).sort();
       const decks = Array.from(metric.decks).sort();
       const cables = metric.cables
-        .sort((left, right) => right.outDia - left.outDia || right.totalLength - left.totalLength || left.name.localeCompare(right.name));
+        .sort((left, right) => right.crossSectionArea - left.crossSectionArea || right.outDia - left.outDia || right.totalLength - left.totalLength || left.name.localeCompare(right.name));
       return {
         ...metric,
         systems,
@@ -145,6 +227,56 @@
     };
   }
 
+  function calculateCableArea(outDia) {
+    const diameter = Math.max(0, toNumber(outDia, 0));
+    const radius = diameter / 2;
+    return round2(Math.PI * radius * radius);
+  }
+
+  function getNodeTrayOverride(name) {
+    const override = state.nodeTray.overrides?.[name];
+    return override && typeof override === 'object' ? override : null;
+  }
+
+  function buildNodeTraySummary(metric, node) {
+    const override = getNodeTrayOverride(metric.name);
+    const maxHeightLimit = Math.max(50, toNumber(override?.maxHeightLimit, state.nodeTray.maxHeightLimit || 150));
+    const fillRatioLimit = Math.max(10, Math.min(90, toNumber(override?.fillRatioLimit, state.nodeTray.fillRatioLimit || 40)));
+    const autoRecommendedTierCount = Math.max(1, Math.min(6, Math.round(toNumber(state.nodeTray.tierCount, 1))));
+    const totalCrossSectionArea = round2(metric.totalCrossSectionArea || 0);
+    const nodeAreaSize = Math.max(0, toNumber(node?.areaSize, 0));
+    const areaFillRatio = nodeAreaSize > 0 ? round2((totalCrossSectionArea / nodeAreaSize) * 100) : 0;
+    const theoreticalWidth = totalCrossSectionArea > 0
+      ? round2((totalCrossSectionArea * 100) / Math.max(1, maxHeightLimit * autoRecommendedTierCount * fillRatioLimit))
+      : 0;
+    const autoRecommendedWidth = pickTrayStandardWidth(theoreticalWidth);
+    const effectiveWidth = Math.max(0, toNumber(override?.width, autoRecommendedWidth));
+    const effectiveTierCount = Math.max(1, Math.min(6, Math.round(toNumber(override?.tierCount, autoRecommendedTierCount))));
+    const trayCapacityArea = round2(effectiveWidth * maxHeightLimit * effectiveTierCount);
+    const fillRatio = trayCapacityArea > 0 ? round2((totalCrossSectionArea / trayCapacityArea) * 100) : 0;
+    const widthDemand = calculateNodeTrayWidth(metric.totalOutDia);
+    return {
+      occupiedWidth: widthDemand.occupiedWidth,
+      designWidth: widthDemand.designWidth,
+      widthDemandRatio: widthDemand.fillRatio,
+      totalCrossSectionArea,
+      nodeAreaSize,
+      areaFillRatio,
+      autoRecommendedWidth,
+      autoRecommendedTierCount,
+      recommendedTrayWidth: effectiveWidth,
+      effectiveTrayWidth: effectiveWidth,
+      effectiveTierCount,
+      trayCapacityArea,
+      fillRatio,
+      overrideApplied: Boolean(override?.width),
+      overrideWidth: Math.max(0, toNumber(override?.width, 0)),
+      overrideTierCount: Math.max(0, Math.round(toNumber(override?.tierCount, 0))),
+      maxHeightLimit,
+      fillRatioLimit
+    };
+  }
+
   function pickTrayStandardWidth(width) {
     if (width <= 0) return 0;
     const standards = [50, 100, 150, 200, 300, 450, 600, 750, 900, 1050, 1200];
@@ -169,6 +301,12 @@
     });
 
     const sorted = filtered.slice().sort((left, right) => {
+      if (sort === 'fillDesc') {
+        return right.areaFillRatio - left.areaFillRatio || right.fillRatio - left.fillRatio || right.totalCrossSectionArea - left.totalCrossSectionArea || left.name.localeCompare(right.name);
+      }
+      if (sort === 'areaDesc') {
+        return right.totalCrossSectionArea - left.totalCrossSectionArea || right.areaFillRatio - left.areaFillRatio || left.name.localeCompare(right.name);
+      }
       if (sort === 'cableDesc') {
         return right.cableCount - left.cableCount || right.recommendedTrayWidth - left.recommendedTrayWidth || left.name.localeCompare(right.name);
       }
@@ -197,14 +335,18 @@
 
     const coordReadyCount = metrics.filter((metric) => metric.hasCoords).length;
     const totalTrayDemand = metrics.reduce((sum, metric) => sum + metric.recommendedTrayWidth, 0);
+    const totalAreaDemand = metrics.reduce((sum, metric) => sum + metric.totalCrossSectionArea, 0);
     const routedCableCount = state.cables.filter((cable) => cable.routeBreakdown?.pathNodes?.length).length;
 
     dom.nodeListCount.textContent = `${formatInt(metrics.length)} / ${formatInt(state.nodeMetrics.length)}`;
     dom.nodeVisibleCount.textContent = formatInt(metrics.length);
     dom.nodeCoordReadyCount.textContent = formatInt(coordReadyCount);
     dom.nodeTrayDemand.textContent = formatNumber(totalTrayDemand);
+    if (dom.nodeAreaDemand) {
+      dom.nodeAreaDemand.textContent = formatNumber(totalAreaDemand);
+    }
     dom.nodeFocusedName.textContent = focusMetric?.name || '-';
-    dom.nodeAutoMeta.textContent = `Tray width = next standard >= sum(CABLE_OUTDIA) x 1.15. Routed cables ${formatInt(routedCableCount)} / ${formatInt(state.cables.length)} are reflected.`;
+    dom.nodeAutoMeta.textContent = `Tray auto width uses routed cable area, tray height ${formatInt(state.nodeTray.maxHeightLimit)} mm, fill limit ${formatInt(state.nodeTray.fillRatioLimit)}%, and ${formatInt(state.nodeTray.tierCount)} tier(s). Routed cables ${formatInt(routedCableCount)} / ${formatInt(state.cables.length)} are reflected.`;
 
     if (!metrics.length) {
       dom.nodeList.innerHTML = '<div class="empty-state node-list-empty">?쒖떆???몃뱶媛 ?놁뒿?덈떎.</div>';
@@ -213,23 +355,23 @@
         <div class="node-list-row${metric.name === state.selectedNodeName ? ' is-selected' : ''}" data-node-name="${escapeHtml(metric.name)}" title="?붾툝?대┃?섎㈃ 3D 留듭뿉???ъ빱?ㅻ맗?덈떎.">
           <div class="node-list-main">
             <div class="node-list-title">${escapeHtml(metric.name)}</div>
-            <div class="node-list-subtitle">${escapeHtml([metric.structure || '-', metric.component || '-', metric.primaryDeck].join(' | '))}</div>
+            <div class="node-list-subtitle">${escapeHtml([metric.structure || '-', metric.component || '-', metric.primaryDeck, metric.overrideApplied ? 'OVERRIDE' : 'AUTO'].join(' | '))}</div>
           </div>
           <div class="node-list-metric">
             <span>TRAY</span>
             <strong>${formatInt(metric.recommendedTrayWidth)}</strong>
           </div>
           <div class="node-list-metric">
+            <span>AREA</span>
+            <strong>${formatNumber(metric.totalCrossSectionArea)}</strong>
+          </div>
+          <div class="node-list-metric">
+            <span>FILL</span>
+            <strong>${formatNumber(metric.areaFillRatio || metric.fillRatio)}%</strong>
+          </div>
+          <div class="node-list-metric">
             <span>CABLES</span>
             <strong>${formatInt(metric.cableCount)}</strong>
-          </div>
-          <div class="node-list-metric">
-            <span>REL</span>
-            <strong>${formatInt(metric.relationCount)}</strong>
-          </div>
-          <div class="node-list-metric">
-            <span>MAP</span>
-            <strong>${metric.hasCoords ? 'READY' : 'MISS'}</strong>
           </div>
         </div>
       `).join('');
@@ -245,6 +387,7 @@
       dom.nodeSummaryList.innerHTML = renderIssueItem('warn', 'No node summary is available.');
       dom.nodeTrayRule.textContent = 'Tray width rule is unavailable.';
       dom.nodeTrayList.innerHTML = '';
+      renderNodeTrayEngineering(null);
       dom.nodeCableList.innerHTML = '<div class="empty-state">No matching cables were found.</div>';
       dom.nodeRelationList.innerHTML = '<div class="empty-state">No connected nodes were found.</div>';
       renderNodeMapCanvas(dom.nodeMapCanvas, null);
@@ -255,8 +398,8 @@
     }
 
     dom.nodeDetailTitle.textContent = focusMetric.name;
-    dom.nodeDetailMeta.textContent = `${focusMetric.structure || 'NO STRUCTURE'} | ${focusMetric.component || 'NO COMPONENT'} | ${focusMetric.typesLabel}`;
-    dom.nodeDetailTrayWidth.textContent = `${formatInt(focusMetric.recommendedTrayWidth)} mm`;
+    dom.nodeDetailMeta.textContent = `${focusMetric.structure || 'NO STRUCTURE'} | ${focusMetric.component || 'NO COMPONENT'} | ${focusMetric.typesLabel} | ${focusMetric.overrideApplied ? 'OVERRIDE' : 'AUTO'}`;
+    dom.nodeDetailTrayWidth.textContent = `${formatInt(focusMetric.recommendedTrayWidth)} mm / ${formatInt(focusMetric.effectiveTierCount)}T`;
     dom.nodeDetailCableCount.textContent = formatInt(focusMetric.cableCount);
     dom.nodeDetailRelationCount.textContent = formatInt(focusMetric.relationCount);
     dom.nodeDetailCoordStatus.textContent = focusMetric.hasCoords ? 'READY' : 'COORD MISS';
@@ -266,16 +409,21 @@
       `DECKS: ${focusMetric.decksLabel}`,
       `SEGMENT TOUCHES: ${formatInt(focusMetric.segmentTouches)}`,
       `TOTAL ROUTED LENGTH: ${formatNumber(focusMetric.totalCalculatedLength)}`,
+      `TOTAL AREA: ${formatNumber(focusMetric.totalCrossSectionArea)} mm2`,
       `POINT: ${focusMetric.pointRaw || buildPointText(focusMetric) || 'N/A'}`
     ].map((line) => renderIssueItem('info', line)).join('');
 
-    dom.nodeTrayRule.textContent = 'Tray width = next standard width >= sum(CABLE_OUTDIA) x 1.15';
+    dom.nodeTrayRule.textContent = 'Tray = area-based recommendation with optional override. Fill uses cable cross-sectional area against effective tray area.';
     dom.nodeTrayList.innerHTML = [
       `SUM OUT_DIA: ${formatNumber(focusMetric.totalOutDia)}`,
-      `DESIGN WIDTH: ${formatNumber(focusMetric.designWidth)}`,
-      `RECOMMENDED TRAY: ${formatInt(focusMetric.recommendedTrayWidth)} mm`,
-      `FILL RATIO: ${formatNumber(focusMetric.fillRatio)} %`
+      `SUM AREA: ${formatNumber(focusMetric.totalCrossSectionArea)} mm2`,
+      `NODE AREA_SIZE: ${formatNumber(focusMetric.nodeAreaSize)} mm2`,
+      `NODE FILL: ${formatNumber(focusMetric.areaFillRatio)} %`,
+      `TRAY: ${formatInt(focusMetric.recommendedTrayWidth)} mm x ${formatInt(focusMetric.maxHeightLimit)} mm x ${formatInt(focusMetric.effectiveTierCount)}T`,
+      `TRAY FILL: ${formatNumber(focusMetric.fillRatio)} %`
     ].map((line) => renderIssueItem('info', line)).join('');
+
+    renderNodeTrayEngineering(focusMetric);
 
     dom.nodeCableList.innerHTML = focusMetric.cables.length
       ? focusMetric.cables.slice(0, 80).map((cable) => `
@@ -283,7 +431,7 @@
             <strong>${escapeHtml(cable.name)}</strong>
             <span>${escapeHtml(cable.system)}</span>
             <span>${escapeHtml(cable.deck)}</span>
-            <span>${formatNumber(cable.outDia)} / ${formatNumber(cable.totalLength)}</span>
+            <span>${formatNumber(cable.outDia)} OD / ${formatNumber(cable.crossSectionArea)} A / ${formatNumber(cable.totalLength)} L</span>
           </div>
         `).join('')
       : '<div class="empty-state">???몃뱶瑜?吏?섎뒗 耳?대툝???놁뒿?덈떎.</div>';
@@ -309,6 +457,388 @@
       ? renderNodeThreeScene(focusMetric)
       : (disposeNodeThree(), { drawnRelations: focusMetric.relationCount, drawnNodes: state.mergedNodes.filter((node) => node.hasCoords).length });
     dom.nodeThreeMeta.textContent = `3D nodes ${formatInt(nodeThreeStats.drawnNodes)} | focus links ${formatInt(nodeThreeStats.drawnRelations)}`;
+  }
+
+  function handleNodeTrayMatrixClick(event) {
+    const button = event.target.closest('[data-tray-width][data-tray-tiers]');
+    if (!button) return;
+    const width = Math.max(0, toNumber(button.dataset.trayWidth, 0));
+    const tierCount = Math.max(1, Math.min(6, Math.round(toNumber(button.dataset.trayTiers, 1))));
+    state.nodeTray.manualWidthDraft = width ? String(width) : '';
+    state.nodeTray.tierCount = tierCount;
+    state.nodeTray.draftNodeName = state.selectedNodeName || state.nodeTray.draftNodeName;
+    if (dom.nodeTrayManualWidth) dom.nodeTrayManualWidth.value = state.nodeTray.manualWidthDraft;
+    if (dom.nodeTrayTierCount) dom.nodeTrayTierCount.value = String(tierCount);
+    renderNodesPanel();
+  }
+
+  function renderNodeTrayEngineering(focusMetric) {
+    if (!dom.nodeTrayCanvas || !dom.nodeTraySummary || !dom.nodeTrayMatrix) return;
+    if (!focusMetric) {
+      dom.nodeTrayStatus.textContent = 'NO NODE';
+      dom.nodeTraySummary.innerHTML = renderIssueItem('warn', 'Select a node to calculate tray fill and cable layout.');
+      dom.nodeTrayMatrix.innerHTML = '<div class="empty-state">No tray candidates are available.</div>';
+      renderTrayCanvas(dom.nodeTrayCanvas, null);
+      dom.nodeTrayCanvasMeta.textContent = 'Select a node to preview tray layout.';
+      return;
+    }
+
+    syncNodeTrayInputsForMetric(focusMetric);
+    const model = buildNodeTrayModel(focusMetric);
+    const statusType = model.current.success ? (model.current.fillRatio > model.fillRatioLimit ? 'warn' : 'success') : 'fail';
+    const statusText = model.overrideApplied
+      ? `OVERRIDE ${formatInt(model.current.width)}W / ${formatInt(model.current.tierCount)}T`
+      : `AUTO ${formatInt(model.recommended.width)}W / ${formatInt(model.recommended.tierCount)}T`;
+
+    dom.nodeTrayStatus.textContent = statusText;
+    dom.nodeTraySummary.innerHTML = [
+      `NODE AREA_SIZE: ${formatNumber(model.nodeAreaSize)} mm2`,
+      `CABLE AREA SUM: ${formatNumber(model.totalArea)} mm2`,
+      `NODE FILL: ${formatNumber(model.areaFillRatio)} %`,
+      `CURRENT TRAY: ${formatInt(model.current.width)} mm x ${formatInt(model.maxHeightLimit)} mm x ${formatInt(model.current.tierCount)}T`,
+      `CURRENT FILL: ${formatNumber(model.current.fillRatio)} %`,
+      `MAX STACK HEIGHT: ${formatNumber(model.current.maxStackHeight)} mm`,
+      `RECOMMENDED: ${formatInt(model.recommended.width)} mm x ${formatInt(model.recommended.tierCount)}T`
+    ].map((line) => renderIssueItem(statusType, line)).join('');
+
+    dom.nodeTrayMatrix.innerHTML = renderNodeTrayMatrix(model);
+    renderTrayCanvas(dom.nodeTrayCanvas, model.current);
+    dom.nodeTrayCanvasMeta.textContent = `Tray layout ${model.current.success ? 'READY' : 'LIMIT EXCEEDED'} | cables ${formatInt(model.current.cables.length)} | placed ${formatInt(model.current.placed.length)} | fill ${formatNumber(model.current.fillRatio)} %`;
+  }
+
+  function syncNodeTrayInputsForMetric(metric) {
+    const override = getNodeTrayOverride(metric.name);
+    if (state.nodeTray.draftNodeName !== metric.name) {
+      state.nodeTray.draftNodeName = metric.name;
+      state.nodeTray.manualWidthDraft = override?.width ? String(override.width) : '';
+    }
+    const viewMaxHeight = override?.maxHeightLimit ? Math.max(50, toNumber(override.maxHeightLimit, state.nodeTray.maxHeightLimit || 150)) : state.nodeTray.maxHeightLimit;
+    const viewFillRatio = override?.fillRatioLimit ? Math.max(10, Math.min(90, toNumber(override.fillRatioLimit, state.nodeTray.fillRatioLimit || 40))) : state.nodeTray.fillRatioLimit;
+    const viewTierCount = override?.tierCount ? Math.max(1, Math.min(6, Math.round(toNumber(override.tierCount, state.nodeTray.tierCount || 1)))) : state.nodeTray.tierCount;
+    if (dom.nodeTrayMaxHeight && document.activeElement !== dom.nodeTrayMaxHeight) {
+      dom.nodeTrayMaxHeight.value = String(viewMaxHeight);
+    }
+    if (dom.nodeTrayFillLimit && document.activeElement !== dom.nodeTrayFillLimit) {
+      dom.nodeTrayFillLimit.value = String(viewFillRatio);
+    }
+    if (dom.nodeTrayTierCount && document.activeElement !== dom.nodeTrayTierCount) {
+      dom.nodeTrayTierCount.value = String(viewTierCount);
+    }
+    if (dom.nodeTrayManualWidth && document.activeElement !== dom.nodeTrayManualWidth) {
+      dom.nodeTrayManualWidth.value = state.nodeTray.manualWidthDraft || '';
+    }
+  }
+
+  function buildNodeTrayModel(metric) {
+    const cables = metric.cables
+      .map((cable, index) => ({
+        id: `${metric.name}-${index}-${cable.name}`,
+        name: cable.name,
+        od: Math.max(1, toNumber(cable.outDia, 0)),
+        system: cable.system,
+        fromNode: metric.name
+      }))
+      .filter((cable) => cable.od > 0);
+    const maxHeightLimit = Math.max(50, toNumber(dom.nodeTrayMaxHeight?.value, state.nodeTray.maxHeightLimit || 150));
+    const fillRatioLimit = Math.max(10, Math.min(90, toNumber(dom.nodeTrayFillLimit?.value, state.nodeTray.fillRatioLimit || 40)));
+    const tierCount = Math.max(1, Math.min(6, Math.round(toNumber(dom.nodeTrayTierCount?.value, state.nodeTray.tierCount || 1))));
+    const manualWidth = Math.max(0, toNumber(dom.nodeTrayManualWidth?.value, state.nodeTray.manualWidthDraft || 0));
+    const matrix = calculateTrayOptimizationMatrix(cables, maxHeightLimit, fillRatioLimit);
+    const recommended = pickRecommendedTrayCandidate(matrix, cables, maxHeightLimit, fillRatioLimit, tierCount);
+    const current = solveTraySystem(cables, manualWidth > 0 ? tierCount : recommended.tierCount, maxHeightLimit, fillRatioLimit, manualWidth > 0 ? manualWidth : recommended.width);
+    const nodeAreaSize = Math.max(0, toNumber(state.graph.nodeMap[metric.name]?.areaSize, 0));
+    const totalArea = round2(metric.totalCrossSectionArea || 0);
+    const areaFillRatio = nodeAreaSize > 0 ? round2((totalArea / nodeAreaSize) * 100) : 0;
+    return {
+      metric,
+      cables,
+      matrix,
+      recommended,
+      current,
+      overrideApplied: manualWidth > 0 || Boolean(getNodeTrayOverride(metric.name)?.width),
+      maxHeightLimit,
+      fillRatioLimit,
+      nodeAreaSize,
+      totalArea,
+      areaFillRatio
+    };
+  }
+
+  function renderNodeTrayMatrix(model) {
+    if (!model.matrix.length) {
+      return '<div class="empty-state">No tray candidates are available.</div>';
+    }
+    const headers = ['TIERS', '100', '150', '200', '300', '450', '600', '750', '900', '1050', '1200'];
+    const rows = [
+      `<div class="tray-matrix-row is-header">${headers.map((label) => `<div class="tray-matrix-cell">${escapeHtml(label)}</div>`).join('')}</div>`
+    ];
+    model.matrix.forEach((row) => {
+      const cells = [
+        `<div class="tray-matrix-cell is-label">${formatInt(row.tierCount)}T</div>`
+      ];
+      row.cells.forEach((cell) => {
+        const classes = ['tray-matrix-button'];
+        if (cell.width === model.current.width && row.tierCount === model.current.tierCount) classes.push('is-current');
+        if (cell.isRecommended) classes.push('is-recommended');
+        if (!cell.success) classes.push('is-fail');
+        else if (cell.fillRatio > model.fillRatioLimit) classes.push('is-warn');
+        else classes.push('is-pass');
+        cells.push(`
+          <button
+            type="button"
+            class="${classes.join(' ')}"
+            data-tray-width="${cell.width}"
+            data-tray-tiers="${row.tierCount}"
+            title="Fill ${formatNumber(cell.fillRatio)}% | Height ${formatNumber(cell.maxStackHeight)} mm"
+          >
+            <strong>${formatNumber(cell.fillRatio)}%</strong>
+            <span>${cell.success ? formatNumber(cell.maxStackHeight) : 'FAIL'}</span>
+          </button>
+        `);
+      });
+      rows.push(`<div class="tray-matrix-row">${cells.join('')}</div>`);
+    });
+    return rows.join('');
+  }
+
+  function renderTrayCanvas(canvas, trayResult) {
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const width = Math.max(320, Math.round(rect.width || canvas.clientWidth || 720));
+    const height = Math.max(220, Math.round(rect.height || canvas.clientHeight || 300));
+    const dpr = window.devicePixelRatio || 1;
+    if (canvas.width !== width * dpr || canvas.height !== height * dpr) {
+      canvas.width = width * dpr;
+      canvas.height = height * dpr;
+    }
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, width, height);
+
+    if (!trayResult) {
+      drawCanvasMessage(ctx, width, height, 'Select a node to preview tray layout.');
+      return;
+    }
+
+    const trayWidth = Math.max(100, toNumber(trayResult.width, 100));
+    const trayHeight = Math.max(50, toNumber(trayResult.maxHeightLimit, 150));
+    const tierCount = Math.max(1, toNumber(trayResult.tierCount, 1));
+    const padding = 20;
+    const usableWidth = width - padding * 2;
+    const usableHeight = height - padding * 2;
+    const tierPitch = usableHeight / tierCount;
+    const scale = Math.min(usableWidth / trayWidth, (tierPitch - 24) / trayHeight);
+
+    drawGridBackground(ctx, width, height);
+
+    for (let tierIndex = 0; tierIndex < tierCount; tierIndex += 1) {
+      const originX = padding + (usableWidth - trayWidth * scale) / 2;
+      const originY = padding + tierPitch * (tierIndex + 1) - 10;
+      ctx.strokeStyle = '#334155';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(originX, originY - trayHeight * scale, trayWidth * scale, trayHeight * scale);
+      ctx.fillStyle = '#5f6f82';
+      ctx.font = '11px "Noto Sans KR", sans-serif';
+      ctx.fillText(`TIER ${tierIndex + 1}`, originX, originY - trayHeight * scale - 8);
+
+      const tier = trayResult.tiers[tierIndex];
+      (tier?.placed || []).forEach((cable) => {
+        const x = originX + cable.x * scale;
+        const y = originY - cable.y * scale;
+        const r = Math.max(1.8, (cable.od / 2) * scale);
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fillStyle = trayCableColor(cable.system);
+        ctx.fill();
+        ctx.strokeStyle = '#122033';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      });
+    }
+  }
+
+  function trayCableColor(system) {
+    const source = trimText(system) || 'UNASSIGNED';
+    let hash = 0;
+    for (let index = 0; index < source.length; index += 1) {
+      hash = source.charCodeAt(index) + ((hash << 5) - hash);
+    }
+    return `hsl(${Math.abs(hash) % 360}, 60%, 58%)`;
+  }
+
+  function calculateTrayOptimizationMatrix(cables, maxHeightLimit, fillRatioLimit) {
+    if (!cables.length) return [];
+    const widths = [100, 150, 200, 300, 450, 600, 750, 900, 1050, 1200];
+    const tierCounts = [1, 2, 3, 4];
+    return tierCounts.map((tierCount) => ({
+      tierCount,
+      cells: widths.map((width) => {
+        const result = solveTraySystem(cables, tierCount, maxHeightLimit, fillRatioLimit, width);
+        return {
+          width,
+          fillRatio: result.fillRatio,
+          success: result.success,
+          maxStackHeight: result.maxStackHeight,
+          trayArea: width * maxHeightLimit * tierCount,
+          isRecommended: false
+        };
+      })
+    }));
+  }
+
+  function pickRecommendedTrayCandidate(matrix, cables, maxHeightLimit, fillRatioLimit, fallbackTierCount) {
+    let best = null;
+    matrix.forEach((row) => {
+      row.cells.forEach((cell) => {
+        const isOptimal = cell.success && cell.fillRatio <= fillRatioLimit;
+        const area = cell.trayArea;
+        if (!best && isOptimal) {
+          best = { width: cell.width, tierCount: row.tierCount, area, fillRatio: cell.fillRatio };
+          return;
+        }
+        if (isOptimal && best && area < best.area) {
+          best = { width: cell.width, tierCount: row.tierCount, area, fillRatio: cell.fillRatio };
+        }
+      });
+    });
+    if (!best) {
+      const fallback = solveTraySystem(cables, fallbackTierCount, maxHeightLimit, fillRatioLimit, 0);
+      best = {
+        width: fallback.width,
+        tierCount: fallback.tierCount,
+        area: fallback.width * maxHeightLimit * fallback.tierCount,
+        fillRatio: fallback.fillRatio
+      };
+    }
+    matrix.forEach((row) => {
+      row.cells.forEach((cell) => {
+        cell.isRecommended = cell.width === best.width && row.tierCount === best.tierCount;
+      });
+    });
+    return best;
+  }
+
+  function solveTraySystem(cables, tierCount, maxHeightLimit, fillRatioLimit, fixedWidth = 0) {
+    const safeTierCount = Math.max(1, Math.min(6, Math.round(toNumber(tierCount, 1))));
+    const buckets = Array.from({ length: safeTierCount }, () => []);
+    sortTrayCables(cables).forEach((cable, index) => {
+      buckets[index % safeTierCount].push(cable);
+    });
+
+    let width = Math.max(0, toNumber(fixedWidth, 0));
+    if (width <= 0) {
+      const totalArea = round2(cables.reduce((sum, cable) => sum + calculateCableArea(cable.od), 0));
+      const theoreticalWidth = totalArea > 0
+        ? (totalArea * 100) / Math.max(1, maxHeightLimit * safeTierCount * fillRatioLimit)
+        : 100;
+      width = pickTrayStandardWidth(theoreticalWidth);
+    }
+
+    const tiers = buckets.map((bucket, index) => solveTrayTier(bucket, index, width, maxHeightLimit));
+    const maxStackHeight = Math.max(0, ...tiers.map((tier) => tier.maxStackHeight));
+    const totalArea = round2(cables.reduce((sum, cable) => sum + calculateCableArea(cable.od), 0));
+    const trayArea = round2(width * maxHeightLimit * safeTierCount);
+    return {
+      width,
+      tierCount: safeTierCount,
+      maxHeightLimit,
+      tiers,
+      cables,
+      placed: tiers.flatMap((tier) => tier.placed),
+      maxStackHeight,
+      fillRatio: trayArea > 0 ? round2((totalArea / trayArea) * 100) : 0,
+      success: tiers.every((tier) => tier.success)
+    };
+  }
+
+  function solveTrayTier(cables, tierIndex, width, maxHeightLimit) {
+    const placed = [];
+    let success = true;
+    let maxStackHeight = 0;
+    sortTrayCables(cables).forEach((cable) => {
+      const position = findTrayCablePosition(cable, placed, width, maxHeightLimit);
+      if (!position) {
+        success = false;
+        return;
+      }
+      const placedCable = { ...cable, x: position.x, y: position.y, layer: position.layer, tierIndex };
+      placed.push(placedCable);
+      maxStackHeight = Math.max(maxStackHeight, position.y + cable.od / 2);
+    });
+    return {
+      tierIndex,
+      success,
+      placed,
+      maxStackHeight
+    };
+  }
+
+  function sortTrayCables(cables) {
+    return cables.slice().sort((left, right) =>
+      String(left.system || '').localeCompare(String(right.system || '')) ||
+      right.od - left.od ||
+      String(left.name || '').localeCompare(String(right.name || ''))
+    );
+  }
+
+  function findTrayCablePosition(cable, placed, width, maxHeightLimit) {
+    const radius = Math.max(1, cable.od / 2);
+    const margin = 6;
+    const xMin = margin + radius;
+    const xMax = Math.max(xMin, width - margin - radius);
+    const candidates = [{ x: xMin, y: radius }];
+    placed.forEach((existing) => {
+      candidates.push({ x: existing.x + existing.od / 2 + radius + 0.5, y: radius });
+      for (let angle = 15; angle <= 165; angle += 15) {
+        const rad = (angle * Math.PI) / 180;
+        candidates.push({
+          x: existing.x + Math.cos(rad) * (existing.od / 2 + radius),
+          y: existing.y + Math.sin(rad) * (existing.od / 2 + radius)
+        });
+      }
+    });
+
+    const valid = candidates.filter((candidate) => {
+      if (candidate.x < xMin || candidate.x > xMax) return false;
+      if (candidate.y + radius > maxHeightLimit) return false;
+      if (trayCollision(placed, candidate.x, candidate.y, radius)) return false;
+      if (!traySupported(placed, candidate.x, candidate.y, radius)) return false;
+      return true;
+    }).sort((left, right) => left.y - right.y || left.x - right.x);
+
+    if (!valid.length) return null;
+    const best = valid[0];
+    return {
+      ...best,
+      layer: determineTrayLayer(best.y, radius, placed, best.x)
+    };
+  }
+
+  function trayCollision(placed, x, y, radius) {
+    return placed.some((cable) => {
+      const dx = x - cable.x;
+      const dy = y - cable.y;
+      const minDistance = (cable.od / 2) + radius - 0.05;
+      return Math.sqrt((dx * dx) + (dy * dy)) < minDistance;
+    });
+  }
+
+  function traySupported(placed, x, y, radius) {
+    if (y <= radius + 1) return true;
+    return placed.some((cable) => {
+      if (cable.y >= y) return false;
+      const dx = x - cable.x;
+      const dy = y - cable.y;
+      const distance = Math.sqrt((dx * dx) + (dy * dy));
+      return distance <= ((cable.od / 2) + radius + 1) && Math.abs(dx) < ((cable.od / 2) + radius) * 0.9;
+    });
+  }
+
+  function determineTrayLayer(y, radius, placed, x) {
+    if (y <= radius + 2) return 1;
+    const below = placed.filter((cable) => Math.abs(cable.x - x) < ((cable.od / 2) + radius) && cable.y < y);
+    if (!below.length) return 1;
+    return Math.max(...below.map((cable) => cable.layer || 1)) + 1;
   }
 
   function renderNodeMapCanvas(canvas, focusMetric) {

@@ -514,6 +514,8 @@
                 <span>SORT</span>
                 <select id="nodeSort">
                   <option value="trayDesc">Tray Width Desc</option>
+                  <option value="fillDesc">Fill Desc</option>
+                  <option value="areaDesc">Area Desc</option>
                   <option value="cableDesc">Cable Count Desc</option>
                   <option value="nameAsc">Name Asc</option>
                   <option value="relationDesc">Relation Desc</option>
@@ -531,8 +533,12 @@
                 <strong id="nodeCoordReadyCount">0</strong>
               </div>
               <div class="detail-card">
-                <span>TRAY DEMAND</span>
+                <span>TRAY AUTO</span>
                 <strong id="nodeTrayDemand">0.00</strong>
+              </div>
+              <div class="detail-card">
+                <span>AREA SUM</span>
+                <strong id="nodeAreaDemand">0.00</strong>
               </div>
               <div class="detail-card">
                 <span>FOCUS NODE</span>
@@ -601,6 +607,45 @@
                 <div id="nodeRelationList" class="diagnostic-table compact"></div>
               </div>
             </div>
+
+            <section class="detail-block node-tray-engineering">
+              <div class="panel-header compact">
+                <div>
+                  <p class="eyebrow">Tray Engineering</p>
+                  <h3>Fill, tray width, and cable layout for the selected node</h3>
+                </div>
+                <div id="nodeTrayStatus" class="panel-meta">NO NODE</div>
+              </div>
+
+              <div class="node-tray-controls">
+                <label class="field compact">
+                  <span>MAX H</span>
+                  <input id="nodeTrayMaxHeight" type="number" step="10" min="50" value="150">
+                </label>
+                <label class="field compact">
+                  <span>FILL %</span>
+                  <input id="nodeTrayFillLimit" type="number" step="5" min="10" max="90" value="40">
+                </label>
+                <label class="field compact">
+                  <span>TIERS</span>
+                  <input id="nodeTrayTierCount" type="number" step="1" min="1" max="6" value="1">
+                </label>
+                <label class="field compact">
+                  <span>WIDTH</span>
+                  <input id="nodeTrayManualWidth" type="number" step="50" min="100" placeholder="AUTO">
+                </label>
+                <div class="editor-actions compact">
+                  <button id="applyRecommendedTrayBtn" class="toolbar-btn subtle" type="button">Use Recommended</button>
+                  <button id="saveNodeTrayOverrideBtn" class="toolbar-btn accent" type="button">Save Tray</button>
+                  <button id="clearNodeTrayOverrideBtn" class="toolbar-btn subtle" type="button">Clear Override</button>
+                </div>
+              </div>
+
+              <div id="nodeTraySummary" class="issue-list compact"></div>
+              <div id="nodeTrayMatrix" class="tray-matrix"></div>
+              <canvas id="nodeTrayCanvas" class="tray-canvas"></canvas>
+              <div id="nodeTrayCanvasMeta" class="map-meta"></div>
+            </section>
 
             <div class="node-map-stack">
               <section class="map-card">

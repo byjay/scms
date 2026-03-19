@@ -240,6 +240,14 @@
       rows: [],
       posMap: {}
     },
+    nodeTray: {
+      maxHeightLimit: 150,
+      fillRatioLimit: 40,
+      tierCount: 1,
+      draftNodeName: '',
+      manualWidthDraft: '',
+      overrides: {}
+    },
     reports: {
       drumLength: 500,
       lastRenderedAt: ''
@@ -411,6 +419,7 @@
       'nodeVisibleCount',
       'nodeCoordReadyCount',
       'nodeTrayDemand',
+      'nodeAreaDemand',
       'nodeFocusedName',
       'nodeAutoMeta',
       'nodeList',
@@ -423,6 +432,18 @@
       'nodeSummaryList',
       'nodeTrayRule',
       'nodeTrayList',
+      'nodeTrayMaxHeight',
+      'nodeTrayFillLimit',
+      'nodeTrayTierCount',
+      'nodeTrayManualWidth',
+      'applyRecommendedTrayBtn',
+      'saveNodeTrayOverrideBtn',
+      'clearNodeTrayOverrideBtn',
+      'nodeTrayStatus',
+      'nodeTraySummary',
+      'nodeTrayMatrix',
+      'nodeTrayCanvas',
+      'nodeTrayCanvasMeta',
       'nodeCableList',
       'nodeRelationList',
       'nodeMapCanvas',
@@ -562,6 +583,14 @@
     dom.nodeSort.addEventListener('change', renderNodesPanel);
     dom.nodeList.addEventListener('click', handleNodeListClick);
     dom.nodeList.addEventListener('dblclick', handleNodeListDoubleClick);
+    dom.nodeTrayMaxHeight.addEventListener('input', handleNodeTrayControlInput);
+    dom.nodeTrayFillLimit.addEventListener('input', handleNodeTrayControlInput);
+    dom.nodeTrayTierCount.addEventListener('input', handleNodeTrayControlInput);
+    dom.nodeTrayManualWidth.addEventListener('input', handleNodeTrayControlInput);
+    dom.applyRecommendedTrayBtn.addEventListener('click', applyRecommendedNodeTray);
+    dom.saveNodeTrayOverrideBtn.addEventListener('click', saveNodeTrayOverride);
+    dom.clearNodeTrayOverrideBtn.addEventListener('click', clearNodeTrayOverride);
+    dom.nodeTrayMatrix.addEventListener('click', handleNodeTrayMatrixClick);
     dom.bomGroupBy.addEventListener('change', renderBomTab);
     dom.bomSystemFilter.addEventListener('change', renderBomTab);
     dom.bomTypeFilter.addEventListener('change', renderBomTab);
@@ -740,7 +769,7 @@
       structure: trimText(raw.structure || readAliasValue(lookup, NODE_ALIASES.structure)),
       component: trimText(raw.component || readAliasValue(lookup, NODE_ALIASES.component)),
       type: trimText(raw.type || readAliasValue(lookup, NODE_ALIASES.type) || 'Tray'),
-      relations: parseNodeList(relationsRaw),
+      relations: parseNodeList(relationsRaw, true),
       linkLength: positiveNumber(raw.linkLength ?? readAliasValue(lookup, NODE_ALIASES.linkLength), 1),
       areaSize: toNumber(raw.areaSize ?? readAliasValue(lookup, NODE_ALIASES.areaSize), 0),
       x: resolvedX ?? pointCoords?.x ?? null,

@@ -296,7 +296,7 @@
     const cable = sourceCable || {};
     const from = trimText(cable.fromNode);
     const to = trimText(cable.toNode);
-    const checkNodes = parseNodeList(cable.checkNode);
+    const checkNodes = parseNodeList(cable.checkNode, false);
     const fromRest = toNumber(cable.fromRest, 0);
     const toRest = toNumber(cable.toRest, 0);
 
@@ -439,7 +439,7 @@
     const issues = [];
     const from = trimText(cable.fromNode);
     const to = trimText(cable.toNode);
-    const checkNodes = parseNodeList(cable.checkNode);
+    const checkNodes = parseNodeList(cable.checkNode, false);
     const route = cable.routeBreakdown || computeRouteBreakdown(cable);
 
     if (!trimText(cable.system)) addIssue(issues, 'warn', 'CABLE SYSTEM??鍮꾩뼱 ?덉뒿?덈떎.');

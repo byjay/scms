@@ -1059,13 +1059,13 @@ button {
 
 .issue-item p {
   margin: 0;
-  color: #dfe7ef;
+  color: var(--text);
   line-height: 1.55;
 }
 
 .path-compare,
 .summary-inline {
-  color: #dfe7ef;
+  color: var(--text);
   line-height: 1.7;
   white-space: pre-wrap;
 }
@@ -1199,6 +1199,127 @@ button {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
   padding: 0 18px 18px;
+}
+
+.node-tray-engineering {
+  margin: 0 18px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.panel-header.compact {
+  padding: 0;
+}
+
+.node-tray-controls {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 120px)) minmax(240px, 1fr);
+  gap: 10px;
+  align-items: end;
+}
+
+.field.compact {
+  min-width: 0;
+}
+
+.editor-actions.compact {
+  padding: 0;
+  gap: 8px;
+  justify-content: flex-start;
+}
+
+.tray-matrix {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tray-matrix-row {
+  display: grid;
+  grid-template-columns: 70px repeat(10, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.tray-matrix-row.is-header .tray-matrix-cell {
+  background: transparent;
+  border-style: dashed;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.tray-matrix-cell {
+  min-height: 34px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+  background: #fff;
+  color: var(--text);
+  font-size: 11px;
+}
+
+.tray-matrix-cell.is-label {
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.tray-matrix-button {
+  min-height: 44px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--text);
+  display: grid;
+  gap: 2px;
+  align-content: center;
+  justify-items: center;
+  cursor: pointer;
+  padding: 4px;
+  font-size: 11px;
+}
+
+.tray-matrix-button strong {
+  font-size: 12px;
+}
+
+.tray-matrix-button span {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.tray-matrix-button.is-pass {
+  border-color: rgba(22, 163, 74, 0.28);
+  background: rgba(22, 163, 74, 0.08);
+}
+
+.tray-matrix-button.is-warn {
+  border-color: rgba(217, 119, 6, 0.28);
+  background: rgba(217, 119, 6, 0.09);
+}
+
+.tray-matrix-button.is-fail {
+  border-color: rgba(220, 38, 38, 0.28);
+  background: rgba(220, 38, 38, 0.08);
+}
+
+.tray-matrix-button.is-current {
+  box-shadow: inset 0 0 0 2px rgba(37, 99, 235, 0.35);
+}
+
+.tray-matrix-button.is-recommended::after {
+  content: "REC";
+  font-size: 9px;
+  color: #1d4ed8;
+  font-weight: 700;
+}
+
+.tray-canvas {
+  width: 100%;
+  min-height: 260px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: #eef3f8;
 }
 
 .node-map-stack {
@@ -1392,7 +1513,7 @@ button {
 }
 
 .diag-value {
-  color: #dfe7ef;
+  color: var(--text);
   line-height: 1.6;
 }
 
@@ -1551,6 +1672,7 @@ button {
   .bom-filter-row,
   .reports-grid,
   .node-toolbar,
+  .node-tray-controls,
   .node-detail-grid,
   .space-grid,
   .admin-request-grid {
@@ -1589,12 +1711,17 @@ button {
   .bom-filter-row,
   .reports-grid,
   .node-toolbar,
+  .node-tray-controls,
   .node-detail-grid,
   .space-grid,
   .admin-request-grid,
   .summary-strip,
   .login-stat-grid {
     grid-template-columns: 1fr;
+  }
+
+  .tray-matrix-row {
+    grid-template-columns: 70px repeat(5, minmax(0, 1fr));
   }
 
   .node-list-row,

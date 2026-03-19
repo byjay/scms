@@ -232,6 +232,12 @@
         marginPct: state.bom.marginPct,
         posMap: structuredCloneCompatible(state.bom.posMap)
       },
+      nodeTray: {
+        maxHeightLimit: state.nodeTray.maxHeightLimit,
+        fillRatioLimit: state.nodeTray.fillRatioLimit,
+        tierCount: state.nodeTray.tierCount,
+        overrides: structuredCloneCompatible(state.nodeTray.overrides)
+      },
       reports: {
         drumLength: state.reports.drumLength
       },
@@ -303,9 +309,29 @@
     state.bom.posMap = payload?.bom?.posMap && typeof payload.bom.posMap === 'object'
       ? structuredCloneCompatible(payload.bom.posMap)
       : {};
+    state.nodeTray.maxHeightLimit = Math.max(50, toNumber(payload?.nodeTray?.maxHeightLimit, state.nodeTray.maxHeightLimit || 150));
+    state.nodeTray.fillRatioLimit = Math.max(10, Math.min(90, toNumber(payload?.nodeTray?.fillRatioLimit, state.nodeTray.fillRatioLimit || 40)));
+    state.nodeTray.tierCount = Math.max(1, Math.min(6, Math.round(toNumber(payload?.nodeTray?.tierCount, state.nodeTray.tierCount || 1))));
+    state.nodeTray.draftNodeName = '';
+    state.nodeTray.manualWidthDraft = '';
+    state.nodeTray.overrides = payload?.nodeTray?.overrides && typeof payload.nodeTray.overrides === 'object'
+      ? structuredCloneCompatible(payload.nodeTray.overrides)
+      : {};
     state.reports.drumLength = Math.max(10, toNumber(payload?.reports?.drumLength, state.reports.drumLength || 500));
     if (dom.reportDrumLength) {
       dom.reportDrumLength.value = String(state.reports.drumLength);
+    }
+    if (dom.nodeTrayMaxHeight) {
+      dom.nodeTrayMaxHeight.value = String(state.nodeTray.maxHeightLimit);
+    }
+    if (dom.nodeTrayFillLimit) {
+      dom.nodeTrayFillLimit.value = String(state.nodeTray.fillRatioLimit);
+    }
+    if (dom.nodeTrayTierCount) {
+      dom.nodeTrayTierCount.value = String(state.nodeTray.tierCount);
+    }
+    if (dom.nodeTrayManualWidth) {
+      dom.nodeTrayManualWidth.value = '';
     }
     state.project = {
       ...state.project,
