@@ -79,9 +79,9 @@
     <header class="topbar">
       <div class="brand-block">
         <img src="./assets/logo.jpg" alt="Seastar logo" class="brand-logo">
-        <div>
-          <p class="eyebrow">Seastar CMS V3</p>
-          <h1>Cross-validated cable routing workspace</h1>
+        <div class="brand-copy">
+          <h1>SCMS Workspace</h1>
+          <p class="brand-subtitle">Compact routing and cable list workspace</p>
         </div>
       </div>
 
@@ -126,6 +126,7 @@
       </div>
 
       <div class="toolbar-right">
+        <button id="openManualBtn" class="toolbar-btn subtle" type="button">설명서</button>
         <label class="toolbar-field">
           <span>寃??/span>
           <input id="searchInput" type="search" placeholder="耳?대툝紐? ?몃뱶, ?쒖뒪??>
@@ -179,8 +180,8 @@
     <section id="editorDock" class="editor-dock">
       <div class="editor-header">
         <div>
-          <p class="eyebrow">Sticky Editor</p>
-          <h2>Double-click a cable row to edit every SCH field here.</h2>
+          <p class="eyebrow">Quick Editor</p>
+          <h2>케이블을 더블클릭하면 여기서 바로 수정합니다.</h2>
         </div>
         <div id="editorStatus" class="editor-status">No cable selected.</div>
       </div>
@@ -266,39 +267,42 @@
         </label>
       </div>
 
-      <div class="editor-grid">
-        <label class="field editor-span-4">
-          <span>CABLE_PATH</span>
-          <textarea id="editPath" rows="2"></textarea>
-        </label>
-        <label class="field">
-          <span>INTERFERENCE</span>
-          <input id="editInterference" type="text">
-        </label>
-        <label class="field">
-          <span>REVISION</span>
-          <input id="editRevision" type="text">
-        </label>
-      </div>
+      <details class="editor-extra">
+        <summary>추가 SCH 항목</summary>
+        <div class="editor-grid">
+          <label class="field editor-span-4">
+            <span>CABLE_PATH</span>
+            <textarea id="editPath" rows="2"></textarea>
+          </label>
+          <label class="field">
+            <span>INTERFERENCE</span>
+            <input id="editInterference" type="text">
+          </label>
+          <label class="field">
+            <span>REVISION</span>
+            <input id="editRevision" type="text">
+          </label>
+        </div>
 
-      <div class="editor-grid">
-        <label class="field editor-span-2">
-          <span>REMARK</span>
-          <textarea id="editRemark" rows="2"></textarea>
-        </label>
-        <label class="field">
-          <span>REMARK1</span>
-          <input id="editRemark1" type="text">
-        </label>
-        <label class="field">
-          <span>REMARK2</span>
-          <input id="editRemark2" type="text">
-        </label>
-        <label class="field">
-          <span>REMARK3</span>
-          <input id="editRemark3" type="text">
-        </label>
-      </div>
+        <div class="editor-grid">
+          <label class="field editor-span-2">
+            <span>REMARK</span>
+            <textarea id="editRemark" rows="2"></textarea>
+          </label>
+          <label class="field">
+            <span>REMARK1</span>
+            <input id="editRemark1" type="text">
+          </label>
+          <label class="field">
+            <span>REMARK2</span>
+            <input id="editRemark2" type="text">
+          </label>
+          <label class="field">
+            <span>REMARK3</span>
+            <input id="editRemark3" type="text">
+          </label>
+        </div>
+      </details>
 
       <div class="editor-actions">
         <button id="saveEditorBtn" class="toolbar-btn primary" type="button">Save</button>
@@ -320,6 +324,7 @@
       <button class="tab-btn" data-tab="bom" type="button">BOM</button>
       <button class="tab-btn" data-tab="reports" type="button">Reports</button>
       <button class="tab-btn" data-tab="space" type="button">Group Space</button>
+      <button class="tab-btn" data-tab="manual" type="button">Manual</button>
       <button class="tab-btn" data-tab="diagnostics" type="button">Diagnostics</button>
     </nav>
 
@@ -893,6 +898,61 @@
             </div>
           </article>
         </div>
+      </section>
+
+      <section class="tab-panel" data-panel="manual">
+        <article class="panel manual-panel">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Manual</p>
+              <h3>작업 순서와 라우팅 기준</h3>
+            </div>
+          </div>
+
+          <div class="manual-layout">
+            <section class="manual-section">
+              <div class="block-title">기본 작업 순서</div>
+              <ul class="manual-list">
+                <li>`Load Cable`로 SCH 파일을 불러옵니다.</li>
+                <li>`Load Node`로 NODE 파일을 불러옵니다.</li>
+                <li>케이블 리스트를 더블클릭해 상단 편집기에서 값을 수정합니다.</li>
+                <li>`Save + Recalc` 또는 `Route All`로 경로를 다시 산출합니다.</li>
+                <li>`Run Triple Validation`으로 그래프, 경로, 맵 일치 여부를 확인합니다.</li>
+                <li>완료 후 `Export XLSX` 또는 `Save Server Project`를 사용합니다.</li>
+              </ul>
+            </section>
+
+            <section class="manual-section">
+              <div class="block-title">라우팅 규칙</div>
+              <ul class="manual-list">
+                <li>총 길이는 `GRAPH_LENGTH + FROM_REST + TO_REST`로 계산됩니다.</li>
+                <li>`CHECK_NODE`를 입력하면 입력 순서대로 반드시 경유합니다.</li>
+                <li>`FROM_NODE`와 `TO_NODE`가 같으면 해당 노드 `linkLength`를 기본 길이로 사용합니다.</li>
+                <li>연속 노드쌍의 relation edge가 실제로 있어야 검증 PASS가 가능합니다.</li>
+                <li>좌표가 없는 노드는 맵 상태에서 경고가 표시됩니다.</li>
+              </ul>
+            </section>
+
+            <section class="manual-section">
+              <div class="block-title">화면 사용 기준</div>
+              <ul class="manual-list">
+                <li>주 작업 화면은 `Cables` 탭입니다. 리스트를 최대한 많이 보도록 구성했습니다.</li>
+                <li>우측 패널은 선택 케이블의 길이 분해와 검증 결과만 빠르게 확인하는 용도입니다.</li>
+                <li>상단 편집기에는 자주 바꾸는 항목만 먼저 보이고, 추가 SCH 필드는 접어서 관리합니다.</li>
+                <li>`Routing` 탭은 수동 경로 미리보기와 `CHECK_NODE` 검토용입니다.</li>
+              </ul>
+            </section>
+
+            <section class="manual-section">
+              <div class="block-title">로그인 / 저장</div>
+              <ul class="manual-list">
+                <li>관리자 로그인, Google, Naver는 서버 인증 설정이 되어 있어야 동작합니다.</li>
+                <li>서버 저장은 현재 프로젝트 스냅샷을 저장합니다.</li>
+                <li>엑셀 반출 전에는 검증 상태와 총 길이를 반드시 확인하세요.</li>
+              </ul>
+            </section>
+          </div>
+        </article>
       </section>
 
       <section class="tab-panel" data-panel="diagnostics">

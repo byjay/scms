@@ -4,7 +4,7 @@
 (() => {
   'use strict';
 
-  const ROW_HEIGHT = 54;
+  const ROW_HEIGHT = 40;
   const EPSILON = 0.01;
   const DEMO_AUTH_ENABLED = Boolean(window.SEASTAR_ENABLE_DEMO_AUTH) && window.location.protocol === 'file:';
   const FALLBACK_SESSION_KEY = 'seastar_v3_demo_session';
@@ -332,6 +332,7 @@
       'nodeFileInput',
       'projectFileInput',
       'searchInput',
+      'openManualBtn',
       'validationFilter',
       'systemFilter',
       'metricCables',
@@ -542,6 +543,9 @@
     dom.nodeFileInput.addEventListener('change', (event) => handleDataFile(event, 'node'));
     dom.projectFileInput.addEventListener('change', handleProjectImport);
     dom.searchInput.addEventListener('input', renderGrid);
+    if (dom.openManualBtn) {
+      dom.openManualBtn.addEventListener('click', () => setActiveTab('manual'));
+    }
     dom.validationFilter.addEventListener('change', renderGrid);
     dom.systemFilter.addEventListener('change', renderGrid);
     dom.cableGridViewport.addEventListener('scroll', renderGrid);
