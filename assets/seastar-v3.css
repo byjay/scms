@@ -230,7 +230,9 @@ button {
 .login-logo {
   width: 68px;
   height: 68px;
-  object-fit: cover;
+  object-fit: contain;
+  padding: 6px;
+  background: rgba(255, 255, 255, 0.96);
   border-radius: 18px;
   border: 1px solid rgba(255, 255, 255, 0.16);
 }
@@ -413,10 +415,12 @@ button {
 }
 
 .brand-logo {
-  width: 58px;
-  height: 58px;
-  border-radius: 18px;
-  object-fit: cover;
+  width: 74px;
+  height: 74px;
+  padding: 7px;
+  border-radius: 20px;
+  object-fit: contain;
+  background: rgba(255, 255, 255, 0.96);
   border: 1px solid var(--border);
 }
 

@@ -818,8 +818,13 @@
 
   async function startNaverLogin() {
     normalizeUiText();
+    const naverProviderEnabled = Boolean(state.auth.backendAvailable && state.auth.providers?.naver?.enabled);
     if (!state.auth.backendAvailable) {
       updateAuthStatus('warn', 'Naver 로그인을 사용하려면 인증 워커와 OAuth 설정이 필요합니다.');
+      return;
+    }
+    if (!naverProviderEnabled) {
+      updateAuthStatus('warn', 'Naver OAuth 설정이 아직 연결되지 않았습니다.');
       return;
     }
     window.location.href = `${state.apiBase}/naver/start`;
@@ -1026,7 +1031,7 @@
         : '운영 배포에서는 auth worker와 ADMIN_* 환경설정이 필요합니다.';
     }
 
-    dom.naverLoginBtn.disabled = !state.auth.backendAvailable;
+    dom.naverLoginBtn.disabled = !(state.auth.backendAvailable && state.auth.providers?.naver?.enabled);
     dom.authRequestMeta.classList.add('hidden');
     dom.overlayLogoutBtn.classList.add('hidden');
 
