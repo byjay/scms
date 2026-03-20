@@ -1695,7 +1695,7 @@
   function populateEditor() {
     const cable = getSelectedCable();
     if (!cable) {
-      dom.editorStatus.textContent = 'No cable selected.';
+      dom.editorStatus.textContent = '선택된 케이블 없음';
       clearEditorFields();
       return;
     }
@@ -1802,7 +1802,7 @@
       } else if (routeChanged) {
         cable.validation = {
           status: 'PENDING',
-          issues: [{ severity: 'warn', message: 'Route changed. Recalculation is required.' }],
+          issues: [{ severity: 'warn', message: '경로가 변경되었습니다. 재계산이 필요합니다.' }],
           mapStatus: 'UNCHECKED'
         };
         refreshDiagnosticsSummary();
@@ -1820,16 +1820,16 @@
         reason: options.forceRoute ? 'force-route' : options.recalc ? 'save-recalc' : 'save'
       });
       pushToast(options.forceRoute
-        ? 'Cable route was forced through CHECK_NODE and saved.'
+        ? '체크노드를 강제 적용한 경로로 저장했습니다.'
         : options.recalc
-          ? 'Cable updated, recalculated, and saved.'
-          : 'Cable updated and saved.', 'success');
+          ? '케이블을 수정하고 재산출 후 저장했습니다.'
+          : '케이블을 수정하고 저장했습니다.', 'success');
     } catch (error) {
       console.error(error);
       Object.assign(cable, before);
       populateEditor();
       renderAll();
-      pushToast(error.message || 'Cable save failed.', 'error');
+      pushToast(error.message || '케이블 저장에 실패했습니다.', 'error');
     }
   }
 
@@ -2053,10 +2053,10 @@
       return renderIssueItem('warn', '寃利앹씠 ?꾩쭅 ?ㅽ뻾?섏? ?딆븯?듬땲??');
     }
     const base = [
-      renderIssueItem(validation.status === 'PASS' ? 'success' : validation.status === 'WARN' ? 'warn' : 'fail', `STATUS: ${validation.status}`),
-      renderIssueItem(validation.lengthMatched ? 'success' : 'fail', `湲몄씠 寃利? ${validation.lengthMatched ? 'OK' : 'NG'}`),
-      renderIssueItem(validation.mapSegmentsMatch ? 'success' : 'warn', `留?寃利? ${validation.mapSegmentsMatch ? 'OK' : 'NG'}`),
-      renderIssueItem(validation.coordsReady ? 'success' : 'warn', `醫뚰몴 ?곹깭: ${validation.coordsReady ? 'READY' : 'COORD MISSING'}`)
+      renderIssueItem(validation.status === 'PASS' ? 'success' : validation.status === 'WARN' ? 'warn' : 'fail', `상태: ${validation.status}`),
+      renderIssueItem(validation.lengthMatched ? 'success' : 'fail', `길이 검증: ${validation.lengthMatched ? 'OK' : 'NG'}`),
+      renderIssueItem(validation.mapSegmentsMatch ? 'success' : 'warn', `맵 검증: ${validation.mapSegmentsMatch ? 'OK' : 'NG'}`),
+      renderIssueItem(validation.coordsReady ? 'success' : 'warn', `좌표 상태: ${validation.coordsReady ? 'READY' : 'COORD MISSING'}`)
     ];
     const issues = validation.issues.map((issue) => renderIssueItem(issue.severity, issue.message));
     return [...base, ...issues].join('');
@@ -6125,7 +6125,7 @@
     }
 
     setTextContent(dom.busyText, '준비 중...');
-    setTextContent(document.querySelector('.login-card-head .eyebrow'), 'Secure Access');
+    setTextContent(document.querySelector('.login-card-head .eyebrow'), '보안 로그인');
     setTextContent(document.querySelector('.login-card-head h2'), 'SEASTAR CMS V3');
     setTextContent(
       document.querySelector('.login-card-head .muted'),

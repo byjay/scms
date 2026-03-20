@@ -737,7 +737,7 @@
     }
 
     setTextContent(dom.busyText, '준비 중...');
-    setTextContent(document.querySelector('.login-card-head .eyebrow'), 'Secure Access');
+    setTextContent(document.querySelector('.login-card-head .eyebrow'), '보안 로그인');
     setTextContent(document.querySelector('.login-card-head h2'), 'SEASTAR CMS V3');
     setTextContent(
       document.querySelector('.login-card-head .muted'),
