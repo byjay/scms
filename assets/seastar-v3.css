@@ -376,8 +376,10 @@ button {
 }
 
 .app-shell {
+  display: flex;
+  flex-direction: column;
   min-height: 100vh;
-  padding: 6px;
+  padding: 4px;
 }
 
 .topbar,
@@ -395,7 +397,8 @@ button {
   justify-content: space-between;
   gap: 6px;
   align-items: center;
-  padding: 4px 8px;
+  min-height: 34px;
+  padding: 2px 8px;
   border: 1px solid var(--border);
   border-radius: 4px;
   background: var(--bg-elev);
@@ -416,9 +419,10 @@ button {
 
 .brand-block h1 {
   margin: 0;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.02em;
+  white-space: nowrap;
 }
 
 .brand-subtitle {
@@ -427,9 +431,9 @@ button {
 
 .brand-logo {
   display: block;
-  width: 96px;
+  width: 88px;
   height: auto;
-  max-height: 28px;
+  max-height: 24px;
   padding: 0;
   border-radius: 0;
   object-fit: contain;
@@ -512,8 +516,8 @@ button {
   display: flex;
   justify-content: space-between;
   gap: 4px;
-  margin-top: 4px;
-  padding: 4px 6px;
+  margin-top: 2px;
+  padding: 2px 6px;
   border: 1px solid var(--border);
   border-radius: 4px;
   background: var(--bg-elev);
@@ -541,7 +545,7 @@ button {
 .toolbar-status {
   display: inline-flex;
   align-items: center;
-  min-height: 24px;
+  min-height: 22px;
   padding: 0 6px;
   border: 1px solid var(--border);
   border-radius: 999px;
@@ -569,14 +573,14 @@ button {
 }
 
 .toolbar-btn {
-  min-height: 24px;
-  padding: 0 8px;
+  min-height: 22px;
+  padding: 0 7px;
   border: 1px solid var(--border);
   border-radius: 4px;
   background: #fff;
   color: var(--text);
   font-weight: 600;
-  font-size: 11px;
+  font-size: 10px;
   line-height: 1;
 }
 
@@ -635,24 +639,28 @@ button {
 }
 
 .summary-card {
-  padding: 6px 8px;
-  min-width: 120px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  min-width: auto;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 4px;
   background: var(--bg-elev);
 }
 
 .summary-card span {
-  display: block;
-  margin-bottom: 2px;
+  display: inline-flex;
   color: var(--muted);
   font-size: 10px;
-  text-transform: uppercase;
+  text-transform: none;
+  white-space: nowrap;
 }
 
 .summary-card strong {
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 700;
+  white-space: nowrap;
 }
 
 .editor-dock {
@@ -732,19 +740,19 @@ button {
 .tabbar {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
-  margin-top: 4px;
+  gap: 2px;
+  margin-top: 2px;
 }
 
 .tab-btn {
-  min-height: 24px;
+  min-height: 22px;
   padding: 0 8px;
   border: 1px solid var(--border);
   border-radius: 4px;
   background: #fff;
   color: var(--text);
   font-weight: 600;
-  font-size: 11px;
+  font-size: 10px;
 }
 
 .tab-btn.is-active {
@@ -759,7 +767,9 @@ button {
 
 .workspace {
   width: 100%;
-  margin: 4px auto 0;
+  margin: 2px auto 0;
+  flex: 1;
+  min-height: 0;
 }
 
 .tab-panel {
@@ -768,6 +778,7 @@ button {
 
 .tab-panel.is-active {
   display: block;
+  min-height: 0;
 }
 
 .split,
@@ -777,7 +788,8 @@ button {
 }
 
 .split-dashboard {
-  grid-template-columns: minmax(1180px, 2.65fr) minmax(240px, 0.55fr);
+  grid-template-columns: 232px minmax(0, 1fr) 420px;
+  min-height: calc(100vh - 128px);
 }
 
 .split-routing {
@@ -902,7 +914,7 @@ button {
   justify-content: space-between;
   gap: 6px;
   align-items: center;
-  padding: 6px 8px 4px;
+  padding: 4px 6px 3px;
   border-bottom: 1px solid var(--border);
   background: #445566;
   color: #fff;
@@ -910,7 +922,7 @@ button {
 
 .panel-header h3 {
   margin: 0;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
 }
 
@@ -969,6 +981,82 @@ button {
   min-height: calc(100vh - 188px);
   overflow: auto;
   background: #dff3f7;
+}
+
+.dashboard-rail,
+.dashboard-master,
+.dashboard-detail {
+  min-width: 0;
+}
+
+.dashboard-rail-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 4px;
+  overflow: auto;
+}
+
+.rail-block {
+  display: grid;
+  gap: 4px;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--bg-soft);
+}
+
+.rail-title {
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.dashboard-rail .editor-dock {
+  position: static;
+  top: auto;
+  margin-top: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.dashboard-rail .editor-header {
+  align-items: flex-start;
+  flex-direction: column;
+}
+
+.dashboard-rail .editor-status {
+  min-width: 0;
+  width: 100%;
+}
+
+.dashboard-rail .editor-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.dashboard-rail .editor-span-2,
+.dashboard-rail .editor-span-4 {
+  grid-column: span 2;
+}
+
+.dashboard-rail .editor-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.dashboard-rail .editor-actions .toolbar-btn {
+  justify-content: center;
+}
+
+.dashboard-master .grid-table,
+.dashboard-master .grid-viewport {
+  min-height: 0;
+}
+
+.dashboard-master .grid-viewport {
+  height: 100%;
 }
 
 .grid-inner {
@@ -1040,8 +1128,8 @@ button {
 }
 
 .detail-content {
-  padding: 0 10px 10px;
-  gap: 8px;
+  padding: 0 8px 8px;
+  gap: 6px;
   flex: 1;
   min-height: 0;
 }
@@ -1053,7 +1141,7 @@ button {
 }
 
 .detail-card {
-  padding: 8px 10px;
+  padding: 6px 8px;
   border: 1px solid var(--border);
   border-radius: 3px;
   background: var(--bg-soft);
@@ -1073,11 +1161,41 @@ button {
 }
 
 .detail-block {
-  padding: 8px 10px;
+  padding: 6px 8px;
   border: 1px solid var(--border);
   border-radius: 3px;
   background: var(--bg-soft);
   gap: 6px;
+}
+
+.status-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+  padding: 2px 6px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-elev);
+  overflow: hidden;
+}
+
+.status-metrics,
+.status-state {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.status-metrics {
+  flex: 1;
+  overflow: auto hidden;
+}
+
+.status-card {
+  flex: 0 0 auto;
 }
 
 .detail-block-tight {

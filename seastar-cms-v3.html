@@ -7,12 +7,12 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=JetBrains+Mono:wght@400;600&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./assets/seastar-v3.css?v=20260319-compact">
+  <link rel="stylesheet" href="./assets/seastar-v3.css?v=20260320-frame2">
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" crossorigin="anonymous"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" crossorigin="anonymous"></script>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <script src="./assets/embedded-nodes.js?v=20260319-compact"></script>
-  <script defer src="./assets/seastar-v3.js?v=20260319-compact"></script>
+  <script src="./assets/embedded-nodes.js?v=20260320-frame2"></script>
+  <script defer src="./assets/seastar-v3.js?v=20260320-frame2"></script>
 </head>
 <body>
   <div id="busyOverlay" class="busy-overlay hidden">
@@ -81,7 +81,6 @@
         <img src="./assets/logo.jpg" alt="Seastar logo" class="brand-logo">
         <div class="brand-copy">
           <h1>씨스타 케이블 작업창</h1>
-          <p class="brand-subtitle">케이블 리스트와 경로 작업</p>
         </div>
       </div>
 
@@ -118,8 +117,6 @@
         <button id="validateAllBtn" class="toolbar-btn" type="button"><span class="toolbar-icon">✓</span><span class="toolbar-text">전체검증</span></button>
         <button id="exportJsonBtn" class="toolbar-btn" type="button"><span class="toolbar-icon">J</span><span class="toolbar-text">JSON</span></button>
         <button id="exportXlsxBtn" class="toolbar-btn" type="button"><span class="toolbar-icon">X</span><span class="toolbar-text">엑셀</span></button>
-        <div id="projectStatus" class="toolbar-status">프로젝트 없음</div>
-        <div id="historyStatus" class="toolbar-status">이력 0 / 0</div>
         <input id="cableFileInput" class="hidden-input" type="file" accept=".xlsx,.xls,.json">
         <input id="nodeFileInput" class="hidden-input" type="file" accept=".xlsx,.xls,.json">
         <input id="projectFileInput" class="hidden-input" type="file" accept=".json,.xlsx,.xls">
@@ -127,193 +124,6 @@
 
       <div class="toolbar-right">
         <button id="openManualBtn" class="toolbar-btn subtle" type="button"><span class="toolbar-icon">?</span><span class="toolbar-text">설명서</span></button>
-        <label class="toolbar-field">
-          <span>검색</span>
-          <input id="searchInput" type="search" placeholder="케이블명, 노드, 시스템">
-        </label>
-        <label class="toolbar-field">
-          <span>검증</span>
-          <select id="validationFilter">
-            <option value="ALL">전체</option>
-            <option value="PASS">PASS</option>
-            <option value="WARN">WARN</option>
-            <option value="FAIL">FAIL</option>
-            <option value="PENDING">PENDING</option>
-          </select>
-        </label>
-        <label class="toolbar-field">
-          <span>시스템</span>
-          <select id="systemFilter">
-            <option value="ALL">전체</option>
-          </select>
-        </label>
-      </div>
-    </section>
-
-    <section class="summary-strip">
-      <div class="summary-card">
-        <span>케이블</span>
-        <strong id="metricCables">0</strong>
-      </div>
-      <div class="summary-card">
-        <span>업로드 노드</span>
-        <strong id="metricUploadedNodes">0</strong>
-      </div>
-      <div class="summary-card">
-        <span>병합 노드</span>
-        <strong id="metricMergedNodes">0</strong>
-      </div>
-      <div class="summary-card">
-        <span>경로 완료</span>
-        <strong id="metricRouted">0</strong>
-      </div>
-      <div class="summary-card">
-        <span>PASS / WARN / FAIL</span>
-        <strong id="metricValidation">0 / 0 / 0</strong>
-      </div>
-      <div class="summary-card">
-        <span>그래프 이슈</span>
-        <strong id="metricGraphIssues">0</strong>
-      </div>
-    </section>
-
-    <section id="editorDock" class="editor-dock">
-      <div class="editor-header">
-        <div>
-          <p class="eyebrow">Cable Editor</p>
-          <h2>선택 케이블 편집</h2>
-        </div>
-        <div id="editorStatus" class="editor-status">선택된 케이블 없음</div>
-      </div>
-
-      <div class="editor-grid">
-        <label class="field">
-          <span>CABLE_NAME</span>
-          <input id="editName" type="text">
-        </label>
-        <label class="field">
-          <span>CABLE_TYPE</span>
-          <input id="editType" type="text">
-        </label>
-        <label class="field">
-          <span>CABLE_SYSTEM</span>
-          <input id="editSystem" type="text">
-        </label>
-        <label class="field">
-          <span>WD_PAGE</span>
-          <input id="editWdPage" type="text">
-        </label>
-        <label class="field">
-          <span>POR_LENGTH</span>
-          <input id="editLength" type="number" step="0.01">
-        </label>
-        <label class="field">
-          <span>CABLE_OUTDIA</span>
-          <input id="editOutDia" type="number" step="0.01">
-        </label>
-      </div>
-
-      <div class="editor-grid">
-        <label class="field">
-          <span>FROM NODE</span>
-          <input id="editFromNode" type="text">
-        </label>
-        <label class="field">
-          <span>FROM ROOM</span>
-          <input id="editFromRoom" type="text">
-        </label>
-        <label class="field">
-          <span>FROM EQUIP</span>
-          <input id="editFromEquip" type="text">
-        </label>
-        <label class="field">
-          <span>FROM_REST</span>
-          <input id="editFromRest" type="number" step="0.01">
-        </label>
-        <label class="field">
-          <span>TO NODE</span>
-          <input id="editToNode" type="text">
-        </label>
-        <label class="field">
-          <span>TO ROOM</span>
-          <input id="editToRoom" type="text">
-        </label>
-      </div>
-
-      <div class="editor-grid">
-        <label class="field">
-          <span>TO EQUIP</span>
-          <input id="editToEquip" type="text">
-        </label>
-        <label class="field">
-          <span>TO_REST</span>
-          <input id="editToRest" type="number" step="0.01">
-        </label>
-        <label class="field">
-          <span>CHECK NODE</span>
-          <input id="editCheckNode" type="text" placeholder="쉼표로 구분">
-        </label>
-        <label class="field">
-          <span>SUPPLY_DECK</span>
-          <input id="editSupplyDeck" type="text">
-        </label>
-        <label class="field">
-          <span>POR_WEIGHT</span>
-          <input id="editPorWeight" type="number" step="0.01">
-        </label>
-        <label class="field">
-          <span>CABLE_WEIGHT</span>
-          <input id="editCableWeight" type="number" step="0.01">
-        </label>
-      </div>
-
-      <details class="editor-extra">
-        <summary>추가 SCH 항목</summary>
-        <div class="editor-grid">
-          <label class="field editor-span-4">
-            <span>CABLE_PATH</span>
-            <textarea id="editPath" rows="2"></textarea>
-          </label>
-          <label class="field">
-            <span>INTERFERENCE</span>
-            <input id="editInterference" type="text">
-          </label>
-          <label class="field">
-            <span>REVISION</span>
-            <input id="editRevision" type="text">
-          </label>
-        </div>
-
-        <div class="editor-grid">
-          <label class="field editor-span-2">
-            <span>REMARK</span>
-            <textarea id="editRemark" rows="2"></textarea>
-          </label>
-          <label class="field">
-            <span>REMARK1</span>
-            <input id="editRemark1" type="text">
-          </label>
-          <label class="field">
-            <span>REMARK2</span>
-            <input id="editRemark2" type="text">
-          </label>
-          <label class="field">
-            <span>REMARK3</span>
-            <input id="editRemark3" type="text">
-          </label>
-        </div>
-      </details>
-
-      <div class="editor-actions">
-        <button id="saveEditorBtn" class="toolbar-btn primary" type="button">저장</button>
-        <button id="saveRecalcBtn" class="toolbar-btn accent" type="button">저장+재산출</button>
-        <button id="forceRouteBtn" class="toolbar-btn accent" type="button">체크노드 강제 경로</button>
-        <button id="validateSelectedBtn" class="toolbar-btn" type="button">검증</button>
-        <button id="focusMapBtn" class="toolbar-btn" type="button">맵 표시</button>
-        <button id="resetEditorBtn" class="toolbar-btn subtle" type="button">초기화</button>
-        <button id="newCableBtn" class="toolbar-btn" type="button">신규</button>
-        <button id="duplicateCableBtn" class="toolbar-btn" type="button">복제</button>
-        <button id="deleteCableBtn" class="toolbar-btn danger" type="button">삭제</button>
       </div>
     </section>
 
@@ -331,7 +141,182 @@
     <main class="workspace">
       <section class="tab-panel is-active" data-panel="dashboard">
         <div class="split split-dashboard">
-          <article class="panel">
+          <aside class="panel dashboard-rail">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">제어</p>
+                <h3>검색 / 편집</h3>
+              </div>
+            </div>
+
+            <div class="dashboard-rail-body">
+              <div class="rail-block">
+                <div class="rail-title">검색 / 필터</div>
+                <label class="field">
+                  <span>검색</span>
+                  <input id="searchInput" type="search" placeholder="케이블명, 노드, 시스템">
+                </label>
+                <label class="field">
+                  <span>검증</span>
+                  <select id="validationFilter">
+                    <option value="ALL">전체</option>
+                    <option value="PASS">PASS</option>
+                    <option value="WARN">WARN</option>
+                    <option value="FAIL">FAIL</option>
+                    <option value="PENDING">PENDING</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span>시스템</span>
+                  <select id="systemFilter">
+                    <option value="ALL">전체</option>
+                  </select>
+                </label>
+              </div>
+
+              <section id="editorDock" class="editor-dock editor-dock-inline">
+                <div class="editor-header">
+                  <div>
+                    <p class="eyebrow">편집</p>
+                    <h2>선택 케이블 편집</h2>
+                  </div>
+                  <div id="editorStatus" class="editor-status">선택된 케이블 없음</div>
+                </div>
+
+                <div class="editor-grid">
+                  <label class="field">
+                    <span>CABLE_NAME</span>
+                    <input id="editName" type="text">
+                  </label>
+                  <label class="field">
+                    <span>CABLE_TYPE</span>
+                    <input id="editType" type="text">
+                  </label>
+                  <label class="field">
+                    <span>CABLE_SYSTEM</span>
+                    <input id="editSystem" type="text">
+                  </label>
+                  <label class="field">
+                    <span>WD_PAGE</span>
+                    <input id="editWdPage" type="text">
+                  </label>
+                  <label class="field">
+                    <span>POR_LENGTH</span>
+                    <input id="editLength" type="number" step="0.01">
+                  </label>
+                  <label class="field">
+                    <span>CABLE_OUTDIA</span>
+                    <input id="editOutDia" type="number" step="0.01">
+                  </label>
+                </div>
+
+                <div class="editor-grid">
+                  <label class="field">
+                    <span>FROM NODE</span>
+                    <input id="editFromNode" type="text">
+                  </label>
+                  <label class="field">
+                    <span>FROM ROOM</span>
+                    <input id="editFromRoom" type="text">
+                  </label>
+                  <label class="field">
+                    <span>FROM EQUIP</span>
+                    <input id="editFromEquip" type="text">
+                  </label>
+                  <label class="field">
+                    <span>FROM_REST</span>
+                    <input id="editFromRest" type="number" step="0.01">
+                  </label>
+                  <label class="field">
+                    <span>TO NODE</span>
+                    <input id="editToNode" type="text">
+                  </label>
+                  <label class="field">
+                    <span>TO ROOM</span>
+                    <input id="editToRoom" type="text">
+                  </label>
+                </div>
+
+                <div class="editor-grid">
+                  <label class="field">
+                    <span>TO EQUIP</span>
+                    <input id="editToEquip" type="text">
+                  </label>
+                  <label class="field">
+                    <span>TO_REST</span>
+                    <input id="editToRest" type="number" step="0.01">
+                  </label>
+                  <label class="field">
+                    <span>CHECK NODE</span>
+                    <input id="editCheckNode" type="text" placeholder="쉼표로 구분">
+                  </label>
+                  <label class="field">
+                    <span>SUPPLY_DECK</span>
+                    <input id="editSupplyDeck" type="text">
+                  </label>
+                  <label class="field">
+                    <span>POR_WEIGHT</span>
+                    <input id="editPorWeight" type="number" step="0.01">
+                  </label>
+                  <label class="field">
+                    <span>CABLE_WEIGHT</span>
+                    <input id="editCableWeight" type="number" step="0.01">
+                  </label>
+                </div>
+
+                <details class="editor-extra">
+                  <summary>추가 SCH 항목</summary>
+                  <div class="editor-grid">
+                    <label class="field editor-span-4">
+                      <span>CABLE_PATH</span>
+                      <textarea id="editPath" rows="2"></textarea>
+                    </label>
+                    <label class="field">
+                      <span>INTERFERENCE</span>
+                      <input id="editInterference" type="text">
+                    </label>
+                    <label class="field">
+                      <span>REVISION</span>
+                      <input id="editRevision" type="text">
+                    </label>
+                  </div>
+
+                  <div class="editor-grid">
+                    <label class="field editor-span-2">
+                      <span>REMARK</span>
+                      <textarea id="editRemark" rows="2"></textarea>
+                    </label>
+                    <label class="field">
+                      <span>REMARK1</span>
+                      <input id="editRemark1" type="text">
+                    </label>
+                    <label class="field">
+                      <span>REMARK2</span>
+                      <input id="editRemark2" type="text">
+                    </label>
+                    <label class="field">
+                      <span>REMARK3</span>
+                      <input id="editRemark3" type="text">
+                    </label>
+                  </div>
+                </details>
+
+                <div class="editor-actions">
+                  <button id="saveEditorBtn" class="toolbar-btn primary" type="button">저장</button>
+                  <button id="saveRecalcBtn" class="toolbar-btn accent" type="button">저장+재산출</button>
+                  <button id="forceRouteBtn" class="toolbar-btn accent" type="button">체크노드 강제 경로</button>
+                  <button id="validateSelectedBtn" class="toolbar-btn" type="button">검증</button>
+                  <button id="focusMapBtn" class="toolbar-btn" type="button">맵 표시</button>
+                  <button id="resetEditorBtn" class="toolbar-btn subtle" type="button">초기화</button>
+                  <button id="newCableBtn" class="toolbar-btn" type="button">신규</button>
+                  <button id="duplicateCableBtn" class="toolbar-btn" type="button">복제</button>
+                  <button id="deleteCableBtn" class="toolbar-btn danger" type="button">삭제</button>
+                </div>
+              </section>
+            </div>
+          </aside>
+
+          <article class="panel dashboard-master">
             <div class="panel-header">
               <div>
                 <p class="eyebrow">마스터 리스트</p>
@@ -348,7 +333,7 @@
             </div>
           </article>
 
-          <aside class="panel detail-panel">
+          <aside class="panel detail-panel dashboard-detail">
             <div class="panel-header">
               <div>
                 <p class="eyebrow">선택 케이블</p>
@@ -561,9 +546,9 @@
             <div class="panel-header">
               <div>
                 <p class="eyebrow">Node Focus</p>
-                <h3 id="nodeDetailTitle">?몃뱶瑜??좏깮??二쇱꽭??/h3>
+                <h3 id="nodeDetailTitle">노드를 선택해 주세요.</h3>
               </div>
-              <div id="nodeDetailMeta" class="panel-meta">由ъ뒪?몃? ?붾툝?대┃?섎㈃ 3D 留듭뿉???ъ빱?ㅻ맗?덈떎.</div>
+              <div id="nodeDetailMeta" class="panel-meta">리스트를 더블클릭하면 3D 맵에서 바로 초점이 맞춰집니다.</div>
             </div>
 
             <div class="detail-cards node-detail-cards">
@@ -1052,6 +1037,40 @@
         </div>
       </section>
     </main>
+
+    <footer class="status-bar">
+      <div class="status-metrics">
+        <div class="summary-card status-card">
+          <span>케이블</span>
+          <strong id="metricCables">0</strong>
+        </div>
+        <div class="summary-card status-card">
+          <span>업로드 노드</span>
+          <strong id="metricUploadedNodes">0</strong>
+        </div>
+        <div class="summary-card status-card">
+          <span>병합 노드</span>
+          <strong id="metricMergedNodes">0</strong>
+        </div>
+        <div class="summary-card status-card">
+          <span>경로 완료</span>
+          <strong id="metricRouted">0</strong>
+        </div>
+        <div class="summary-card status-card">
+          <span>검증</span>
+          <strong id="metricValidation">0 / 0 / 0</strong>
+        </div>
+        <div class="summary-card status-card">
+          <span>그래프 이슈</span>
+          <strong id="metricGraphIssues">0</strong>
+        </div>
+      </div>
+
+      <div class="status-state">
+        <div id="projectStatus" class="toolbar-status">프로젝트 없음</div>
+        <div id="historyStatus" class="toolbar-status">이력 0 / 0</div>
+      </div>
+    </footer>
   </div>
 
   <div id="toastStack" class="toast-stack"></div>

@@ -89,7 +89,7 @@
 
     if (!cables.length) {
       dom.cableGridInner.style.height = '0px';
-      dom.cableGridInner.innerHTML = '<div class="empty-state">議곌굔??留욌뒗 耳?대툝???놁뒿?덈떎.</div>';
+      dom.cableGridInner.innerHTML = '<div class="empty-state">조건에 맞는 케이블이 없습니다.</div>';
       return;
     }
 
