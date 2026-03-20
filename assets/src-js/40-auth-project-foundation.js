@@ -1,6 +1,6 @@
 ﻿    const selected = dom.systemFilter.value || 'ALL';
     const systems = unique(state.cables.map((cable) => cable.system).filter(Boolean)).sort();
-    dom.systemFilter.innerHTML = ['<option value="ALL">?꾩껜</option>']
+    dom.systemFilter.innerHTML = ['<option value="ALL">전체</option>']
       .concat(systems.map((system) => `<option value="${escapeHtml(system)}">${escapeHtml(system)}</option>`))
       .join('');
     dom.systemFilter.value = systems.includes(selected) ? selected : 'ALL';
@@ -252,15 +252,15 @@
     const projectName = trimText(state.project.projectName || defaultProjectName(groupCode, state.project.fileName));
     const parts = [
       projectName,
-      `GROUP ${groupCode || 'LOCAL'}`,
+      `그룹 ${groupCode || 'LOCAL'}`,
       `ID ${normalizeProjectId(state.project.projectId || 'current')}`,
-      String(state.project.source || 'memory').toUpperCase()
+      `저장소 ${(state.project.source || 'memory').toUpperCase()}`
     ];
     if (state.project.lastSavedAt) {
-      parts.push(`SAVED ${formatDateTime(state.project.lastSavedAt)}`);
+      parts.push(`저장 ${formatDateTime(state.project.lastSavedAt)}`);
     }
     if (state.project.dirty) {
-      parts.push('DIRTY');
+      parts.push('수정됨');
     }
     if (message) {
       parts.push(message);

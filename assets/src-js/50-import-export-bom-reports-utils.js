@@ -12,7 +12,7 @@
     const file = event.target.files?.[0];
     if (!file) return;
     try {
-      showBusy('Project file import in progress...');
+      showBusy('프로젝트 파일을 가져오는 중입니다...');
       const payload = await loadFilePayload(file);
       await applyProjectPayload(payload, {
         fileName: file.name,
@@ -30,10 +30,10 @@
         state.project.dirty = true;
         updateProjectStatus('IMPORTED / UNSAVED');
       }
-      pushToast('Project file imported.', 'success');
+      pushToast('프로젝트 파일을 가져왔습니다.', 'success');
     } catch (error) {
       console.error(error);
-      pushToast(`Project import failed: ${error.message}`, 'error');
+      pushToast(`프로젝트 가져오기 실패: ${error.message}`, 'error');
     } finally {
       hideBusy();
       event.target.value = '';
@@ -48,7 +48,7 @@
     }
 
     if (!window.XLSX) {
-      throw new Error('XLSX library is not loaded.');
+      throw new Error('XLSX 라이브러리가 로드되지 않았습니다.');
     }
 
     const buffer = await file.arrayBuffer();

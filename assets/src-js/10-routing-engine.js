@@ -4,20 +4,20 @@
     if (!file) return;
 
     try {
-      showBusy(`${kind === 'cable' ? '耳?대툝' : '?몃뱶'} ?뚯씪???쎈뒗 以묒엯?덈떎...`);
+      showBusy(`${kind === 'cable' ? '케이블' : '노드'} 파일을 읽는 중입니다...`);
       const payload = await loadFilePayload(file);
       if (kind === 'cable') {
         state.cables = extractCablesFromPayload(payload);
         if (!state.cables.length) {
-          pushToast('耳?대툝 ?뚯씪?먯꽌 ?좏슚???곗씠?곕? 李얠? 紐삵뻽?듬땲??', 'warn');
+          pushToast('케이블 파일에서 유효한 데이터를 찾지 못했습니다.', 'warn');
         } else {
           state.selectedCableId = state.cables[0]?.id || null;
           syncRouteInputsFromSelected();
-          pushToast(`耳?대툝 ${state.cables.length}嫄댁쓣 遺덈윭?붿뒿?덈떎.`, 'success');
+          pushToast(`케이블 ${state.cables.length}건을 불러왔습니다.`, 'success');
         }
       } else {
         state.uploadedNodes = extractNodesFromPayload(payload);
-        pushToast(`?낅줈???몃뱶 ${state.uploadedNodes.length}嫄댁쓣 遺덈윭?붿뒿?덈떎.`, 'success');
+        pushToast(`노드 ${state.uploadedNodes.length}건을 불러왔습니다.`, 'success');
       }
 
       const stem = fileStem(file.name);
@@ -37,7 +37,7 @@
       updateProjectStatus(`${String(kind || 'file').toUpperCase()} LOADED`);
     } catch (error) {
       console.error(error);
-      pushToast(`?뚯씪 泥섎━ 以??ㅻ쪟媛 諛쒖깮?덉뒿?덈떎: ${error.message}`, 'error');
+      pushToast(`파일 처리 중 오류가 발생했습니다: ${error.message}`, 'error');
     } finally {
       hideBusy();
       input.value = '';
@@ -48,10 +48,10 @@
     const file = event.target.files?.[0];
     if (!file) return;
     try {
-      showBusy('?꾨줈?앺듃 JSON???쎈뒗 以묒엯?덈떎...');
+      showBusy('프로젝트 JSON을 읽는 중입니다...');
       const payload = await loadFilePayload(file);
       if (!payload || typeof payload !== 'object' || !Array.isArray(payload.cables)) {
-        throw new Error('?꾨줈?앺듃 JSON ?뺤떇???щ컮瑜댁? ?딆뒿?덈떎.');
+        throw new Error('프로젝트 JSON 형식이 올바르지 않습니다.');
       }
 
       state.cables = payload.cables.map((cable, index) => normalizeCableRecord(cable, index));
@@ -61,10 +61,10 @@
       state.selectedCableId = state.cables[0]?.id || null;
       syncRouteInputsFromSelected();
       renderAll();
-      pushToast('?꾨줈?앺듃 JSON??遺덈윭?붿뒿?덈떎.', 'success');
+      pushToast('프로젝트 JSON을 불러왔습니다.', 'success');
     } catch (error) {
       console.error(error);
-      pushToast(`JSON 媛?몄삤湲??ㅽ뙣: ${error.message}`, 'error');
+      pushToast(`JSON 가져오기 실패: ${error.message}`, 'error');
     } finally {
       hideBusy();
       event.target.value = '';
@@ -257,18 +257,18 @@
 
     if (!state.cables.length) {
       if (!skipWhenNoCables && !quiet) {
-        pushToast('癒쇱? 耳?대툝 ?뚯씪??遺덈윭? 二쇱꽭??', 'warn');
+        pushToast('먼저 케이블 파일을 불러와 주세요.', 'warn');
       }
       return;
     }
 
-    showBusy(`?꾩껜 寃쎈줈瑜??곗텧?섎뒗 以묒엯?덈떎... 0 / ${state.cables.length}`);
+    showBusy(`전체 경로를 계산하는 중입니다... 0 / ${state.cables.length}`);
     for (let index = 0; index < state.cables.length; index += 1) {
       const cable = state.cables[index];
       applyRouteToCable(cable);
       cable.validation = validateCable(cable);
       if (index % 120 === 0) {
-        dom.busyText.textContent = `?꾩껜 寃쎈줈瑜??곗텧?섎뒗 以묒엯?덈떎... ${index + 1} / ${state.cables.length}`;
+        dom.busyText.textContent = `전체 경로를 계산하는 중입니다... ${index + 1} / ${state.cables.length}`;
         await pause();
       }
     }
@@ -280,7 +280,7 @@
     commitHistory('route-all');
     updateProjectStatus('ROUTES RECALCULATED');
     if (!quiet) {
-      pushToast(`?꾩껜 耳?대툝 ${state.cables.length}嫄댁쓽 寃쎈줈 ?곗텧???꾨즺?덉뒿?덈떎.`, 'success');
+      pushToast(`전체 케이블 ${state.cables.length}건의 경로 계산이 완료됐습니다.`, 'success');
     }
   }
 

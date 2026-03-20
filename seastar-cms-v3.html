@@ -7,18 +7,18 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=JetBrains+Mono:wght@400;600&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./assets/seastar-v3.css">
+  <link rel="stylesheet" href="./assets/seastar-v3.css?v=20260319-compact">
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" crossorigin="anonymous"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" crossorigin="anonymous"></script>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <script src="./assets/embedded-nodes.js"></script>
-  <script defer src="./assets/seastar-v3.js"></script>
+  <script src="./assets/embedded-nodes.js?v=20260319-compact"></script>
+  <script defer src="./assets/seastar-v3.js?v=20260319-compact"></script>
 </head>
 <body>
   <div id="busyOverlay" class="busy-overlay hidden">
     <div class="busy-card">
       <div class="busy-spinner"></div>
-      <div id="busyText" class="busy-text">以鍮?以?..</div>
+      <div id="busyText" class="busy-text">준비 중...</div>
     </div>
   </div>
 
@@ -100,26 +100,26 @@
             <span id="userProvider" class="badge badge-neutral">local</span>
             <span id="userGroup" class="badge badge-success">NO GROUP</span>
           </div>
-          <button id="logoutBtn" class="toolbar-btn subtle" type="button">濡쒓렇?꾩썐</button>
+          <button id="logoutBtn" class="toolbar-btn subtle" type="button">로그아웃</button>
         </div>
       </div>
     </header>
 
     <section class="toolbar">
       <div class="toolbar-left">
-        <button id="loadCableBtn" class="toolbar-btn primary" type="button">Load Cable</button>
-        <button id="loadNodeBtn" class="toolbar-btn" type="button">Load Node</button>
-        <button id="importProjectBtn" class="toolbar-btn" type="button">Import Project</button>
-        <button id="loadServerProjectBtn" class="toolbar-btn" type="button">Load Server Project</button>
-        <button id="saveServerProjectBtn" class="toolbar-btn accent" type="button">Save Server Project</button>
+        <button id="loadCableBtn" class="toolbar-btn primary" type="button">케이블 불러오기</button>
+        <button id="loadNodeBtn" class="toolbar-btn" type="button">노드 불러오기</button>
+        <button id="importProjectBtn" class="toolbar-btn" type="button">프로젝트 가져오기</button>
+        <button id="loadServerProjectBtn" class="toolbar-btn" type="button">서버 불러오기</button>
+        <button id="saveServerProjectBtn" class="toolbar-btn accent" type="button">서버 저장</button>
         <button id="undoBtn" class="toolbar-btn subtle" type="button">Undo</button>
         <button id="redoBtn" class="toolbar-btn subtle" type="button">Redo</button>
-        <button id="routeAllBtn" class="toolbar-btn accent" type="button">Route All</button>
-        <button id="validateAllBtn" class="toolbar-btn" type="button">Run Triple Validation</button>
+        <button id="routeAllBtn" class="toolbar-btn accent" type="button">전체 경로산출</button>
+        <button id="validateAllBtn" class="toolbar-btn" type="button">전체 검증</button>
         <button id="exportJsonBtn" class="toolbar-btn" type="button">Export JSON</button>
         <button id="exportXlsxBtn" class="toolbar-btn" type="button">Export XLSX</button>
-        <div id="projectStatus" class="toolbar-status">PROJECT: NOT LOADED</div>
-        <div id="historyStatus" class="toolbar-status">HISTORY: 0 / 0</div>
+        <div id="projectStatus" class="toolbar-status">프로젝트 없음</div>
+        <div id="historyStatus" class="toolbar-status">이력 0 / 0</div>
         <input id="cableFileInput" class="hidden-input" type="file" accept=".xlsx,.xls,.json">
         <input id="nodeFileInput" class="hidden-input" type="file" accept=".xlsx,.xls,.json">
         <input id="projectFileInput" class="hidden-input" type="file" accept=".json,.xlsx,.xls">
@@ -128,13 +128,13 @@
       <div class="toolbar-right">
         <button id="openManualBtn" class="toolbar-btn subtle" type="button">설명서</button>
         <label class="toolbar-field">
-          <span>寃??/span>
-          <input id="searchInput" type="search" placeholder="耳?대툝紐? ?몃뱶, ?쒖뒪??>
+          <span>검색</span>
+          <input id="searchInput" type="search" placeholder="케이블명, 노드, 시스템">
         </label>
         <label class="toolbar-field">
-          <span>寃利?/span>
+          <span>검증</span>
           <select id="validationFilter">
-            <option value="ALL">?꾩껜</option>
+            <option value="ALL">전체</option>
             <option value="PASS">PASS</option>
             <option value="WARN">WARN</option>
             <option value="FAIL">FAIL</option>
@@ -142,9 +142,9 @@
           </select>
         </label>
         <label class="toolbar-field">
-          <span>?쒖뒪??/span>
+          <span>시스템</span>
           <select id="systemFilter">
-            <option value="ALL">?꾩껜</option>
+            <option value="ALL">전체</option>
           </select>
         </label>
       </div>
@@ -152,19 +152,19 @@
 
     <section class="summary-strip">
       <div class="summary-card">
-        <span>耳?대툝</span>
+        <span>케이블</span>
         <strong id="metricCables">0</strong>
       </div>
       <div class="summary-card">
-        <span>?낅줈???몃뱶</span>
+        <span>업로드 노드</span>
         <strong id="metricUploadedNodes">0</strong>
       </div>
       <div class="summary-card">
-        <span>蹂묓빀 ?몃뱶</span>
+        <span>병합 노드</span>
         <strong id="metricMergedNodes">0</strong>
       </div>
       <div class="summary-card">
-        <span>?곗텧 ?꾨즺</span>
+        <span>경로 완료</span>
         <strong id="metricRouted">0</strong>
       </div>
       <div class="summary-card">
@@ -172,7 +172,7 @@
         <strong id="metricValidation">0 / 0 / 0</strong>
       </div>
       <div class="summary-card">
-        <span>洹몃옒???댁뒋</span>
+        <span>그래프 이슈</span>
         <strong id="metricGraphIssues">0</strong>
       </div>
     </section>
@@ -180,10 +180,10 @@
     <section id="editorDock" class="editor-dock">
       <div class="editor-header">
         <div>
-          <p class="eyebrow">Quick Editor</p>
-          <h2>케이블을 더블클릭하면 여기서 바로 수정합니다.</h2>
+          <p class="eyebrow">Cable Editor</p>
+          <h2>선택 케이블 편집</h2>
         </div>
-        <div id="editorStatus" class="editor-status">No cable selected.</div>
+        <div id="editorStatus" class="editor-status">선택된 케이블 없음</div>
       </div>
 
       <div class="editor-grid">
@@ -251,7 +251,7 @@
         </label>
         <label class="field">
           <span>CHECK NODE</span>
-          <input id="editCheckNode" type="text" placeholder="comma-separated nodes">
+          <input id="editCheckNode" type="text" placeholder="쉼표로 구분">
         </label>
         <label class="field">
           <span>SUPPLY_DECK</span>
@@ -305,15 +305,15 @@
       </details>
 
       <div class="editor-actions">
-        <button id="saveEditorBtn" class="toolbar-btn primary" type="button">Save</button>
-        <button id="saveRecalcBtn" class="toolbar-btn accent" type="button">Save + Recalc</button>
-        <button id="forceRouteBtn" class="toolbar-btn accent" type="button">Force Route By CHECK_NODE</button>
-        <button id="validateSelectedBtn" class="toolbar-btn" type="button">Validate</button>
-        <button id="focusMapBtn" class="toolbar-btn" type="button">Show On Map</button>
-        <button id="resetEditorBtn" class="toolbar-btn subtle" type="button">Reset</button>
-        <button id="newCableBtn" class="toolbar-btn" type="button">New</button>
-        <button id="duplicateCableBtn" class="toolbar-btn" type="button">Duplicate</button>
-        <button id="deleteCableBtn" class="toolbar-btn danger" type="button">Delete</button>
+        <button id="saveEditorBtn" class="toolbar-btn primary" type="button">저장</button>
+        <button id="saveRecalcBtn" class="toolbar-btn accent" type="button">저장+재산출</button>
+        <button id="forceRouteBtn" class="toolbar-btn accent" type="button">체크노드 강제 경로</button>
+        <button id="validateSelectedBtn" class="toolbar-btn" type="button">검증</button>
+        <button id="focusMapBtn" class="toolbar-btn" type="button">맵 표시</button>
+        <button id="resetEditorBtn" class="toolbar-btn subtle" type="button">초기화</button>
+        <button id="newCableBtn" class="toolbar-btn" type="button">신규</button>
+        <button id="duplicateCableBtn" class="toolbar-btn" type="button">복제</button>
+        <button id="deleteCableBtn" class="toolbar-btn danger" type="button">삭제</button>
       </div>
     </section>
 
@@ -335,7 +335,7 @@
             <div class="panel-header">
               <div>
                 <p class="eyebrow">Master List</p>
-                <h3>?꾩닔 ?묒떇 怨좎젙 由ъ뒪??/h3>
+                <h3>케이블 마스터 리스트</h3>
               </div>
               <div id="listCount" class="panel-meta">0 / 0</div>
             </div>
@@ -352,12 +352,12 @@
             <div class="panel-header">
               <div>
                 <p class="eyebrow">Selected Cable</p>
-                <h3>湲몄씠 遺꾪빐? 寃利?寃곌낵</h3>
+                <h3>길이 분해와 검증 결과</h3>
               </div>
             </div>
 
             <div id="detailEmpty" class="empty-state">
-              耳?대툝???좏깮?섎㈃ ?곸꽭 寃쎈줈, 寃利?寃곌낵, 誘몃땲 2D 留듭씠 ?ш린???쒖떆?⑸땲??
+              케이블을 선택하면 상세 경로, 검증 결과, 미니 2D 맵이 여기에 표시됩니다.
             </div>
 
             <div id="detailContent" class="detail-content hidden">

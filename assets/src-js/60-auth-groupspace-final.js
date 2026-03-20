@@ -772,7 +772,7 @@
     setTextContent(dom.metricRouted?.closest('.summary-card')?.querySelector('span'), '경로 완료');
     setTextContent(dom.metricGraphIssues?.closest('.summary-card')?.querySelector('span'), '그래프 이슈');
 
-    setTextContent(document.querySelector('[data-panel="dashboard"] .panel-header h3'), '필수 SCH 전체 리스트');
+    setTextContent(document.querySelector('[data-panel="dashboard"] .panel-header h3'), '케이블 마스터 리스트');
     setTextContent(document.querySelector('[data-panel="dashboard"] .detail-panel .panel-header h3'), '길이 분해와 검증 결과');
     setTextContent(dom.detailEmpty, '케이블을 선택하면 상세 경로, 검증 결과, 미니 2D 맵이 여기에 표시됩니다.');
 

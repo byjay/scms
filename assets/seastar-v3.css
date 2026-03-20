@@ -16,7 +16,7 @@
   --shadow: 0 1px 4px rgba(20, 28, 36, 0.08);
   --radius: 8px;
   --radius-sm: 6px;
-  --grid-row-h: 40px;
+  --grid-row-h: 34px;
 }
 
 * {
@@ -333,12 +333,12 @@ button {
 
 .field {
   display: grid;
-  gap: 7px;
+  gap: 3px;
 }
 
 .field span {
   color: var(--muted);
-  font-size: 12px;
+  font-size: 10px;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -347,17 +347,18 @@ button {
 .field select,
 .field textarea {
   width: 100%;
-  min-height: 30px;
-  padding: 6px 8px;
+  min-height: 24px;
+  padding: 3px 6px;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 4px;
   background: #fff;
   color: var(--text);
+  font-size: 11px;
 }
 
 .field textarea {
   resize: vertical;
-  min-height: 52px;
+  min-height: 40px;
 }
 
 .field input:focus,
@@ -376,7 +377,7 @@ button {
 
 .app-shell {
   min-height: 100vh;
-  padding: 8px 10px 12px;
+  padding: 6px;
 }
 
 .topbar,
@@ -392,44 +393,43 @@ button {
 .topbar {
   display: flex;
   justify-content: space-between;
-  gap: 10px;
+  gap: 6px;
   align-items: center;
-  padding: 8px 12px;
+  padding: 4px 8px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 4px;
   background: var(--bg-elev);
-  box-shadow: var(--shadow);
+  box-shadow: none;
 }
 
 .brand-block {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .brand-copy {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 0;
 }
 
 .brand-block h1 {
   margin: 0;
-  font-size: 18px;
+  font-size: 13px;
   font-weight: 700;
+  letter-spacing: 0.02em;
 }
 
 .brand-subtitle {
-  margin: 0;
-  color: var(--muted);
-  font-size: 11px;
+  display: none;
 }
 
 .brand-logo {
   display: block;
-  width: 112px;
+  width: 96px;
   height: auto;
-  max-height: 34px;
+  max-height: 28px;
   padding: 0;
   border-radius: 0;
   object-fit: contain;
@@ -442,13 +442,11 @@ button {
   flex-wrap: wrap;
   justify-content: flex-end;
   align-items: center;
-  gap: 16px;
+  gap: 8px;
 }
 
 .dependency-strip {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+  display: none;
 }
 
 .dep-pill,
@@ -513,12 +511,13 @@ button {
 .toolbar {
   display: flex;
   justify-content: space-between;
-  gap: 8px;
-  margin-top: 8px;
-  padding: 8px 10px;
+  gap: 4px;
+  margin-top: 4px;
+  padding: 4px 6px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 4px;
   background: var(--bg-elev);
+  box-shadow: none;
 }
 
 .toolbar-left,
@@ -527,48 +526,50 @@ button {
 .route-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 4px;
   align-items: center;
 }
 
 .toolbar-status {
   display: inline-flex;
   align-items: center;
-  min-height: 28px;
-  padding: 0 8px;
+  min-height: 24px;
+  padding: 0 6px;
   border: 1px solid var(--border);
   border-radius: 999px;
   background: var(--bg-soft);
   color: var(--text);
-  font-size: 11px;
+  font-size: 10px;
   white-space: nowrap;
 }
 
 .toolbar-field {
   display: grid;
-  gap: 4px;
-  min-width: 132px;
+  gap: 2px;
+  min-width: 104px;
 }
 
 .toolbar-field span {
-  color: var(--muted);
-  font-size: 10px;
-  text-transform: uppercase;
+  display: none;
 }
 
 .toolbar-field input,
 .toolbar-field select {
-  min-height: 30px;
+  min-height: 24px;
+  padding: 2px 6px;
+  font-size: 11px;
 }
 
 .toolbar-btn {
-  min-height: 30px;
-  padding: 0 10px;
+  min-height: 24px;
+  padding: 0 8px;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 4px;
   background: #fff;
   color: var(--text);
   font-weight: 600;
+  font-size: 11px;
+  line-height: 1;
 }
 
 .toolbar-btn:disabled {
@@ -596,10 +597,7 @@ button {
 }
 
 .summary-strip {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 8px;
+  display: none;
 }
 
 .summary-card {
@@ -625,45 +623,49 @@ button {
 
 .editor-dock {
   position: sticky;
-  top: 8px;
+  top: 4px;
   z-index: 500;
-  margin-top: 8px;
-  padding: 8px 10px;
+  margin-top: 4px;
+  padding: 6px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 4px;
   background: var(--bg-elev);
-  box-shadow: var(--shadow);
+  box-shadow: none;
 }
 
 .editor-header {
   display: flex;
   justify-content: space-between;
-  gap: 8px;
+  gap: 6px;
   align-items: center;
-  margin-bottom: 8px;
+  margin-bottom: 4px;
 }
 
 .editor-header h2 {
   margin: 0;
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 700;
 }
 
+.editor-header .eyebrow {
+  display: none;
+}
+
 .editor-status {
-  min-width: 220px;
-  padding: 6px 8px;
+  min-width: 180px;
+  padding: 4px 6px;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 4px;
   color: var(--text);
   background: var(--bg-soft);
-  font-size: 11px;
+  font-size: 10px;
 }
 
 .editor-grid {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 8px;
-  margin-bottom: 8px;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 4px;
+  margin-bottom: 4px;
 }
 
 .editor-span-2 {
@@ -677,16 +679,16 @@ button {
 .editor-extra {
   margin-top: 2px;
   border-top: 1px solid var(--border);
-  padding-top: 6px;
+  padding-top: 4px;
 }
 
 .editor-extra summary {
   cursor: pointer;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
   list-style: none;
-  margin-bottom: 8px;
+  margin-bottom: 4px;
 }
 
 .editor-extra summary::-webkit-details-marker {
@@ -696,29 +698,30 @@ button {
 .tabbar {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 8px;
+  gap: 4px;
+  margin-top: 4px;
 }
 
 .tab-btn {
-  min-height: 30px;
-  padding: 0 10px;
+  min-height: 24px;
+  padding: 0 8px;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 4px;
   background: #fff;
   color: var(--text);
   font-weight: 600;
+  font-size: 11px;
 }
 
 .tab-btn.is-active {
   color: #fff;
-  background: #5b6977;
-  border-color: #5b6977;
+  background: #667482;
+  border-color: #667482;
 }
 
 .workspace {
   width: 100%;
-  margin: 8px auto 0;
+  margin: 4px auto 0;
 }
 
 .tab-panel {
@@ -732,11 +735,11 @@ button {
 .split,
 .diagnostics-layout {
   display: grid;
-  gap: 14px;
+  gap: 8px;
 }
 
 .split-dashboard {
-  grid-template-columns: minmax(1100px, 2.35fr) minmax(260px, 0.65fr);
+  grid-template-columns: minmax(1180px, 2.65fr) minmax(240px, 0.55fr);
 }
 
 .split-routing {
@@ -859,20 +862,20 @@ button {
 .panel-header {
   display: flex;
   justify-content: space-between;
-  gap: 8px;
+  gap: 6px;
   align-items: center;
-  padding: 8px 10px 6px;
+  padding: 6px 8px 4px;
 }
 
 .panel-header h3 {
   margin: 0;
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 700;
 }
 
 .panel-meta {
   color: var(--muted);
-  font-size: 11px;
+  font-size: 10px;
 }
 
 .grid-table {
@@ -880,7 +883,7 @@ button {
   flex: 1;
   min-height: 0;
   flex-direction: column;
-  padding: 0 8px 8px;
+  padding: 0 4px 4px;
 }
 
 .grid-header,
