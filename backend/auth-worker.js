@@ -98,16 +98,21 @@ export default {
           });
         }
 
-        const tokenUrl = new URL('https://nid.naver.com/oauth2.0/token');
-        tokenUrl.searchParams.set('grant_type', 'authorization_code');
-        tokenUrl.searchParams.set('client_id', env.NAVER_CLIENT_ID || '');
-        tokenUrl.searchParams.set('client_secret', env.NAVER_CLIENT_SECRET || '');
-        tokenUrl.searchParams.set('code', code);
-        tokenUrl.searchParams.set('state', state);
+        const tokenBody = new URLSearchParams();
+        tokenBody.set('grant_type', 'authorization_code');
+        tokenBody.set('client_id', env.NAVER_CLIENT_ID || '');
+        tokenBody.set('client_secret', env.NAVER_CLIENT_SECRET || '');
+        tokenBody.set('code', code);
+        tokenBody.set('state', state);
 
-        const tokenResponse = await fetch(tokenUrl.toString());
+        const tokenResponse = await fetch('https://nid.naver.com/oauth2.0/token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: tokenBody.toString()
+        });
         const tokenData = await tokenResponse.json();
         if (!tokenResponse.ok || !tokenData.access_token) {
+          console.error('Naver token exchange failed:', { status: tokenResponse.status, error: tokenData.error, desc: tokenData.error_description });
           return redirect(`${appRedirect}?authError=naver_token_exchange_failed`, {
             'Set-Cookie': clearCookie(NAVER_STATE_COOKIE, url)
           });
@@ -121,6 +126,7 @@ export default {
         const profileData = await profileResponse.json();
         const profile = profileData.response;
         if (!profileResponse.ok || !profile?.id) {
+          console.error('Naver profile failed:', { status: profileResponse.status, resultcode: profileData.resultcode, message: profileData.message });
           return redirect(`${appRedirect}?authError=naver_profile_failed`, {
             'Set-Cookie': clearCookie(NAVER_STATE_COOKIE, url)
           });

@@ -499,6 +499,7 @@
     if (!cable) {
       dom.detailEmpty.classList.remove('hidden');
       dom.detailContent.classList.add('hidden');
+      renderDashPathTable(null);
       return;
     }
 
@@ -518,10 +519,36 @@
       `<div><strong>Calculated</strong><br>${escapeHtml(cable.calculatedPath || '-')}</div>`
     ].join('');
 
-    const mapStats = renderMapCanvas(dom.detailMapCanvas, route, { fitToPath: true });
-    dom.detailMapMeta.textContent = route
-      ? `?몃뱶 ${route.pathNodes.length}媛?| 2D drawable segment ${mapStats.drawnSegments}/${Math.max(route.pathNodes.length - 1, 0)}`
-      : '怨꾩궛??寃쎈줈媛 ?놁뒿?덈떎.';
+    if (dom.detailMapCanvas && dom.detailMapCanvas.offsetParent) {
+      const mapStats = renderMapCanvas(dom.detailMapCanvas, route, { fitToPath: true });
+      dom.detailMapMeta.textContent = route
+        ? `노드 ${route.pathNodes.length}개 | 2D drawable segment ${mapStats.drawnSegments}/${Math.max(route.pathNodes.length - 1, 0)}`
+        : '계산된 경로가 없습니다.';
+    }
+
+    renderDashPathTable(cable);
+  }
+
+  function renderDashPathTable(cable) {
+    if (!dom.dashPathTable) return;
+    if (!cable || !cable.routeBreakdown) {
+      dom.dashPathTable.innerHTML = '<div style="padding:6px;color:#64748b;font-size:10px;">더블클릭으로 케이블 선택</div>';
+      return;
+    }
+    const route = cable.routeBreakdown;
+    const rows = route.pathNodes.map((nodeName, idx) => {
+      const node = state.graph.nodeMap[nodeName];
+      const deck = node?.structure || '-';
+      const seg = route.edgeSegments[idx] || null;
+      const segLen = seg ? formatNumber(seg.length) : '-';
+      return `<div class="dash-path-row">
+        <div class="dash-path-cell" style="min-width:24px">${idx + 1}</div>
+        <div class="dash-path-cell" style="min-width:42px" title="${escapeHtml(deck)}">${escapeHtml(truncate(deck, 8))}</div>
+        <div class="dash-path-cell grow" title="${escapeHtml(nodeName)}">${escapeHtml(nodeName)}</div>
+        <div class="dash-path-cell" style="min-width:50px;text-align:right">${segLen}</div>
+      </div>`;
+    });
+    dom.dashPathTable.innerHTML = rows.join('');
   }
 
   function buildLengthBreakdown(cable) {

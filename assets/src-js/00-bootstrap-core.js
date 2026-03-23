@@ -444,6 +444,8 @@
       'nodeTrayMatrix',
       'nodeTrayCanvas',
       'nodeTrayCanvasMeta',
+      'nodeTrayIndexList',
+      'dashPathTable',
       'nodeCableList',
       'nodeRelationList',
       'nodeMapCanvas',

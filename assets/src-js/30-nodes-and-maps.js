@@ -504,6 +504,7 @@
     dom.nodeTrayMatrix.innerHTML = renderNodeTrayMatrix(model);
     renderTrayCanvas(dom.nodeTrayCanvas, model.current);
     dom.nodeTrayCanvasMeta.textContent = `Tray layout ${model.current.success ? 'READY' : 'LIMIT EXCEEDED'} | cables ${formatInt(model.current.cables.length)} | placed ${formatInt(model.current.placed.length)} | fill ${formatNumber(model.current.fillRatio)} %`;
+    renderTrayCableIndexList(dom.nodeTrayIndexList, dom.nodeTrayCanvas);
   }
 
   function syncNodeTrayInputsForMetric(metric) {
@@ -604,8 +605,8 @@
   function renderTrayCanvas(canvas, trayResult) {
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
-    const width = Math.max(320, Math.round(rect.width || canvas.clientWidth || 720));
-    const height = Math.max(220, Math.round(rect.height || canvas.clientHeight || 300));
+    const width = Math.max(400, Math.round(rect.width || canvas.clientWidth || 720));
+    const height = Math.max(260, Math.round(rect.height || canvas.clientHeight || 340));
     const dpr = window.devicePixelRatio || 1;
     if (canvas.width !== width * dpr || canvas.height !== height * dpr) {
       canvas.width = width * dpr;
@@ -623,38 +624,162 @@
     const trayWidth = Math.max(100, toNumber(trayResult.width, 100));
     const trayHeight = Math.max(50, toNumber(trayResult.maxHeightLimit, 150));
     const tierCount = Math.max(1, toNumber(trayResult.tierCount, 1));
-    const padding = 20;
-    const usableWidth = width - padding * 2;
-    const usableHeight = height - padding * 2;
-    const tierPitch = usableHeight / tierCount;
-    const scale = Math.min(usableWidth / trayWidth, (tierPitch - 24) / trayHeight);
+    const postWidth = 12; // support post width (scaled)
+    const dimSpace = 32; // dimension annotation space
+    const padding = { top: 16, right: 16, bottom: dimSpace + 8, left: 16 };
+    const usableWidth = width - padding.left - padding.right;
+    const usableHeight = height - padding.top - padding.bottom;
+    const tierGap = 6;
+    const tierPitch = (usableHeight - tierGap * (tierCount - 1)) / tierCount;
+    const innerTrayScale = Math.min((usableWidth - postWidth * 2 - 8) / trayWidth, (tierPitch - 20) / trayHeight);
+    const scale = innerTrayScale;
+    const trayDrawWidth = trayWidth * scale;
+    const trayDrawHeight = trayHeight * scale;
 
     drawGridBackground(ctx, width, height);
 
-    for (let tierIndex = 0; tierIndex < tierCount; tierIndex += 1) {
-      const originX = padding + (usableWidth - trayWidth * scale) / 2;
-      const originY = padding + tierPitch * (tierIndex + 1) - 10;
-      ctx.strokeStyle = '#334155';
-      ctx.lineWidth = 2;
-      ctx.strokeRect(originX, originY - trayHeight * scale, trayWidth * scale, trayHeight * scale);
-      ctx.fillStyle = '#5f6f82';
-      ctx.font = '11px "Noto Sans KR", sans-serif';
-      ctx.fillText(`TIER ${tierIndex + 1}`, originX, originY - trayHeight * scale - 8);
+    // Global cable numbering across all tiers
+    let globalCableIndex = 0;
+    const allPlacedIndexed = [];
 
+    for (let tierIndex = 0; tierIndex < tierCount; tierIndex += 1) {
+      const centerX = padding.left + usableWidth / 2;
+      const fullTrayWidth = trayDrawWidth + postWidth * 2;
+      const trayLeft = centerX - fullTrayWidth / 2;
+      const floorY = padding.top + tierPitch * (tierIndex + 1) + tierGap * tierIndex - 4;
+      const ceilY = floorY - trayDrawHeight;
+
+      // --- PASS 1: Structure (posts + beam + height limit) ---
+
+      // Left support post
+      ctx.fillStyle = '#475569';
+      ctx.fillRect(trayLeft, ceilY - 4, postWidth, trayDrawHeight + 8);
+      // Right support post
+      ctx.fillRect(trayLeft + fullTrayWidth - postWidth, ceilY - 4, postWidth, trayDrawHeight + 8);
+
+      // Floor beam
+      const beamHeight = 4;
+      ctx.fillStyle = '#334155';
+      ctx.fillRect(trayLeft, floorY, fullTrayWidth, beamHeight);
+
+      // Tray interior background
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.6)';
+      ctx.fillRect(trayLeft + postWidth, ceilY, trayDrawWidth, trayDrawHeight);
+
+      // Height limit dashed line
+      ctx.save();
+      ctx.setLineDash([4, 3]);
+      ctx.strokeStyle = 'rgba(239, 68, 68, 0.5)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(trayLeft + postWidth, ceilY);
+      ctx.lineTo(trayLeft + fullTrayWidth - postWidth, ceilY);
+      ctx.stroke();
+      ctx.restore();
+
+      // Tier label
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = 'bold 10px "JetBrains Mono", monospace';
+      ctx.textAlign = 'left';
+      ctx.fillText(`L${tierIndex + 1}`, trayLeft + 2, ceilY - 6);
+
+      // Tier stats on right
       const tier = trayResult.tiers[tierIndex];
-      (tier?.placed || []).forEach((cable) => {
-        const x = originX + cable.x * scale;
-        const y = originY - cable.y * scale;
-        const r = Math.max(1.8, (cable.od / 2) * scale);
+      const tierPlaced = tier?.placed || [];
+      const tierArea = round2(tierPlaced.reduce((sum, c) => sum + calculateCableArea(c.od), 0));
+      const tierODSum = round2(tierPlaced.reduce((sum, c) => sum + c.od, 0));
+      ctx.textAlign = 'right';
+      ctx.fillStyle = '#64748b';
+      ctx.font = '9px "JetBrains Mono", monospace';
+      ctx.fillText(`\u03A3OD ${formatNumber(tierODSum)} | \u03A3A ${formatNumber(tierArea)} mm\u00B2 | ${tierPlaced.length} cables`, trayLeft + fullTrayWidth, ceilY - 6);
+
+      // --- PASS 2: Cables with numbers ---
+      const cableOriginX = trayLeft + postWidth;
+
+      tierPlaced.forEach((cable) => {
+        globalCableIndex += 1;
+        const cx = cableOriginX + cable.x * scale;
+        const cy = floorY - cable.y * scale;
+        const r = Math.max(2, (cable.od / 2) * scale);
+
+        // Cable circle
         ctx.beginPath();
-        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
         ctx.fillStyle = trayCableColor(cable.system);
         ctx.fill();
-        ctx.strokeStyle = '#122033';
+        ctx.strokeStyle = '#0f172a';
         ctx.lineWidth = 1;
         ctx.stroke();
+
+        // Cable number inside circle
+        const fontSize = Math.max(6, Math.min(11, r * 1.1));
+        ctx.fillStyle = '#fff';
+        ctx.font = `bold ${fontSize}px "JetBrains Mono", monospace`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(String(globalCableIndex), cx, cy);
+
+        allPlacedIndexed.push({ ...cable, displayIndex: globalCableIndex, tierIndex });
       });
+
+      // Actual max stack height line
+      if (tier && tier.maxStackHeight > 0) {
+        const actualHeightY = floorY - tier.maxStackHeight * scale;
+        ctx.save();
+        ctx.setLineDash([2, 2]);
+        ctx.strokeStyle = 'rgba(251, 191, 36, 0.6)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(trayLeft + postWidth, actualHeightY);
+        ctx.lineTo(trayLeft + fullTrayWidth - postWidth, actualHeightY);
+        ctx.stroke();
+        ctx.restore();
+        // Height annotation
+        ctx.fillStyle = '#fbbf24';
+        ctx.font = '8px "JetBrains Mono", monospace';
+        ctx.textAlign = 'left';
+        ctx.fillText(`${formatNumber(tier.maxStackHeight)}mm`, trayLeft + fullTrayWidth - postWidth + 4, actualHeightY + 3);
+      }
     }
+
+    // --- Dimension annotation at bottom ---
+    ctx.textBaseline = 'alphabetic';
+    const dimY = height - 10;
+    const dimLeft = padding.left + usableWidth / 2 - trayDrawWidth / 2 - postWidth;
+    const dimRight = dimLeft + trayDrawWidth + postWidth * 2;
+
+    // Arrow line
+    ctx.strokeStyle = '#94a3b8';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(dimLeft, dimY);
+    ctx.lineTo(dimRight, dimY);
+    ctx.stroke();
+
+    // Left arrow
+    ctx.beginPath();
+    ctx.moveTo(dimLeft, dimY);
+    ctx.lineTo(dimLeft + 6, dimY - 3);
+    ctx.lineTo(dimLeft + 6, dimY + 3);
+    ctx.closePath();
+    ctx.fillStyle = '#94a3b8';
+    ctx.fill();
+    // Right arrow
+    ctx.beginPath();
+    ctx.moveTo(dimRight, dimY);
+    ctx.lineTo(dimRight - 6, dimY - 3);
+    ctx.lineTo(dimRight - 6, dimY + 3);
+    ctx.closePath();
+    ctx.fill();
+
+    // Width label
+    ctx.fillStyle = '#e2e8f0';
+    ctx.font = 'bold 11px "JetBrains Mono", monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(`W ${formatInt(trayWidth)} mm`, (dimLeft + dimRight) / 2, dimY - 5);
+
+    // Store indexed cables for cable index list
+    canvas._placedIndexed = allPlacedIndexed;
   }
 
   function trayCableColor(system) {
@@ -664,6 +789,27 @@
       hash = source.charCodeAt(index) + ((hash << 5) - hash);
     }
     return `hsl(${Math.abs(hash) % 360}, 60%, 58%)`;
+  }
+
+  function renderTrayCableIndexList(container, canvas) {
+    if (!container) return;
+    const indexed = canvas?._placedIndexed || [];
+    if (!indexed.length) {
+      container.innerHTML = '<div class="empty-state">No cables placed.</div>';
+      return;
+    }
+    const rows = indexed.map((cable) => {
+      const color = trayCableColor(cable.system);
+      const area = round2(calculateCableArea(cable.od));
+      return `<div class="tray-index-row" data-cable-index="${cable.displayIndex}">
+        <span class="tray-index-badge" style="background:${escapeHtml(color)}">${cable.displayIndex}</span>
+        <span class="tray-index-name">${escapeHtml(cable.name || cable.id)}</span>
+        <span class="tray-index-detail">OD ${formatNumber(cable.od)} | A ${formatNumber(area)} mm\u00B2</span>
+        <span class="tray-index-sys">${escapeHtml(cable.system || '-')}</span>
+        <span class="tray-index-tier">L${(cable.tierIndex || 0) + 1}</span>
+      </div>`;
+    });
+    container.innerHTML = `<div class="tray-index-header">CABLE INDEX (${indexed.length})</div>${rows.join('')}`;
   }
 
   function calculateTrayOptimizationMatrix(cables, maxHeightLimit, fillRatioLimit) {
@@ -727,11 +873,24 @@
 
     let width = Math.max(0, toNumber(fixedWidth, 0));
     if (width <= 0) {
+      // tray-fill 방식: 이론 최소폭에서 시작하여 물리적으로 맞을 때까지 반복 탐색
       const totalArea = round2(cables.reduce((sum, cable) => sum + calculateCableArea(cable.od), 0));
       const theoreticalWidth = totalArea > 0
         ? (totalArea * 100) / Math.max(1, maxHeightLimit * safeTierCount * fillRatioLimit)
         : 100;
-      width = pickTrayStandardWidth(theoreticalWidth);
+      const startWidth = pickTrayStandardWidth(theoreticalWidth);
+      const standardWidths = [50, 100, 150, 200, 300, 450, 600, 750, 900, 1050, 1200];
+      const startIndex = standardWidths.findIndex((w) => w >= startWidth);
+      let bestWidth = standardWidths[standardWidths.length - 1]; // fallback to max
+      for (let i = Math.max(0, startIndex); i < standardWidths.length; i += 1) {
+        const candidateWidth = standardWidths[i];
+        const testBuckets = buckets.map((bucket, idx) => solveTrayTier(bucket, idx, candidateWidth, maxHeightLimit));
+        if (testBuckets.every((tier) => tier.success)) {
+          bestWidth = candidateWidth;
+          break;
+        }
+      }
+      width = bestWidth;
     }
 
     const tiers = buckets.map((bucket, index) => solveTrayTier(bucket, index, width, maxHeightLimit));

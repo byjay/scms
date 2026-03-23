@@ -140,253 +140,135 @@
 
     <main class="workspace">
       <section class="tab-panel is-active" data-panel="dashboard">
-        <div class="split split-dashboard">
-          <aside class="panel dashboard-rail">
-            <div class="panel-header">
-              <div>
-                <p class="eyebrow">제어</p>
-                <h3>검색 / 편집</h3>
+        <div class="dash-v2">
+          <!-- ====== TOP: Full-width Editor ====== -->
+          <section id="editorDock" class="dash-editor">
+            <div class="dash-editor-status">
+              <div id="editorStatus" class="editor-status">선택된 케이블 없음</div>
+              <div class="dash-editor-actions-mini">
+                <button id="saveEditorBtn" class="toolbar-btn primary" type="button">저장</button>
+                <button id="saveRecalcBtn" class="toolbar-btn accent" type="button">저장+재산출</button>
+                <button id="forceRouteBtn" class="toolbar-btn accent" type="button">체크노드 강제 경로</button>
+                <button id="validateSelectedBtn" class="toolbar-btn" type="button">검증</button>
+                <button id="resetEditorBtn" class="toolbar-btn subtle" type="button">초기화</button>
+                <button id="newCableBtn" class="toolbar-btn" type="button">신규</button>
+                <button id="duplicateCableBtn" class="toolbar-btn" type="button">복제</button>
+                <button id="deleteCableBtn" class="toolbar-btn danger" type="button">삭제</button>
               </div>
             </div>
 
-            <div class="dashboard-rail-body">
-              <div class="rail-block">
-                <div class="rail-title">검색 / 필터</div>
-                <label class="field">
-                  <span>검색</span>
-                  <input id="searchInput" type="search" placeholder="케이블명, 노드, 시스템">
-                </label>
-                <label class="field">
-                  <span>검증</span>
-                  <select id="validationFilter">
-                    <option value="ALL">전체</option>
-                    <option value="PASS">PASS</option>
-                    <option value="WARN">WARN</option>
-                    <option value="FAIL">FAIL</option>
-                    <option value="PENDING">PENDING</option>
-                  </select>
-                </label>
-                <label class="field">
-                  <span>시스템</span>
-                  <select id="systemFilter">
-                    <option value="ALL">전체</option>
-                  </select>
-                </label>
+            <div class="dash-editor-body">
+              <!-- LEFT: Cable basic info -->
+              <div class="dash-editor-col dash-col-basic">
+                <label class="field compact"><span>CABLE NAME</span><input id="editName" type="text"></label>
+                <label class="field compact"><span>CABLE TYPE</span><input id="editType" type="text"></label>
+                <label class="field compact"><span>SUPPLY DK</span><input id="editSupplyDeck" type="text"></label>
+                <label class="field compact"><span>LENGTH</span><input id="editLength" type="number" step="0.01"></label>
+                <label class="field compact"><span>Weight</span><input id="editPorWeight" type="number" step="0.01"></label>
+                <label class="field compact"><span>OUTDIA</span><input id="editOutDia" type="number" step="0.01"></label>
+                <div class="dash-sub-row">
+                  <label class="field compact"><span>REV</span><input id="editRevision" type="text"></label>
+                  <label class="field compact"><span>SYSTEM</span><input id="editSystem" type="text"></label>
+                </div>
               </div>
 
-              <section id="editorDock" class="editor-dock editor-dock-inline">
-                <div class="editor-header">
-                  <div>
-                    <p class="eyebrow">편집</p>
-                    <h2>선택 케이블 편집</h2>
-                  </div>
-                  <div id="editorStatus" class="editor-status">선택된 케이블 없음</div>
+              <!-- CENTER: FROM / TO / CHECK_NODE -->
+              <div class="dash-editor-col dash-col-route">
+                <div class="dash-from-to">
+                  <fieldset class="dash-endpoint">
+                    <legend>FROM</legend>
+                    <label class="field compact"><span>DECK</span><input id="editFromRoom" type="text"></label>
+                    <div class="dash-node-rest">
+                      <label class="field compact"><span>NODE</span><input id="editFromNode" type="text"></label>
+                      <label class="field compact rest"><span>REST</span><input id="editFromRest" type="number" step="0.01"></label>
+                    </div>
+                    <label class="field compact"><span>EQUIPMENT</span><input id="editFromEquip" type="text"></label>
+                  </fieldset>
+                  <fieldset class="dash-endpoint">
+                    <legend>TO</legend>
+                    <label class="field compact"><span>DECK</span><input id="editToRoom" type="text"></label>
+                    <div class="dash-node-rest">
+                      <label class="field compact"><span>NODE</span><input id="editToNode" type="text"></label>
+                      <label class="field compact rest"><span>REST</span><input id="editToRest" type="number" step="0.01"></label>
+                    </div>
+                    <label class="field compact"><span>EQUIPMENT</span><input id="editToEquip" type="text"></label>
+                  </fieldset>
                 </div>
-
-                <div class="editor-grid">
-                  <label class="field">
-                    <span>CABLE_NAME</span>
-                    <input id="editName" type="text">
-                  </label>
-                  <label class="field">
-                    <span>CABLE_TYPE</span>
-                    <input id="editType" type="text">
-                  </label>
-                  <label class="field">
-                    <span>CABLE_SYSTEM</span>
-                    <input id="editSystem" type="text">
-                  </label>
-                  <label class="field">
-                    <span>WD_PAGE</span>
-                    <input id="editWdPage" type="text">
-                  </label>
-                  <label class="field">
-                    <span>POR_LENGTH</span>
-                    <input id="editLength" type="number" step="0.01">
-                  </label>
-                  <label class="field">
-                    <span>CABLE_OUTDIA</span>
-                    <input id="editOutDia" type="number" step="0.01">
-                  </label>
+                <label class="field compact"><span>CHECK NODE</span><input id="editCheckNode" type="text" placeholder="쉼표로 구분"></label>
+                <div class="dash-sub-row">
+                  <label class="field compact"><span>WD_PAGE</span><input id="editWdPage" type="text"></label>
+                  <label class="field compact"><span>C_WEIGHT</span><input id="editCableWeight" type="number" step="0.01"></label>
                 </div>
-
-                <div class="editor-grid">
-                  <label class="field">
-                    <span>FROM NODE</span>
-                    <input id="editFromNode" type="text">
-                  </label>
-                  <label class="field">
-                    <span>FROM ROOM</span>
-                    <input id="editFromRoom" type="text">
-                  </label>
-                  <label class="field">
-                    <span>FROM EQUIP</span>
-                    <input id="editFromEquip" type="text">
-                  </label>
-                  <label class="field">
-                    <span>FROM_REST</span>
-                    <input id="editFromRest" type="number" step="0.01">
-                  </label>
-                  <label class="field">
-                    <span>TO NODE</span>
-                    <input id="editToNode" type="text">
-                  </label>
-                  <label class="field">
-                    <span>TO ROOM</span>
-                    <input id="editToRoom" type="text">
-                  </label>
-                </div>
-
-                <div class="editor-grid">
-                  <label class="field">
-                    <span>TO EQUIP</span>
-                    <input id="editToEquip" type="text">
-                  </label>
-                  <label class="field">
-                    <span>TO_REST</span>
-                    <input id="editToRest" type="number" step="0.01">
-                  </label>
-                  <label class="field">
-                    <span>CHECK NODE</span>
-                    <input id="editCheckNode" type="text" placeholder="쉼표로 구분">
-                  </label>
-                  <label class="field">
-                    <span>SUPPLY_DECK</span>
-                    <input id="editSupplyDeck" type="text">
-                  </label>
-                  <label class="field">
-                    <span>POR_WEIGHT</span>
-                    <input id="editPorWeight" type="number" step="0.01">
-                  </label>
-                  <label class="field">
-                    <span>CABLE_WEIGHT</span>
-                    <input id="editCableWeight" type="number" step="0.01">
-                  </label>
-                </div>
-
-                <details class="editor-extra">
-                  <summary>추가 SCH 항목</summary>
-                  <div class="editor-grid">
-                    <label class="field editor-span-4">
-                      <span>CABLE_PATH</span>
-                      <textarea id="editPath" rows="2"></textarea>
-                    </label>
-                    <label class="field">
-                      <span>INTERFERENCE</span>
-                      <input id="editInterference" type="text">
-                    </label>
-                    <label class="field">
-                      <span>REVISION</span>
-                      <input id="editRevision" type="text">
-                    </label>
-                  </div>
-
-                  <div class="editor-grid">
-                    <label class="field editor-span-2">
-                      <span>REMARK</span>
-                      <textarea id="editRemark" rows="2"></textarea>
-                    </label>
-                    <label class="field">
-                      <span>REMARK1</span>
-                      <input id="editRemark1" type="text">
-                    </label>
-                    <label class="field">
-                      <span>REMARK2</span>
-                      <input id="editRemark2" type="text">
-                    </label>
-                    <label class="field">
-                      <span>REMARK3</span>
-                      <input id="editRemark3" type="text">
-                    </label>
-                  </div>
-                </details>
-
-                <div class="editor-actions">
-                  <button id="saveEditorBtn" class="toolbar-btn primary" type="button">저장</button>
-                  <button id="saveRecalcBtn" class="toolbar-btn accent" type="button">저장+재산출</button>
-                  <button id="forceRouteBtn" class="toolbar-btn accent" type="button">체크노드 강제 경로</button>
-                  <button id="validateSelectedBtn" class="toolbar-btn" type="button">검증</button>
-                  <button id="focusMapBtn" class="toolbar-btn" type="button">맵 표시</button>
-                  <button id="resetEditorBtn" class="toolbar-btn subtle" type="button">초기화</button>
-                  <button id="newCableBtn" class="toolbar-btn" type="button">신규</button>
-                  <button id="duplicateCableBtn" class="toolbar-btn" type="button">복제</button>
-                  <button id="deleteCableBtn" class="toolbar-btn danger" type="button">삭제</button>
-                </div>
-              </section>
-            </div>
-          </aside>
-
-          <article class="panel dashboard-master">
-            <div class="panel-header">
-              <div>
-                <p class="eyebrow">마스터 리스트</p>
-                <h3>케이블 마스터 리스트</h3>
               </div>
-              <div id="listCount" class="panel-meta">0 / 0</div>
+
+              <!-- RIGHT: Route path table + detail cards -->
+              <div class="dash-editor-col dash-col-path">
+                <div class="dash-path-header">
+                  <span class="dash-path-label">NO</span>
+                  <span class="dash-path-label">DECK</span>
+                  <span class="dash-path-label grow">NODE</span>
+                  <span class="dash-path-label">LENGTH</span>
+                </div>
+                <div id="dashPathTable" class="dash-path-table"></div>
+                <div class="dash-detail-mini">
+                  <div class="detail-card compact"><span>BASE</span><strong id="detailBaseLength">0</strong></div>
+                  <div class="detail-card compact"><span>GRAPH</span><strong id="detailGraphLength">0</strong></div>
+                  <div class="detail-card compact"><span>TOTAL</span><strong id="detailTotalLength">0</strong></div>
+                  <div class="detail-card compact"><span>MAP</span><strong id="detailMapStatus">-</strong></div>
+                </div>
+              </div>
             </div>
 
+            <!-- Hidden extra fields -->
+            <details class="editor-extra dash-extra">
+              <summary>추가 SCH 항목 (REMARK, PATH, INTERFERENCE)</summary>
+              <div class="dash-extra-grid">
+                <label class="field compact"><span>CABLE_PATH</span><textarea id="editPath" rows="1"></textarea></label>
+                <label class="field compact"><span>INTERFERENCE</span><input id="editInterference" type="text"></label>
+                <label class="field compact"><span>REMARK</span><textarea id="editRemark" rows="1"></textarea></label>
+                <label class="field compact"><span>REMARK1</span><input id="editRemark1" type="text"></label>
+                <label class="field compact"><span>REMARK2</span><input id="editRemark2" type="text"></label>
+                <label class="field compact"><span>REMARK3</span><input id="editRemark3" type="text"></label>
+              </div>
+            </details>
+          </section>
+
+          <!-- ====== FILTER BAR ====== -->
+          <div class="dash-filter-bar">
+            <input id="searchInput" type="search" placeholder="검색: 케이블명, 노드, 시스템" class="dash-search">
+            <select id="validationFilter" class="dash-filter-select">
+              <option value="ALL">전체</option>
+              <option value="PASS">PASS</option>
+              <option value="WARN">WARN</option>
+              <option value="FAIL">FAIL</option>
+              <option value="PENDING">PENDING</option>
+            </select>
+            <select id="systemFilter" class="dash-filter-select">
+              <option value="ALL">전체</option>
+            </select>
+            <div id="listCount" class="dash-count">0 / 0</div>
+            <button id="focusMapBtn" class="toolbar-btn subtle" type="button">맵 표시</button>
+          </div>
+
+          <!-- ====== BOTTOM: Full-width Grid ====== -->
+          <div class="dash-grid-area">
             <div class="grid-table">
               <div id="cableGridHeader" class="grid-header"></div>
               <div id="cableGridViewport" class="grid-viewport">
                 <div id="cableGridInner" class="grid-inner"></div>
               </div>
             </div>
-          </article>
+          </div>
 
-          <aside class="panel detail-panel dashboard-detail">
-            <div class="panel-header">
-              <div>
-                <p class="eyebrow">선택 케이블</p>
-                <h3>길이 분해와 검증 결과</h3>
-              </div>
-            </div>
-
-            <div id="detailEmpty" class="empty-state">
-              케이블을 선택하면 상세 경로, 검증 결과, 미니 2D 맵이 여기에 표시됩니다.
-            </div>
-
-            <div id="detailContent" class="detail-content hidden">
-              <div class="detail-cards">
-                <div class="detail-card">
-                  <span>BASE LENGTH</span>
-                  <strong id="detailBaseLength">0</strong>
-                </div>
-                <div class="detail-card">
-                  <span>GRAPH LENGTH</span>
-                  <strong id="detailGraphLength">0</strong>
-                </div>
-                <div class="detail-card">
-                  <span>TOTAL LENGTH</span>
-                  <strong id="detailTotalLength">0</strong>
-                </div>
-                <div class="detail-card">
-                  <span>MAP STATUS</span>
-                  <strong id="detailMapStatus">-</strong>
-                </div>
-              </div>
-
-              <div class="detail-block">
-                <div class="block-title">길이 분해</div>
-                <div id="lengthBreakdown" class="issue-list"></div>
-              </div>
-
-              <div class="detail-block">
-                <div class="block-title">검증 결과</div>
-                <div id="validationList" class="issue-list"></div>
-              </div>
-
-              <div class="detail-block">
-                <div class="block-title">원본 경로와 계산 경로</div>
-                <div id="pathCompare" class="path-compare"></div>
-              </div>
-
-              <div class="detail-block grow">
-                <div class="block-title">미니 2D 맵</div>
-                <canvas id="detailMapCanvas" class="map-canvas small"></canvas>
-                <div id="detailMapMeta" class="map-meta"></div>
-              </div>
-            </div>
-          </aside>
+          <!-- ====== Hidden detail panels (rendered but hidden to keep DOM refs) ====== -->
+          <div id="detailEmpty" class="hidden"></div>
+          <div id="detailContent" class="hidden">
+            <div id="lengthBreakdown" class="issue-list"></div>
+            <div id="validationList" class="issue-list"></div>
+            <div id="pathCompare" class="path-compare"></div>
+            <canvas id="detailMapCanvas" class="map-canvas small" style="display:none"></canvas>
+            <div id="detailMapMeta" class="map-meta" style="display:none"></div>
+          </div>
         </div>
       </section>
 
@@ -630,6 +512,7 @@
               <div id="nodeTrayMatrix" class="tray-matrix"></div>
               <canvas id="nodeTrayCanvas" class="tray-canvas"></canvas>
               <div id="nodeTrayCanvasMeta" class="map-meta"></div>
+              <div id="nodeTrayIndexList" class="tray-index-list"></div>
             </section>
 
             <div class="node-map-stack">
