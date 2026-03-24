@@ -1,4 +1,4 @@
-﻿  function getActiveTab() {
+  function getActiveTab() {
     return dom.tabButtons.find((button) => button.classList.contains('is-active'))?.dataset.tab || 'dashboard';
   }
 
@@ -349,7 +349,7 @@
     dom.nodeAutoMeta.textContent = `Tray auto width uses routed cable area, tray height ${formatInt(state.nodeTray.maxHeightLimit)} mm, fill limit ${formatInt(state.nodeTray.fillRatioLimit)}%, and ${formatInt(state.nodeTray.tierCount)} tier(s). Routed cables ${formatInt(routedCableCount)} / ${formatInt(state.cables.length)} are reflected.`;
 
     if (!metrics.length) {
-      dom.nodeList.innerHTML = '<div class="empty-state node-list-empty">?쒖떆???몃뱶媛 ?놁뒿?덈떎.</div>';
+      dom.nodeList.innerHTML = '<div class="empty-state node-list-empty">표시할 노드가 없습니다.</div>';
     } else {
       dom.nodeList.innerHTML = metrics.map((metric) => `
         <div class="node-list-row${metric.name === state.selectedNodeName ? ' is-selected' : ''}" data-node-name="${escapeHtml(metric.name)}" title="?붾툝?대┃?섎㈃ 3D 留듭뿉???ъ빱?ㅻ맗?덈떎.">
@@ -434,7 +434,7 @@
             <span>${formatNumber(cable.outDia)} OD / ${formatNumber(cable.crossSectionArea)} A / ${formatNumber(cable.totalLength)} L</span>
           </div>
         `).join('')
-      : '<div class="empty-state">???몃뱶瑜?吏?섎뒗 耳?대툝???놁뒿?덈떎.</div>';
+      : '<div class="empty-state">이 노드를 지나는 케이블이 없습니다.</div>';
 
     dom.nodeRelationList.innerHTML = focusMetric.relationNames.length
       ? focusMetric.relationNames.map((name) => {
@@ -448,7 +448,7 @@
             </div>
           `;
         }).join('')
-      : '<div class="empty-state">?곌껐 relation ?몃뱶媛 ?놁뒿?덈떎.</div>';
+      : '<div class="empty-state">연결 relation 노드가 없습니다.</div>';
 
     const nodeMapStats = renderNodeMapCanvas(dom.nodeMapCanvas, focusMetric);
     dom.nodeMapMeta.textContent = `2D focus ${focusMetric.name} | relation ${nodeMapStats.drawnRelations}/${focusMetric.relationCount} | routed cables ${focusMetric.cableCount}`;
@@ -1019,7 +1019,7 @@
 
     const allDrawableNodes = state.mergedNodes.filter((node) => node.hasCoords);
     if (!allDrawableNodes.length) {
-      drawCanvasMessage(ctx, width, height, '醫뚰몴媛 ?덈뒗 ?몃뱶媛 ?놁뒿?덈떎.');
+      drawCanvasMessage(ctx, width, height, '좌표가 있는 노드가 없습니다.');
       return { drawnRelations: 0 };
     }
 
@@ -1054,7 +1054,7 @@
 
     const focusNode = state.graph.nodeMap[focusMetric.name];
     if (!focusNode?.hasCoords) {
-      drawCanvasMessage(ctx, width, height, '?좏깮 ?몃뱶??醫뚰몴媛 ?놁뼱 2D ?ъ빱?ㅻ? ?쒖떆?????놁뒿?덈떎.');
+      drawCanvasMessage(ctx, width, height, '선택 노드의 좌표가 없어 2D 다이어그램을 표시할 수 없습니다.');
       return { drawnRelations: 0 };
     }
 
@@ -1100,21 +1100,21 @@
     };
 
     if (!window.THREE) {
-      return placeholder('Three.js媛 ?놁뼱 ?몃뱶 3D 留듭쓣 ?ъ슜?????놁뒿?덈떎.');
+      return placeholder('Three.js가 없어 노드 3D 맵을 사용할 수 없습니다.');
     }
 
     const allDrawableNodes = state.mergedNodes.filter((node) => node.hasCoords);
     if (!allDrawableNodes.length) {
-      return placeholder('醫뚰몴媛 ?덈뒗 ?몃뱶媛 ?놁뼱 3D 留듭쓣 洹몃┫ ???놁뒿?덈떎.');
+      return placeholder('좌표가 있는 노드가 없어 3D 맵을 그릴 수 없습니다.');
     }
 
     if (!focusMetric) {
-      return placeholder('?몃뱶瑜??좏깮?섎㈃ 3D 留듭씠 ?쒖떆?⑸땲??');
+       return placeholder('노드를 선택하면 3D 맵이 표시됩니다.');
     }
 
     const focusNode = state.graph.nodeMap[focusMetric.name];
     if (!focusNode?.hasCoords) {
-      return placeholder('?좏깮 ?몃뱶??醫뚰몴媛 ?놁뼱 3D ?ъ빱?ㅻ? ?쒖떆?????놁뒿?덈떎.');
+      return placeholder('선택 노드의 좌표가 없어 3D 다이어그램을 표시할 수 없습니다.');
     }
 
     disposeNodeThree();
@@ -1205,7 +1205,7 @@
       return { drawnRelations, drawnNodes: allDrawableNodes.length };
     } catch (error) {
       console.error(error);
-      return placeholder('?몃뱶 3D ?뚮뜑??珥덇린??以??ㅻ쪟媛 諛쒖깮?덉뒿?덈떎.');
+      return placeholder('노드 3D 렌더링 초기화 중 오류가 발생했습니다.');
     }
   }
 
@@ -1239,7 +1239,7 @@
 
     const allDrawableNodes = state.mergedNodes.filter((node) => node.hasCoords);
     if (!allDrawableNodes.length) {
-      drawCanvasMessage(ctx, width, height, '醫뚰몴媛 ?덈뒗 ?몃뱶媛 ?놁뒿?덈떎.');
+      drawCanvasMessage(ctx, width, height, '좌표가 있는 노드가 없습니다.');
       return { drawnSegments: 0 };
     }
 
@@ -1360,11 +1360,11 @@
     };
 
     if (!window.THREE) {
-      return placeholder('Three.js媛 ?놁뼱 3D 酉곕? ?ъ슜?????놁뒿?덈떎.');
+      return placeholder('Three.js가 없어 3D 뷰어를 사용할 수 없습니다.');
     }
 
     if (!route?.pathNodes?.length) {
-      return placeholder('寃쎈줈瑜??좏깮?섎㈃ 3D 酉곌? ?쒖떆?⑸땲??');
+      return placeholder('경로를 선택하면 3D 뷰어가 표시됩니다.');
     }
 
     const nodes = route.pathNodes
@@ -1372,7 +1372,7 @@
       .filter((node) => node?.hasCoords);
 
     if (nodes.length < 2) {
-      return placeholder('醫뚰몴媛 異⑸텇?섏? ?딆븘 3D 寃쎈줈瑜?洹몃┫ ???놁뒿?덈떎.');
+      return placeholder('좌표가 충분하지 않아 3D 경로를 그릴 수 없습니다.');
     }
 
     disposeThree();
@@ -1445,7 +1445,7 @@
       return { drawnSegments: Math.max(points.length - 1, 0) };
     } catch (error) {
       console.error(error);
-      return placeholder('3D ?뚮뜑??珥덇린??以??ㅻ쪟媛 諛쒖깮?덉뒿?덈떎.');
+      return placeholder('3D 렌더링 초기화 중 오류가 발생했습니다.');
     }
   }
 
@@ -1482,12 +1482,12 @@
         'cable',
         cable.name,
         renderBadge(cable.validation?.status || 'PENDING'),
-        (cable.validation?.issues || []).map((issue) => escapeHtml(issue.message)).join('<br>') || '?ъ궛異??꾩슂'
+         (cable.validation?.issues || []).map((issue) => escapeHtml(issue.message)).join('<br>') || '상세 내용'
       ));
 
     dom.diagnosticCableTable.innerHTML = failingCables.length
       ? failingCables.join('')
-      : '<div class="empty-state">?꾩옱 FAIL/WARN 耳?대툝???놁뒿?덈떎.</div>';
+      : '<div class="empty-state">현재 FAIL/WARN 케이블이 없습니다.</div>';
   }
 
   function renderDiagnosticRow(kind, key, middle, value) {

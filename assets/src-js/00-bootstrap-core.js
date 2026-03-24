@@ -1,4 +1,4 @@
-﻿(() => {
+(() => {
   'use strict';
 
   const ROW_HEIGHT = 40;
@@ -276,8 +276,8 @@
     cacheDom();
     if (dom.loginHint) {
       dom.loginHint.textContent = state.auth.backendAvailable
-        ? '愿由ъ옄 怨꾩젙? ?쒕쾭 ?섍꼍?ㅼ젙?먯꽌留?愿由щ맗?덈떎.'
-        : '?댁쁺 諛고룷?먯꽌??auth worker? ADMIN_* ?섍꼍?ㅼ젙???꾩슂?⑸땲??';
+        ? '관리자 계정은 서버 환경설정에서만 관리됩니다.'
+        : '운영 배포에서는 auth worker와 ADMIN_* 환경설정이 필요합니다.';
     }
     buildGridHeader();
     bindEvents();
@@ -291,7 +291,7 @@
     commitHistory('startup');
     updateHistoryControls();
     if (!state.cables.length) {
-      pushToast('耳?대툝 ?뚯씪??遺덈윭?ㅻ㈃ 寃쎈줈 ?곗텧怨?3以?寃利앹씠 ?쒖옉?⑸땲??', 'info');
+      pushToast('케이블 파일을 불러오면 경로 탐색과 3중 검증이 시작됩니다.', 'info');
     }
   }
 
@@ -555,7 +555,7 @@
     dom.validateAllBtn.addEventListener('click', () => {
       runTripleValidation();
       renderAll();
-      pushToast('3以??щ줈??寃利앹쓣 ?ㅼ떆 ?ㅽ뻾?덉뒿?덈떎.', 'success');
+      pushToast('3중 프로젝트 검증을 다시 실행했습니다.', 'success');
     });
     dom.exportJsonBtn.addEventListener('click', exportProjectJson);
     dom.exportXlsxBtn.addEventListener('click', exportProjectWorkbook);
@@ -665,7 +665,7 @@
       } else if (payload.user) {
         updateAuthStatus('success', String(payload.user.name || 'User') + ' session restored.');
       } else {
-        updateAuthStatus('info', '濡쒓렇??諛⑹떇???좏깮??二쇱꽭??');
+        updateAuthStatus('info', '로그인 방식을 선택해 주세요.');
       }
     } catch (error) {
       state.auth.backendAvailable = false;
@@ -673,9 +673,9 @@
       if (authQueryState?.type === 'error') {
         updateAuthStatus('error', authQueryState.message);
       } else if (state.auth.user) {
-        updateAuthStatus('warn', '諛깆뿏?쒓? ?놁뼱??濡쒖뺄 ?곕え ?몄뀡?쇰줈 吏꾩엯?⑸땲??');
+        updateAuthStatus('warn', '백엔드가 없어서 로컬 데모 세션으로 진입합니다.');
       } else {
-        updateAuthStatus('warn', '?몄쬆 ?뚯빱瑜?李얠? 紐삵뻽?듬땲?? 濡쒖뺄 ?곕え 濡쒓렇?몃쭔 ?ъ슜?????덉뒿?덈떎.');
+        updateAuthStatus('warn', '인증 백엔드를 찾지 못했습니다. 로컬 데모 로그인만 사용할 수 있습니다.');
       }
     }
 
@@ -705,19 +705,19 @@
 
     return {
       type: 'success',
-      message: '?뚯뀥 濡쒓렇?몄씠 ?꾨즺?섏뿀?듬땲??'
+      message: '네이버 로그인이 완료되었습니다.'
     };
   }
 
   function decodeAuthError(code) {
     const key = String(code || '').toLowerCase();
     const map = {
-      naver_state_mismatch: 'Naver 濡쒓렇??state 寃利앹뿉 ?ㅽ뙣?덉뒿?덈떎.',
-      naver_token_exchange_failed: 'Naver ?좏겙 援먰솚???ㅽ뙣?덉뒿?덈떎.',
-      naver_profile_failed: 'Naver ?ъ슜???꾨줈??議고쉶???ㅽ뙣?덉뒿?덈떎.',
-      access_denied: '濡쒓렇?몄씠 痍⑥냼?섏뿀?듬땲??'
+      naver_state_mismatch: 'Naver 로그인 state 검증에 실패했습니다.',
+      naver_token_exchange_failed: 'Naver 토큰 교환에 실패했습니다.',
+      naver_profile_failed: 'Naver 사용자 프로필 조회에 실패했습니다.',
+      access_denied: '로그인이 취소되었습니다.'
     };
-    return map[key] || `?몄쬆 ?ㅻ쪟: ${code}`;
+    return map[key] || `인증 오류: ${code}`;
   }
 
   function updateDependencyPills() {
@@ -739,7 +739,7 @@
     const embedded = Array.isArray(window.SEASTAR_EMBEDDED_NODES) ? window.SEASTAR_EMBEDDED_NODES : [];
     state.embeddedNodes = embedded.map((node, index) => normalizeNodeRecord(node, 'embedded', index)).filter((node) => node.name);
     if (!state.embeddedNodes.length) {
-      pushToast('?댁옣 ?몃뱶 ?곗씠?곕? 李얠? 紐삵뻽?듬땲?? ?몃뱶 ?뚯씪??吏곸젒 遺덈윭? 二쇱꽭??', 'warn');
+      pushToast('임베디드 노드 데이터를 찾지 못했습니다. 노드 파일을 직접 불러와 주세요.', 'warn');
     }
   }
 

@@ -1,4 +1,4 @@
-﻿    renderSummary();
+    renderSummary();
     renderGrid();
     renderSelectedCable();
     renderRoutingPanel();

@@ -1,4 +1,4 @@
-﻿  }
+  }
 
   function renderAll() {
     renderSummary();
@@ -35,7 +35,7 @@
       items.push(renderIssueItem('warn', `Asymmetric relation: ${issue.a} <-> ${issue.b} (missing ${issue.missing})`));
     });
     if (!items.length) {
-      dom.graphIssueList.innerHTML = renderIssueItem('success', '洹몃옒???댁뒋媛 ?놁뒿?덈떎.');
+      dom.graphIssueList.innerHTML = renderIssueItem('success', '그래프 이슈가 없습니다.');
       return;
     }
     dom.graphIssueList.innerHTML = items.join('');
@@ -333,7 +333,7 @@
   function validateSelectedCable(announce) {
     const cable = getSelectedCable();
     if (!cable) {
-      pushToast('寃利앺븷 耳?대툝???좏깮??二쇱꽭??', 'warn');
+      pushToast('검증할 케이블을 선택해 주세요.', 'warn');
       return;
     }
     applyRouteToCable(cable);
@@ -346,7 +346,7 @@
     renderDiagnostics();
     renderSummary();
     if (announce) {
-      pushToast(`${cable.name} 寃利앹쓣 ?꾨즺?덉뒿?덈떎.`, 'success');
+      pushToast(`${cable.name} 검증을 완료했습니다.`, 'success');
     }
   }
 
@@ -374,7 +374,7 @@
 
   function resetEditor() {
     populateEditor();
-    pushToast('?몄쭛湲?媛믪쓣 ?먮옒 耳?대툝 媛믪쑝濡??섎룎?몄뒿?덈떎.', 'info');
+    pushToast('입력기 값을 아래 케이블 값으로 되돌립니다.', 'info');
   }
 
   function createNewCable() {
@@ -394,13 +394,13 @@
     commitHistory('new-cable');
     updateProjectStatus('NEW CABLE');
     persistProjectState({ announce: false, reason: 'new-cable' }).catch((error) => console.error(error));
-    pushToast('??耳?대툝??異붽??덉뒿?덈떎.', 'success');
+    pushToast('새 케이블을 추가했습니다.', 'success');
   }
 
   function duplicateSelectedCable() {
     const cable = getSelectedCable();
     if (!cable) {
-      pushToast('蹂듭젣??耳?대툝???좏깮??二쇱꽭??', 'warn');
+      pushToast('복제할 케이블을 선택해 주세요.', 'warn');
       return;
     }
     const clone = normalizeCableRecord({
@@ -415,7 +415,7 @@
     clearCalculatedRoute(clone);
     clone.validation = {
       status: 'PENDING',
-      issues: [{ severity: 'warn', message: '蹂듭젣 ???ъ궛異쒖씠 ?꾩슂?⑸땲??' }],
+       issues: [{ severity: 'warn', message: '복제 후 재산출이 필요합니다.' }],
       mapStatus: 'UNCHECKED'
     };
     refreshDiagnosticsSummary();
@@ -426,16 +426,16 @@
     commitHistory('duplicate-cable');
     updateProjectStatus('DUPLICATED CABLE');
     persistProjectState({ announce: false, reason: 'duplicate-cable' }).catch((error) => console.error(error));
-    pushToast('?좏깮 耳?대툝??蹂듭젣?덉뒿?덈떎.', 'success');
+    pushToast('선택 케이블을 복제했습니다.', 'success');
   }
 
   function deleteSelectedCable() {
     const cable = getSelectedCable();
     if (!cable) {
-      pushToast('??젣??耳?대툝???좏깮??二쇱꽭??', 'warn');
+      pushToast('삭제할 케이블을 선택해 주세요.', 'warn');
       return;
     }
-    if (!window.confirm(`${cable.name} 耳?대툝????젣?좉퉴??`)) {
+    if (!window.confirm(`${cable.name} 케이블을 삭제할까요?`)) {
       return;
     }
     state.cables = state.cables.filter((item) => item.id !== cable.id);
@@ -448,7 +448,7 @@
     commitHistory('delete-cable');
     updateProjectStatus('DELETED CABLE');
     persistProjectState({ announce: false, reason: 'delete-cable' }).catch((error) => console.error(error));
-    pushToast('耳?대툝????젣?덉뒿?덈떎.', 'success');
+    pushToast('케이블을 삭제했습니다.', 'success');
   }
 
   function syncRouteInputsFromSelected() {
@@ -474,19 +474,19 @@
     tempCable.validation = validateCable(tempCable);
     state.manualPreview = tempCable;
     renderRoutingPanel();
-    pushToast('?섎룞 寃쎈줈 誘몃━蹂닿린瑜?媛깆떊?덉뒿?덈떎.', 'success');
+    pushToast('수동 경로 미리보기를 갱신했습니다.', 'success');
   }
 
   function clearManualPreview() {
     state.manualPreview = null;
     renderRoutingPanel();
-    pushToast('?섎룞 誘몃━蹂닿린瑜??댁젣?덉뒿?덈떎.', 'info');
+     pushToast('수동 미리보기를 해제했습니다.', 'info');
   }
 
   function focusSelectedCableOnMap() {
     const cable = getSelectedCable();
     if (!cable) {
-      pushToast('癒쇱? 耳?대툝???좏깮??二쇱꽭??', 'warn');
+      pushToast('먼저 케이블을 선택해 주세요.', 'warn');
       return;
     }
     state.manualPreview = null;
@@ -554,7 +554,7 @@
   function buildLengthBreakdown(cable) {
     const route = cable.routeBreakdown;
     if (!route) {
-      return renderIssueItem('warn', '寃쎈줈媛 ?꾩쭅 怨꾩궛?섏? ?딆븯?듬땲??');
+      return renderIssueItem('warn', '경로가 아직 계산되지 않았습니다.');
     }
 
     const lines = [
@@ -574,7 +574,7 @@
 
   function buildValidationList(validation) {
     if (!validation) {
-      return renderIssueItem('warn', '寃利앹씠 ?꾩쭅 ?ㅽ뻾?섏? ?딆븯?듬땲??');
+      return renderIssueItem('warn', '검증이 아직 실행되지 않았습니다.');
     }
     const base = [
       renderIssueItem(validation.status === 'PASS' ? 'success' : validation.status === 'WARN' ? 'warn' : 'fail', `상태: ${validation.status}`),
@@ -592,7 +592,7 @@
     const validation = previewCable?.validation || null;
 
     if (!route) {
-      dom.routePreviewMeta.textContent = '?좏깮??寃쎈줈媛 ?놁뒿?덈떎.';
+      dom.routePreviewMeta.textContent = '선택된 경로가 없습니다.';
       dom.routePreviewPath.innerHTML = '';
     } else {
       dom.routePreviewMeta.textContent = [
@@ -610,13 +610,13 @@
     const mapStats = renderMapCanvas(dom.routeMapCanvas, route, { fitToPath: true });
     dom.routeMapMeta.textContent = route
       ? `2D path nodes ${route.pathNodes.length} | drawable segment ${mapStats.drawnSegments}/${Math.max(route.pathNodes.length - 1, 0)}`
-      : '寃쎈줈瑜??좏깮?섎㈃ 2D 寃利?留듭씠 ?쒖떆?⑸땲??';
+      : '경로를 선택하면 2D 검증 맵이 표시됩니다.';
 
     const threeStats = getActiveTab() === 'routing'
       ? renderThreeScene(route)
       : (disposeThree(), { drawnSegments: countDrawableSegments(route?.pathNodes || []) });
     dom.threeMeta.textContent = route
       ? `3D segment ${threeStats.drawnSegments}/${Math.max(route.pathNodes.length - 1, 0)}`
-      : '寃쎈줈瑜??좏깮?섎㈃ 3D 蹂댁“ 酉곌? ?쒖떆?⑸땲??';
+      : '경로를 선택하면 3D 뷰어 화면이 표시됩니다.';
   }
 

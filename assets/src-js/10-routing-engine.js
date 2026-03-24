@@ -1,4 +1,4 @@
-﻿  async function handleDataFile(event, kind) {
+  async function handleDataFile(event, kind) {
     const input = event.target;
     const file = input.files?.[0];
     if (!file) return;
@@ -44,78 +44,18 @@
     }
   }
 
-  async function legacyHandleProjectImport(event) {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    try {
-      showBusy('프로젝트 JSON을 읽는 중입니다...');
-      const payload = await loadFilePayload(file);
-      if (!payload || typeof payload !== 'object' || !Array.isArray(payload.cables)) {
-        throw new Error('프로젝트 JSON 형식이 올바르지 않습니다.');
-      }
 
-      state.cables = payload.cables.map((cable, index) => normalizeCableRecord(cable, index));
-      state.uploadedNodes = Array.isArray(payload.nodes) ? payload.nodes.map((node, index) => normalizeNodeRecord(node, 'uploaded', index)) : [];
-      refreshGraph();
-      await recalculateAllCables({ quiet: true, skipWhenNoCables: true });
-      state.selectedCableId = state.cables[0]?.id || null;
-      syncRouteInputsFromSelected();
-      renderAll();
-      pushToast('프로젝트 JSON을 불러왔습니다.', 'success');
-    } catch (error) {
-      console.error(error);
-      pushToast(`JSON 가져오기 실패: ${error.message}`, 'error');
-    } finally {
-      hideBusy();
-      event.target.value = '';
-    }
-  }
+  const _routeCache = new Map();
 
-  async function legacyLoadFilePayload(file) {
-    const ext = file.name.split('.').pop()?.toLowerCase();
-    if (ext === 'json') {
-      const text = await file.text();
-      return JSON.parse(text);
-    }
-
-    if (!window.XLSX) {
-      throw new Error('XLSX ?쇱씠釉뚮윭由ш? 濡쒕뱶?섏? ?딆븯?듬땲??');
-    }
-
-    const buffer = await file.arrayBuffer();
-    const workbook = window.XLSX.read(buffer, { type: 'array' });
-    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-    return window.XLSX.utils.sheet_to_json(firstSheet, { defval: '' });
-  }
-
-  function legacyExtractCablesFromPayload(payload) {
-    const rows = Array.isArray(payload)
-      ? payload
-      : Array.isArray(payload.cables)
-        ? payload.cables
-        : [];
-
-    return rows
-      .map((row, index) => normalizeCableRecord(row, index))
-      .filter((cable) => cable.name);
-  }
-
-  function legacyExtractNodesFromPayload(payload) {
-    const rows = Array.isArray(payload)
-      ? payload
-      : Array.isArray(payload.nodes)
-        ? payload.nodes
-        : [];
-
-    return rows
-      .map((row, index) => normalizeNodeRecord(row, 'uploaded', index))
-      .filter((node) => node.name);
+  function clearRouteCache() {
+    _routeCache.clear();
   }
 
   function refreshGraph() {
     const merged = mergeNodes(state.embeddedNodes, state.uploadedNodes);
     state.mergedNodes = merged;
     state.graph = buildGraph(merged);
+    clearRouteCache();
     syncSelectedNode();
     updateSystemFilterOptions();
   }
@@ -286,9 +226,11 @@
 
   function applyRouteToCable(cable) {
     const route = computeRouteBreakdown(cable);
-    cable.routeBreakdown = route;
-    cable.calculatedPath = route ? route.pathNodes.join(' -> ') : '';
-    cable.calculatedLength = route ? route.totalLength : 0;
+    const hasError = route && route.error;
+    cable.routeBreakdown = hasError ? null : route;
+    cable.routeError = hasError ? route : null;
+    cable.calculatedPath = (!hasError && route) ? route.pathNodes.join(' -> ') : '';
+    cable.calculatedLength = (!hasError && route) ? route.totalLength : 0;
     return cable;
   }
 
@@ -300,8 +242,14 @@
     const fromRest = toNumber(cable.fromRest, 0);
     const toRest = toNumber(cable.toRest, 0);
 
-    if (!from || !to || !state.graph.nodeMap[from] || !state.graph.nodeMap[to]) {
-      return null;
+    if (!from || !to) {
+      return { error: 'MISSING_ENDPOINTS', from, to, pathNodes: [], totalLength: 0 };
+    }
+    if (!state.graph.nodeMap[from]) {
+      return { error: 'NODE_NOT_FOUND', node: from, pathNodes: [], totalLength: 0 };
+    }
+    if (!state.graph.nodeMap[to]) {
+      return { error: 'NODE_NOT_FOUND', node: to, pathNodes: [], totalLength: 0 };
     }
 
     if (from === to && checkNodes.length === 0) {
@@ -327,7 +275,7 @@
     for (const target of targets) {
       const segment = dijkstra(current, target);
       if (!segment) {
-        return null;
+        return { error: 'DISCONNECTED', from: current, to: target, pathNodes: [], totalLength: 0 };
       }
       waypointSegments.push({
         from: current,
@@ -343,7 +291,7 @@
     for (let index = 0; index < fullPath.length - 1; index += 1) {
       const edge = getEdgeInfo(fullPath[index], fullPath[index + 1]);
       if (!edge) {
-        return null;
+        return { error: 'EDGE_MISSING', from: fullPath[index], to: fullPath[index + 1], pathNodes: [], totalLength: 0 };
       }
       edgeSegments.push({
         from: fullPath[index],
@@ -373,6 +321,19 @@
       return null;
     }
 
+    const cacheKey = `${from}::${to}`;
+    if (_routeCache.has(cacheKey)) {
+      return _routeCache.get(cacheKey);
+    }
+
+    const result = _dijkstraCore(from, to);
+    if (result) {
+      _routeCache.set(cacheKey, result);
+    }
+    return result;
+  }
+
+  function _dijkstraCore(from, to) {
     const heap = new MinHeap();
     const distances = Object.create(null);
     const previous = Object.create(null);
@@ -442,20 +403,20 @@
     const checkNodes = parseNodeList(cable.checkNode, false);
     const route = cable.routeBreakdown || computeRouteBreakdown(cable);
 
-    if (!trimText(cable.system)) addIssue(issues, 'warn', 'CABLE SYSTEM??鍮꾩뼱 ?덉뒿?덈떎.');
-    if (!trimText(cable.type)) addIssue(issues, 'warn', 'CABLE TYPE??鍮꾩뼱 ?덉뒿?덈떎.');
+    if (!trimText(cable.system)) addIssue(issues, 'warn', 'CABLE SYSTEM이 비어 있습니다.');
+    if (!trimText(cable.type)) addIssue(issues, 'warn', 'CABLE TYPE이 비어 있습니다.');
     if (toNumber(cable.fromRest, 0) < 0 || toNumber(cable.toRest, 0) < 0) {
-      addIssue(issues, 'fail', 'FROM_REST ?먮뒗 TO_REST 媛믪씠 ?뚯닔?낅땲??');
+      addIssue(issues, 'fail', 'FROM_REST 또는 TO_REST 값이 음수입니다.');
     }
     if (cable.outDia && toNumber(cable.outDia, 0) <= 0) {
-      addIssue(issues, 'warn', 'CABLE_OUTDIA 媛믪씠 0 ?댄븯?낅땲??');
+      addIssue(issues, 'warn', 'CABLE_OUTDIA 값이 0 이하입니다.');
     }
-    if (!from) addIssue(issues, 'fail', 'FROM NODE媛 鍮꾩뼱 ?덉뒿?덈떎.');
-    if (!to) addIssue(issues, 'fail', 'TO NODE媛 鍮꾩뼱 ?덉뒿?덈떎.');
-    if (from && !state.graph.nodeMap[from]) addIssue(issues, 'fail', `FROM NODE "${from}"媛 洹몃옒?꾩뿉 ?놁뒿?덈떎.`);
-    if (to && !state.graph.nodeMap[to]) addIssue(issues, 'fail', `TO NODE "${to}"媛 洹몃옒?꾩뿉 ?놁뒿?덈떎.`);
+    if (!from) addIssue(issues, 'fail', 'FROM NODE가 비어 있습니다.');
+    if (!to) addIssue(issues, 'fail', 'TO NODE가 비어 있습니다.');
+    if (from && !state.graph.nodeMap[from]) addIssue(issues, 'fail', `FROM NODE "${from}"가 그래프에 없습니다.`);
+    if (to && !state.graph.nodeMap[to]) addIssue(issues, 'fail', `TO NODE "${to}"가 그래프에 없습니다.`);
     const missingChecks = checkNodes.filter((name) => !state.graph.nodeMap[name]);
-    if (missingChecks.length) addIssue(issues, 'fail', `CHECK NODE ?꾨씫: ${missingChecks.join(', ')}`);
+    if (missingChecks.length) addIssue(issues, 'fail', `CHECK NODE 누락: ${missingChecks.join(', ')}`);
 
     let isContinuous = false;
     let allEdgesExist = false;
@@ -467,35 +428,38 @@
     let mapStatus = 'NO PATH';
 
     if (!route) {
-      addIssue(issues, 'fail', '寃쎈줈 ?곗텧???ㅽ뙣?덉뒿?덈떎.');
+      const errMsg = cable.routeError
+        ? `경로 탐색 실패: ${cable.routeError.error} (${cable.routeError.from || ''} → ${cable.routeError.to || ''})`
+        : '경로 탐색에 실패했습니다.';
+      addIssue(issues, 'fail', errMsg);
     } else {
       const pairs = route.pathNodes.slice(1).map((node, index) => [route.pathNodes[index], node]);
       allEdgesExist = pairs.every(([a, b]) => Boolean(getEdgeInfo(a, b)));
       isContinuous = route.pathNodes[0] === from && route.pathNodes[route.pathNodes.length - 1] === to && allEdgesExist;
       if (!allEdgesExist) {
-        addIssue(issues, 'fail', '怨꾩궛??path ?덉뿉 ?ㅼ젣 relation edge媛 ?녿뒗 援ш컙???덉뒿?덈떎.');
+        addIssue(issues, 'fail', '계산된 path 안에 실제 relation edge가 없는 구간이 있습니다.');
       }
       const recalculatedGraph = round2(route.segmentLengths.reduce((sum, value) => sum + value, 0));
       if (!approx(recalculatedGraph, route.graphLength)) {
-        addIssue(issues, 'fail', 'segment 湲몄씠 ?⑷낵 graphLength媛 ?쒕줈 ?ㅻ쫭?덈떎.');
+        addIssue(issues, 'fail', 'segment 길이 합과 graphLength가 서로 다릅니다.');
       }
       waypointOrderMatched = pathContainsNodesInOrder(route.pathNodes, checkNodes);
       if (!waypointOrderMatched) {
-        addIssue(issues, 'fail', 'CHECK_NODE ?쒖꽌媛 怨꾩궛 寃쎈줈??諛섏쁺?섏? ?딆븯?듬땲??');
+        addIssue(issues, 'fail', 'CHECK_NODE 순서가 계산 경로에 반영되지 않았습니다.');
       }
       const expectedTotal = round2(route.graphLength + toNumber(cable.fromRest, 0) + toNumber(cable.toRest, 0));
       lengthMatched = approx(expectedTotal, cable.calculatedLength || route.totalLength);
       if (!lengthMatched) {
-        addIssue(issues, 'fail', 'TOTAL LENGTH??FROM_REST / TO_REST 諛섏쁺??留욎? ?딆뒿?덈떎.');
+        addIssue(issues, 'fail', 'TOTAL LENGTH에 FROM_REST / TO_REST 반영이 맞지 않습니다.');
       }
       if (cable.length > 0 && !approx(cable.length, expectedTotal)) {
-        addIssue(issues, 'warn', 'POR_LENGTH? 怨꾩궛??TOTAL LENGTH媛 ?ㅻ쫭?덈떎.');
+        addIssue(issues, 'warn', 'POR_LENGTH와 계산된 TOTAL LENGTH가 다릅니다.');
       }
 
       const coordsMissing = route.pathNodes.filter((name) => !state.graph.nodeMap[name]?.hasCoords);
       coordsReady = coordsMissing.length === 0;
       if (!coordsReady) {
-        addIssue(issues, 'warn', `醫뚰몴 ?녿뒗 ?몃뱶: ${coordsMissing.join(', ')}`);
+        addIssue(issues, 'warn', `좌표 없는 노드: ${coordsMissing.join(', ')}`);
       }
 
       const expectedSegments = Math.max(0, route.pathNodes.length - 1);
@@ -503,13 +467,13 @@
       mapSegmentsMatch = drawableSegments === expectedSegments;
       mapStatus = !route.pathNodes.length ? 'NO PATH' : coordsReady ? 'READY' : 'COORD MISSING';
       if (!mapSegmentsMatch) {
-        addIssue(issues, coordsReady ? 'fail' : 'warn', `留??뚮뜑 媛??援ш컙 ${drawableSegments}/${expectedSegments}`);
+        addIssue(issues, coordsReady ? 'fail' : 'warn', `맵 렌더 가능 구간 ${drawableSegments}/${expectedSegments}`);
       }
 
       if (cable.path) {
         declaredPathMatch = arraysEqual(parsePathString(cable.path), route.pathNodes);
         if (!declaredPathMatch) {
-          addIssue(issues, 'warn', '?먮낯 PATH? 怨꾩궛 PATH媛 ?ㅻ쫭?덈떎.');
+          addIssue(issues, 'warn', '원본 PATH와 계산 PATH가 다릅니다.');
         }
       }
 
@@ -518,7 +482,7 @@
         return edge && !edge.symmetric;
       });
       if (asymmetricHits.length) {
-        addIssue(issues, 'warn', `鍮꾨?移?relation 援ш컙 ?ы븿: ${asymmetricHits.map((pair) => pair.join(' <-> ')).join(', ')}`);
+        addIssue(issues, 'warn', `비대칭 relation 구간 포함: ${asymmetricHits.map((pair) => pair.join(' <-> ')).join(', ')}`);
       }
     }
 
@@ -577,7 +541,7 @@
     };
 
     if (!options.quiet) {
-      pushToast('Graph / Route / Map 3以?寃利앹쓣 ?꾨즺?덉뒿?덈떎.', 'success');
+      pushToast('Graph / Route / Map 3중 검증을 완료했습니다.', 'success');
     }
   }
 

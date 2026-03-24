@@ -1,7 +1,7 @@
 // Built from assets/src-js. Edit the split sources, not this bundle.
 
 // --- BEGIN 00-bootstrap-core.js ---
-﻿(() => {
+(() => {
   'use strict';
 
   const ROW_HEIGHT = 40;
@@ -279,8 +279,8 @@
     cacheDom();
     if (dom.loginHint) {
       dom.loginHint.textContent = state.auth.backendAvailable
-        ? '愿由ъ옄 怨꾩젙? ?쒕쾭 ?섍꼍?ㅼ젙?먯꽌留?愿由щ맗?덈떎.'
-        : '?댁쁺 諛고룷?먯꽌??auth worker? ADMIN_* ?섍꼍?ㅼ젙???꾩슂?⑸땲??';
+        ? '관리자 계정은 서버 환경설정에서만 관리됩니다.'
+        : '운영 배포에서는 auth worker와 ADMIN_* 환경설정이 필요합니다.';
     }
     buildGridHeader();
     bindEvents();
@@ -294,7 +294,7 @@
     commitHistory('startup');
     updateHistoryControls();
     if (!state.cables.length) {
-      pushToast('耳?대툝 ?뚯씪??遺덈윭?ㅻ㈃ 寃쎈줈 ?곗텧怨?3以?寃利앹씠 ?쒖옉?⑸땲??', 'info');
+      pushToast('케이블 파일을 불러오면 경로 탐색과 3중 검증이 시작됩니다.', 'info');
     }
   }
 
@@ -558,7 +558,7 @@
     dom.validateAllBtn.addEventListener('click', () => {
       runTripleValidation();
       renderAll();
-      pushToast('3以??щ줈??寃利앹쓣 ?ㅼ떆 ?ㅽ뻾?덉뒿?덈떎.', 'success');
+      pushToast('3중 프로젝트 검증을 다시 실행했습니다.', 'success');
     });
     dom.exportJsonBtn.addEventListener('click', exportProjectJson);
     dom.exportXlsxBtn.addEventListener('click', exportProjectWorkbook);
@@ -668,7 +668,7 @@
       } else if (payload.user) {
         updateAuthStatus('success', String(payload.user.name || 'User') + ' session restored.');
       } else {
-        updateAuthStatus('info', '濡쒓렇??諛⑹떇???좏깮??二쇱꽭??');
+        updateAuthStatus('info', '로그인 방식을 선택해 주세요.');
       }
     } catch (error) {
       state.auth.backendAvailable = false;
@@ -676,9 +676,9 @@
       if (authQueryState?.type === 'error') {
         updateAuthStatus('error', authQueryState.message);
       } else if (state.auth.user) {
-        updateAuthStatus('warn', '諛깆뿏?쒓? ?놁뼱??濡쒖뺄 ?곕え ?몄뀡?쇰줈 吏꾩엯?⑸땲??');
+        updateAuthStatus('warn', '백엔드가 없어서 로컬 데모 세션으로 진입합니다.');
       } else {
-        updateAuthStatus('warn', '?몄쬆 ?뚯빱瑜?李얠? 紐삵뻽?듬땲?? 濡쒖뺄 ?곕え 濡쒓렇?몃쭔 ?ъ슜?????덉뒿?덈떎.');
+        updateAuthStatus('warn', '인증 백엔드를 찾지 못했습니다. 로컬 데모 로그인만 사용할 수 있습니다.');
       }
     }
 
@@ -708,19 +708,19 @@
 
     return {
       type: 'success',
-      message: '?뚯뀥 濡쒓렇?몄씠 ?꾨즺?섏뿀?듬땲??'
+      message: '네이버 로그인이 완료되었습니다.'
     };
   }
 
   function decodeAuthError(code) {
     const key = String(code || '').toLowerCase();
     const map = {
-      naver_state_mismatch: 'Naver 濡쒓렇??state 寃利앹뿉 ?ㅽ뙣?덉뒿?덈떎.',
-      naver_token_exchange_failed: 'Naver ?좏겙 援먰솚???ㅽ뙣?덉뒿?덈떎.',
-      naver_profile_failed: 'Naver ?ъ슜???꾨줈??議고쉶???ㅽ뙣?덉뒿?덈떎.',
-      access_denied: '濡쒓렇?몄씠 痍⑥냼?섏뿀?듬땲??'
+      naver_state_mismatch: 'Naver 로그인 state 검증에 실패했습니다.',
+      naver_token_exchange_failed: 'Naver 토큰 교환에 실패했습니다.',
+      naver_profile_failed: 'Naver 사용자 프로필 조회에 실패했습니다.',
+      access_denied: '로그인이 취소되었습니다.'
     };
-    return map[key] || `?몄쬆 ?ㅻ쪟: ${code}`;
+    return map[key] || `인증 오류: ${code}`;
   }
 
   function updateDependencyPills() {
@@ -742,7 +742,7 @@
     const embedded = Array.isArray(window.SEASTAR_EMBEDDED_NODES) ? window.SEASTAR_EMBEDDED_NODES : [];
     state.embeddedNodes = embedded.map((node, index) => normalizeNodeRecord(node, 'embedded', index)).filter((node) => node.name);
     if (!state.embeddedNodes.length) {
-      pushToast('?댁옣 ?몃뱶 ?곗씠?곕? 李얠? 紐삵뻽?듬땲?? ?몃뱶 ?뚯씪??吏곸젒 遺덈윭? 二쇱꽭??', 'warn');
+      pushToast('임베디드 노드 데이터를 찾지 못했습니다. 노드 파일을 직접 불러와 주세요.', 'warn');
     }
   }
 
@@ -849,7 +849,7 @@
 // --- END 00-bootstrap-core.js ---
 
 // --- BEGIN 10-routing-engine.js ---
-﻿  async function handleDataFile(event, kind) {
+  async function handleDataFile(event, kind) {
     const input = event.target;
     const file = input.files?.[0];
     if (!file) return;
@@ -895,78 +895,18 @@
     }
   }
 
-  async function legacyHandleProjectImport(event) {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    try {
-      showBusy('프로젝트 JSON을 읽는 중입니다...');
-      const payload = await loadFilePayload(file);
-      if (!payload || typeof payload !== 'object' || !Array.isArray(payload.cables)) {
-        throw new Error('프로젝트 JSON 형식이 올바르지 않습니다.');
-      }
 
-      state.cables = payload.cables.map((cable, index) => normalizeCableRecord(cable, index));
-      state.uploadedNodes = Array.isArray(payload.nodes) ? payload.nodes.map((node, index) => normalizeNodeRecord(node, 'uploaded', index)) : [];
-      refreshGraph();
-      await recalculateAllCables({ quiet: true, skipWhenNoCables: true });
-      state.selectedCableId = state.cables[0]?.id || null;
-      syncRouteInputsFromSelected();
-      renderAll();
-      pushToast('프로젝트 JSON을 불러왔습니다.', 'success');
-    } catch (error) {
-      console.error(error);
-      pushToast(`JSON 가져오기 실패: ${error.message}`, 'error');
-    } finally {
-      hideBusy();
-      event.target.value = '';
-    }
-  }
+  const _routeCache = new Map();
 
-  async function legacyLoadFilePayload(file) {
-    const ext = file.name.split('.').pop()?.toLowerCase();
-    if (ext === 'json') {
-      const text = await file.text();
-      return JSON.parse(text);
-    }
-
-    if (!window.XLSX) {
-      throw new Error('XLSX ?쇱씠釉뚮윭由ш? 濡쒕뱶?섏? ?딆븯?듬땲??');
-    }
-
-    const buffer = await file.arrayBuffer();
-    const workbook = window.XLSX.read(buffer, { type: 'array' });
-    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-    return window.XLSX.utils.sheet_to_json(firstSheet, { defval: '' });
-  }
-
-  function legacyExtractCablesFromPayload(payload) {
-    const rows = Array.isArray(payload)
-      ? payload
-      : Array.isArray(payload.cables)
-        ? payload.cables
-        : [];
-
-    return rows
-      .map((row, index) => normalizeCableRecord(row, index))
-      .filter((cable) => cable.name);
-  }
-
-  function legacyExtractNodesFromPayload(payload) {
-    const rows = Array.isArray(payload)
-      ? payload
-      : Array.isArray(payload.nodes)
-        ? payload.nodes
-        : [];
-
-    return rows
-      .map((row, index) => normalizeNodeRecord(row, 'uploaded', index))
-      .filter((node) => node.name);
+  function clearRouteCache() {
+    _routeCache.clear();
   }
 
   function refreshGraph() {
     const merged = mergeNodes(state.embeddedNodes, state.uploadedNodes);
     state.mergedNodes = merged;
     state.graph = buildGraph(merged);
+    clearRouteCache();
     syncSelectedNode();
     updateSystemFilterOptions();
   }
@@ -1137,9 +1077,11 @@
 
   function applyRouteToCable(cable) {
     const route = computeRouteBreakdown(cable);
-    cable.routeBreakdown = route;
-    cable.calculatedPath = route ? route.pathNodes.join(' -> ') : '';
-    cable.calculatedLength = route ? route.totalLength : 0;
+    const hasError = route && route.error;
+    cable.routeBreakdown = hasError ? null : route;
+    cable.routeError = hasError ? route : null;
+    cable.calculatedPath = (!hasError && route) ? route.pathNodes.join(' -> ') : '';
+    cable.calculatedLength = (!hasError && route) ? route.totalLength : 0;
     return cable;
   }
 
@@ -1151,8 +1093,14 @@
     const fromRest = toNumber(cable.fromRest, 0);
     const toRest = toNumber(cable.toRest, 0);
 
-    if (!from || !to || !state.graph.nodeMap[from] || !state.graph.nodeMap[to]) {
-      return null;
+    if (!from || !to) {
+      return { error: 'MISSING_ENDPOINTS', from, to, pathNodes: [], totalLength: 0 };
+    }
+    if (!state.graph.nodeMap[from]) {
+      return { error: 'NODE_NOT_FOUND', node: from, pathNodes: [], totalLength: 0 };
+    }
+    if (!state.graph.nodeMap[to]) {
+      return { error: 'NODE_NOT_FOUND', node: to, pathNodes: [], totalLength: 0 };
     }
 
     if (from === to && checkNodes.length === 0) {
@@ -1178,7 +1126,7 @@
     for (const target of targets) {
       const segment = dijkstra(current, target);
       if (!segment) {
-        return null;
+        return { error: 'DISCONNECTED', from: current, to: target, pathNodes: [], totalLength: 0 };
       }
       waypointSegments.push({
         from: current,
@@ -1194,7 +1142,7 @@
     for (let index = 0; index < fullPath.length - 1; index += 1) {
       const edge = getEdgeInfo(fullPath[index], fullPath[index + 1]);
       if (!edge) {
-        return null;
+        return { error: 'EDGE_MISSING', from: fullPath[index], to: fullPath[index + 1], pathNodes: [], totalLength: 0 };
       }
       edgeSegments.push({
         from: fullPath[index],
@@ -1224,6 +1172,19 @@
       return null;
     }
 
+    const cacheKey = `${from}::${to}`;
+    if (_routeCache.has(cacheKey)) {
+      return _routeCache.get(cacheKey);
+    }
+
+    const result = _dijkstraCore(from, to);
+    if (result) {
+      _routeCache.set(cacheKey, result);
+    }
+    return result;
+  }
+
+  function _dijkstraCore(from, to) {
     const heap = new MinHeap();
     const distances = Object.create(null);
     const previous = Object.create(null);
@@ -1293,20 +1254,20 @@
     const checkNodes = parseNodeList(cable.checkNode, false);
     const route = cable.routeBreakdown || computeRouteBreakdown(cable);
 
-    if (!trimText(cable.system)) addIssue(issues, 'warn', 'CABLE SYSTEM??鍮꾩뼱 ?덉뒿?덈떎.');
-    if (!trimText(cable.type)) addIssue(issues, 'warn', 'CABLE TYPE??鍮꾩뼱 ?덉뒿?덈떎.');
+    if (!trimText(cable.system)) addIssue(issues, 'warn', 'CABLE SYSTEM이 비어 있습니다.');
+    if (!trimText(cable.type)) addIssue(issues, 'warn', 'CABLE TYPE이 비어 있습니다.');
     if (toNumber(cable.fromRest, 0) < 0 || toNumber(cable.toRest, 0) < 0) {
-      addIssue(issues, 'fail', 'FROM_REST ?먮뒗 TO_REST 媛믪씠 ?뚯닔?낅땲??');
+      addIssue(issues, 'fail', 'FROM_REST 또는 TO_REST 값이 음수입니다.');
     }
     if (cable.outDia && toNumber(cable.outDia, 0) <= 0) {
-      addIssue(issues, 'warn', 'CABLE_OUTDIA 媛믪씠 0 ?댄븯?낅땲??');
+      addIssue(issues, 'warn', 'CABLE_OUTDIA 값이 0 이하입니다.');
     }
-    if (!from) addIssue(issues, 'fail', 'FROM NODE媛 鍮꾩뼱 ?덉뒿?덈떎.');
-    if (!to) addIssue(issues, 'fail', 'TO NODE媛 鍮꾩뼱 ?덉뒿?덈떎.');
-    if (from && !state.graph.nodeMap[from]) addIssue(issues, 'fail', `FROM NODE "${from}"媛 洹몃옒?꾩뿉 ?놁뒿?덈떎.`);
-    if (to && !state.graph.nodeMap[to]) addIssue(issues, 'fail', `TO NODE "${to}"媛 洹몃옒?꾩뿉 ?놁뒿?덈떎.`);
+    if (!from) addIssue(issues, 'fail', 'FROM NODE가 비어 있습니다.');
+    if (!to) addIssue(issues, 'fail', 'TO NODE가 비어 있습니다.');
+    if (from && !state.graph.nodeMap[from]) addIssue(issues, 'fail', `FROM NODE "${from}"가 그래프에 없습니다.`);
+    if (to && !state.graph.nodeMap[to]) addIssue(issues, 'fail', `TO NODE "${to}"가 그래프에 없습니다.`);
     const missingChecks = checkNodes.filter((name) => !state.graph.nodeMap[name]);
-    if (missingChecks.length) addIssue(issues, 'fail', `CHECK NODE ?꾨씫: ${missingChecks.join(', ')}`);
+    if (missingChecks.length) addIssue(issues, 'fail', `CHECK NODE 누락: ${missingChecks.join(', ')}`);
 
     let isContinuous = false;
     let allEdgesExist = false;
@@ -1318,35 +1279,38 @@
     let mapStatus = 'NO PATH';
 
     if (!route) {
-      addIssue(issues, 'fail', '寃쎈줈 ?곗텧???ㅽ뙣?덉뒿?덈떎.');
+      const errMsg = cable.routeError
+        ? `경로 탐색 실패: ${cable.routeError.error} (${cable.routeError.from || ''} → ${cable.routeError.to || ''})`
+        : '경로 탐색에 실패했습니다.';
+      addIssue(issues, 'fail', errMsg);
     } else {
       const pairs = route.pathNodes.slice(1).map((node, index) => [route.pathNodes[index], node]);
       allEdgesExist = pairs.every(([a, b]) => Boolean(getEdgeInfo(a, b)));
       isContinuous = route.pathNodes[0] === from && route.pathNodes[route.pathNodes.length - 1] === to && allEdgesExist;
       if (!allEdgesExist) {
-        addIssue(issues, 'fail', '怨꾩궛??path ?덉뿉 ?ㅼ젣 relation edge媛 ?녿뒗 援ш컙???덉뒿?덈떎.');
+        addIssue(issues, 'fail', '계산된 path 안에 실제 relation edge가 없는 구간이 있습니다.');
       }
       const recalculatedGraph = round2(route.segmentLengths.reduce((sum, value) => sum + value, 0));
       if (!approx(recalculatedGraph, route.graphLength)) {
-        addIssue(issues, 'fail', 'segment 湲몄씠 ?⑷낵 graphLength媛 ?쒕줈 ?ㅻ쫭?덈떎.');
+        addIssue(issues, 'fail', 'segment 길이 합과 graphLength가 서로 다릅니다.');
       }
       waypointOrderMatched = pathContainsNodesInOrder(route.pathNodes, checkNodes);
       if (!waypointOrderMatched) {
-        addIssue(issues, 'fail', 'CHECK_NODE ?쒖꽌媛 怨꾩궛 寃쎈줈??諛섏쁺?섏? ?딆븯?듬땲??');
+        addIssue(issues, 'fail', 'CHECK_NODE 순서가 계산 경로에 반영되지 않았습니다.');
       }
       const expectedTotal = round2(route.graphLength + toNumber(cable.fromRest, 0) + toNumber(cable.toRest, 0));
       lengthMatched = approx(expectedTotal, cable.calculatedLength || route.totalLength);
       if (!lengthMatched) {
-        addIssue(issues, 'fail', 'TOTAL LENGTH??FROM_REST / TO_REST 諛섏쁺??留욎? ?딆뒿?덈떎.');
+        addIssue(issues, 'fail', 'TOTAL LENGTH에 FROM_REST / TO_REST 반영이 맞지 않습니다.');
       }
       if (cable.length > 0 && !approx(cable.length, expectedTotal)) {
-        addIssue(issues, 'warn', 'POR_LENGTH? 怨꾩궛??TOTAL LENGTH媛 ?ㅻ쫭?덈떎.');
+        addIssue(issues, 'warn', 'POR_LENGTH와 계산된 TOTAL LENGTH가 다릅니다.');
       }
 
       const coordsMissing = route.pathNodes.filter((name) => !state.graph.nodeMap[name]?.hasCoords);
       coordsReady = coordsMissing.length === 0;
       if (!coordsReady) {
-        addIssue(issues, 'warn', `醫뚰몴 ?녿뒗 ?몃뱶: ${coordsMissing.join(', ')}`);
+        addIssue(issues, 'warn', `좌표 없는 노드: ${coordsMissing.join(', ')}`);
       }
 
       const expectedSegments = Math.max(0, route.pathNodes.length - 1);
@@ -1354,13 +1318,13 @@
       mapSegmentsMatch = drawableSegments === expectedSegments;
       mapStatus = !route.pathNodes.length ? 'NO PATH' : coordsReady ? 'READY' : 'COORD MISSING';
       if (!mapSegmentsMatch) {
-        addIssue(issues, coordsReady ? 'fail' : 'warn', `留??뚮뜑 媛??援ш컙 ${drawableSegments}/${expectedSegments}`);
+        addIssue(issues, coordsReady ? 'fail' : 'warn', `맵 렌더 가능 구간 ${drawableSegments}/${expectedSegments}`);
       }
 
       if (cable.path) {
         declaredPathMatch = arraysEqual(parsePathString(cable.path), route.pathNodes);
         if (!declaredPathMatch) {
-          addIssue(issues, 'warn', '?먮낯 PATH? 怨꾩궛 PATH媛 ?ㅻ쫭?덈떎.');
+          addIssue(issues, 'warn', '원본 PATH와 계산 PATH가 다릅니다.');
         }
       }
 
@@ -1369,7 +1333,7 @@
         return edge && !edge.symmetric;
       });
       if (asymmetricHits.length) {
-        addIssue(issues, 'warn', `鍮꾨?移?relation 援ш컙 ?ы븿: ${asymmetricHits.map((pair) => pair.join(' <-> ')).join(', ')}`);
+        addIssue(issues, 'warn', `비대칭 relation 구간 포함: ${asymmetricHits.map((pair) => pair.join(' <-> ')).join(', ')}`);
       }
     }
 
@@ -1428,7 +1392,7 @@
     };
 
     if (!options.quiet) {
-      pushToast('Graph / Route / Map 3以?寃利앹쓣 ?꾨즺?덉뒿?덈떎.', 'success');
+      pushToast('Graph / Route / Map 3중 검증을 완료했습니다.', 'success');
     }
   }
 
@@ -1503,7 +1467,7 @@
 // --- END 10-routing-engine.js ---
 
 // --- BEGIN 20-cable-dashboard.js ---
-﻿  }
+  }
 
   function renderAll() {
     renderSummary();
@@ -1540,7 +1504,7 @@
       items.push(renderIssueItem('warn', `Asymmetric relation: ${issue.a} <-> ${issue.b} (missing ${issue.missing})`));
     });
     if (!items.length) {
-      dom.graphIssueList.innerHTML = renderIssueItem('success', '洹몃옒???댁뒋媛 ?놁뒿?덈떎.');
+      dom.graphIssueList.innerHTML = renderIssueItem('success', '그래프 이슈가 없습니다.');
       return;
     }
     dom.graphIssueList.innerHTML = items.join('');
@@ -1838,7 +1802,7 @@
   function validateSelectedCable(announce) {
     const cable = getSelectedCable();
     if (!cable) {
-      pushToast('寃利앺븷 耳?대툝???좏깮??二쇱꽭??', 'warn');
+      pushToast('검증할 케이블을 선택해 주세요.', 'warn');
       return;
     }
     applyRouteToCable(cable);
@@ -1851,7 +1815,7 @@
     renderDiagnostics();
     renderSummary();
     if (announce) {
-      pushToast(`${cable.name} 寃利앹쓣 ?꾨즺?덉뒿?덈떎.`, 'success');
+      pushToast(`${cable.name} 검증을 완료했습니다.`, 'success');
     }
   }
 
@@ -1879,7 +1843,7 @@
 
   function resetEditor() {
     populateEditor();
-    pushToast('?몄쭛湲?媛믪쓣 ?먮옒 耳?대툝 媛믪쑝濡??섎룎?몄뒿?덈떎.', 'info');
+    pushToast('입력기 값을 아래 케이블 값으로 되돌립니다.', 'info');
   }
 
   function createNewCable() {
@@ -1899,13 +1863,13 @@
     commitHistory('new-cable');
     updateProjectStatus('NEW CABLE');
     persistProjectState({ announce: false, reason: 'new-cable' }).catch((error) => console.error(error));
-    pushToast('??耳?대툝??異붽??덉뒿?덈떎.', 'success');
+    pushToast('새 케이블을 추가했습니다.', 'success');
   }
 
   function duplicateSelectedCable() {
     const cable = getSelectedCable();
     if (!cable) {
-      pushToast('蹂듭젣??耳?대툝???좏깮??二쇱꽭??', 'warn');
+      pushToast('복제할 케이블을 선택해 주세요.', 'warn');
       return;
     }
     const clone = normalizeCableRecord({
@@ -1920,7 +1884,7 @@
     clearCalculatedRoute(clone);
     clone.validation = {
       status: 'PENDING',
-      issues: [{ severity: 'warn', message: '蹂듭젣 ???ъ궛異쒖씠 ?꾩슂?⑸땲??' }],
+       issues: [{ severity: 'warn', message: '복제 후 재산출이 필요합니다.' }],
       mapStatus: 'UNCHECKED'
     };
     refreshDiagnosticsSummary();
@@ -1931,16 +1895,16 @@
     commitHistory('duplicate-cable');
     updateProjectStatus('DUPLICATED CABLE');
     persistProjectState({ announce: false, reason: 'duplicate-cable' }).catch((error) => console.error(error));
-    pushToast('?좏깮 耳?대툝??蹂듭젣?덉뒿?덈떎.', 'success');
+    pushToast('선택 케이블을 복제했습니다.', 'success');
   }
 
   function deleteSelectedCable() {
     const cable = getSelectedCable();
     if (!cable) {
-      pushToast('??젣??耳?대툝???좏깮??二쇱꽭??', 'warn');
+      pushToast('삭제할 케이블을 선택해 주세요.', 'warn');
       return;
     }
-    if (!window.confirm(`${cable.name} 耳?대툝????젣?좉퉴??`)) {
+    if (!window.confirm(`${cable.name} 케이블을 삭제할까요?`)) {
       return;
     }
     state.cables = state.cables.filter((item) => item.id !== cable.id);
@@ -1953,7 +1917,7 @@
     commitHistory('delete-cable');
     updateProjectStatus('DELETED CABLE');
     persistProjectState({ announce: false, reason: 'delete-cable' }).catch((error) => console.error(error));
-    pushToast('耳?대툝????젣?덉뒿?덈떎.', 'success');
+    pushToast('케이블을 삭제했습니다.', 'success');
   }
 
   function syncRouteInputsFromSelected() {
@@ -1979,19 +1943,19 @@
     tempCable.validation = validateCable(tempCable);
     state.manualPreview = tempCable;
     renderRoutingPanel();
-    pushToast('?섎룞 寃쎈줈 誘몃━蹂닿린瑜?媛깆떊?덉뒿?덈떎.', 'success');
+    pushToast('수동 경로 미리보기를 갱신했습니다.', 'success');
   }
 
   function clearManualPreview() {
     state.manualPreview = null;
     renderRoutingPanel();
-    pushToast('?섎룞 誘몃━蹂닿린瑜??댁젣?덉뒿?덈떎.', 'info');
+     pushToast('수동 미리보기를 해제했습니다.', 'info');
   }
 
   function focusSelectedCableOnMap() {
     const cable = getSelectedCable();
     if (!cable) {
-      pushToast('癒쇱? 耳?대툝???좏깮??二쇱꽭??', 'warn');
+      pushToast('먼저 케이블을 선택해 주세요.', 'warn');
       return;
     }
     state.manualPreview = null;
@@ -2059,7 +2023,7 @@
   function buildLengthBreakdown(cable) {
     const route = cable.routeBreakdown;
     if (!route) {
-      return renderIssueItem('warn', '寃쎈줈媛 ?꾩쭅 怨꾩궛?섏? ?딆븯?듬땲??');
+      return renderIssueItem('warn', '경로가 아직 계산되지 않았습니다.');
     }
 
     const lines = [
@@ -2079,7 +2043,7 @@
 
   function buildValidationList(validation) {
     if (!validation) {
-      return renderIssueItem('warn', '寃利앹씠 ?꾩쭅 ?ㅽ뻾?섏? ?딆븯?듬땲??');
+      return renderIssueItem('warn', '검증이 아직 실행되지 않았습니다.');
     }
     const base = [
       renderIssueItem(validation.status === 'PASS' ? 'success' : validation.status === 'WARN' ? 'warn' : 'fail', `상태: ${validation.status}`),
@@ -2097,7 +2061,7 @@
     const validation = previewCable?.validation || null;
 
     if (!route) {
-      dom.routePreviewMeta.textContent = '?좏깮??寃쎈줈媛 ?놁뒿?덈떎.';
+      dom.routePreviewMeta.textContent = '선택된 경로가 없습니다.';
       dom.routePreviewPath.innerHTML = '';
     } else {
       dom.routePreviewMeta.textContent = [
@@ -2115,21 +2079,21 @@
     const mapStats = renderMapCanvas(dom.routeMapCanvas, route, { fitToPath: true });
     dom.routeMapMeta.textContent = route
       ? `2D path nodes ${route.pathNodes.length} | drawable segment ${mapStats.drawnSegments}/${Math.max(route.pathNodes.length - 1, 0)}`
-      : '寃쎈줈瑜??좏깮?섎㈃ 2D 寃利?留듭씠 ?쒖떆?⑸땲??';
+      : '경로를 선택하면 2D 검증 맵이 표시됩니다.';
 
     const threeStats = getActiveTab() === 'routing'
       ? renderThreeScene(route)
       : (disposeThree(), { drawnSegments: countDrawableSegments(route?.pathNodes || []) });
     dom.threeMeta.textContent = route
       ? `3D segment ${threeStats.drawnSegments}/${Math.max(route.pathNodes.length - 1, 0)}`
-      : '寃쎈줈瑜??좏깮?섎㈃ 3D 蹂댁“ 酉곌? ?쒖떆?⑸땲??';
+      : '경로를 선택하면 3D 뷰어 화면이 표시됩니다.';
   }
 
 
 // --- END 20-cable-dashboard.js ---
 
 // --- BEGIN 30-nodes-and-maps.js ---
-﻿  function getActiveTab() {
+  function getActiveTab() {
     return dom.tabButtons.find((button) => button.classList.contains('is-active'))?.dataset.tab || 'dashboard';
   }
 
@@ -2480,7 +2444,7 @@
     dom.nodeAutoMeta.textContent = `Tray auto width uses routed cable area, tray height ${formatInt(state.nodeTray.maxHeightLimit)} mm, fill limit ${formatInt(state.nodeTray.fillRatioLimit)}%, and ${formatInt(state.nodeTray.tierCount)} tier(s). Routed cables ${formatInt(routedCableCount)} / ${formatInt(state.cables.length)} are reflected.`;
 
     if (!metrics.length) {
-      dom.nodeList.innerHTML = '<div class="empty-state node-list-empty">?쒖떆???몃뱶媛 ?놁뒿?덈떎.</div>';
+      dom.nodeList.innerHTML = '<div class="empty-state node-list-empty">표시할 노드가 없습니다.</div>';
     } else {
       dom.nodeList.innerHTML = metrics.map((metric) => `
         <div class="node-list-row${metric.name === state.selectedNodeName ? ' is-selected' : ''}" data-node-name="${escapeHtml(metric.name)}" title="?붾툝?대┃?섎㈃ 3D 留듭뿉???ъ빱?ㅻ맗?덈떎.">
@@ -2565,7 +2529,7 @@
             <span>${formatNumber(cable.outDia)} OD / ${formatNumber(cable.crossSectionArea)} A / ${formatNumber(cable.totalLength)} L</span>
           </div>
         `).join('')
-      : '<div class="empty-state">???몃뱶瑜?吏?섎뒗 耳?대툝???놁뒿?덈떎.</div>';
+      : '<div class="empty-state">이 노드를 지나는 케이블이 없습니다.</div>';
 
     dom.nodeRelationList.innerHTML = focusMetric.relationNames.length
       ? focusMetric.relationNames.map((name) => {
@@ -2579,7 +2543,7 @@
             </div>
           `;
         }).join('')
-      : '<div class="empty-state">?곌껐 relation ?몃뱶媛 ?놁뒿?덈떎.</div>';
+      : '<div class="empty-state">연결 relation 노드가 없습니다.</div>';
 
     const nodeMapStats = renderNodeMapCanvas(dom.nodeMapCanvas, focusMetric);
     dom.nodeMapMeta.textContent = `2D focus ${focusMetric.name} | relation ${nodeMapStats.drawnRelations}/${focusMetric.relationCount} | routed cables ${focusMetric.cableCount}`;
@@ -3150,7 +3114,7 @@
 
     const allDrawableNodes = state.mergedNodes.filter((node) => node.hasCoords);
     if (!allDrawableNodes.length) {
-      drawCanvasMessage(ctx, width, height, '醫뚰몴媛 ?덈뒗 ?몃뱶媛 ?놁뒿?덈떎.');
+      drawCanvasMessage(ctx, width, height, '좌표가 있는 노드가 없습니다.');
       return { drawnRelations: 0 };
     }
 
@@ -3185,7 +3149,7 @@
 
     const focusNode = state.graph.nodeMap[focusMetric.name];
     if (!focusNode?.hasCoords) {
-      drawCanvasMessage(ctx, width, height, '?좏깮 ?몃뱶??醫뚰몴媛 ?놁뼱 2D ?ъ빱?ㅻ? ?쒖떆?????놁뒿?덈떎.');
+      drawCanvasMessage(ctx, width, height, '선택 노드의 좌표가 없어 2D 다이어그램을 표시할 수 없습니다.');
       return { drawnRelations: 0 };
     }
 
@@ -3231,21 +3195,21 @@
     };
 
     if (!window.THREE) {
-      return placeholder('Three.js媛 ?놁뼱 ?몃뱶 3D 留듭쓣 ?ъ슜?????놁뒿?덈떎.');
+      return placeholder('Three.js가 없어 노드 3D 맵을 사용할 수 없습니다.');
     }
 
     const allDrawableNodes = state.mergedNodes.filter((node) => node.hasCoords);
     if (!allDrawableNodes.length) {
-      return placeholder('醫뚰몴媛 ?덈뒗 ?몃뱶媛 ?놁뼱 3D 留듭쓣 洹몃┫ ???놁뒿?덈떎.');
+      return placeholder('좌표가 있는 노드가 없어 3D 맵을 그릴 수 없습니다.');
     }
 
     if (!focusMetric) {
-      return placeholder('?몃뱶瑜??좏깮?섎㈃ 3D 留듭씠 ?쒖떆?⑸땲??');
+       return placeholder('노드를 선택하면 3D 맵이 표시됩니다.');
     }
 
     const focusNode = state.graph.nodeMap[focusMetric.name];
     if (!focusNode?.hasCoords) {
-      return placeholder('?좏깮 ?몃뱶??醫뚰몴媛 ?놁뼱 3D ?ъ빱?ㅻ? ?쒖떆?????놁뒿?덈떎.');
+      return placeholder('선택 노드의 좌표가 없어 3D 다이어그램을 표시할 수 없습니다.');
     }
 
     disposeNodeThree();
@@ -3336,7 +3300,7 @@
       return { drawnRelations, drawnNodes: allDrawableNodes.length };
     } catch (error) {
       console.error(error);
-      return placeholder('?몃뱶 3D ?뚮뜑??珥덇린??以??ㅻ쪟媛 諛쒖깮?덉뒿?덈떎.');
+      return placeholder('노드 3D 렌더링 초기화 중 오류가 발생했습니다.');
     }
   }
 
@@ -3370,7 +3334,7 @@
 
     const allDrawableNodes = state.mergedNodes.filter((node) => node.hasCoords);
     if (!allDrawableNodes.length) {
-      drawCanvasMessage(ctx, width, height, '醫뚰몴媛 ?덈뒗 ?몃뱶媛 ?놁뒿?덈떎.');
+      drawCanvasMessage(ctx, width, height, '좌표가 있는 노드가 없습니다.');
       return { drawnSegments: 0 };
     }
 
@@ -3491,11 +3455,11 @@
     };
 
     if (!window.THREE) {
-      return placeholder('Three.js媛 ?놁뼱 3D 酉곕? ?ъ슜?????놁뒿?덈떎.');
+      return placeholder('Three.js가 없어 3D 뷰어를 사용할 수 없습니다.');
     }
 
     if (!route?.pathNodes?.length) {
-      return placeholder('寃쎈줈瑜??좏깮?섎㈃ 3D 酉곌? ?쒖떆?⑸땲??');
+      return placeholder('경로를 선택하면 3D 뷰어가 표시됩니다.');
     }
 
     const nodes = route.pathNodes
@@ -3503,7 +3467,7 @@
       .filter((node) => node?.hasCoords);
 
     if (nodes.length < 2) {
-      return placeholder('醫뚰몴媛 異⑸텇?섏? ?딆븘 3D 寃쎈줈瑜?洹몃┫ ???놁뒿?덈떎.');
+      return placeholder('좌표가 충분하지 않아 3D 경로를 그릴 수 없습니다.');
     }
 
     disposeThree();
@@ -3576,7 +3540,7 @@
       return { drawnSegments: Math.max(points.length - 1, 0) };
     } catch (error) {
       console.error(error);
-      return placeholder('3D ?뚮뜑??珥덇린??以??ㅻ쪟媛 諛쒖깮?덉뒿?덈떎.');
+      return placeholder('3D 렌더링 초기화 중 오류가 발생했습니다.');
     }
   }
 
@@ -3613,12 +3577,12 @@
         'cable',
         cable.name,
         renderBadge(cable.validation?.status || 'PENDING'),
-        (cable.validation?.issues || []).map((issue) => escapeHtml(issue.message)).join('<br>') || '?ъ궛異??꾩슂'
+         (cable.validation?.issues || []).map((issue) => escapeHtml(issue.message)).join('<br>') || '상세 내용'
       ));
 
     dom.diagnosticCableTable.innerHTML = failingCables.length
       ? failingCables.join('')
-      : '<div class="empty-state">?꾩옱 FAIL/WARN 耳?대툝???놁뒿?덈떎.</div>';
+      : '<div class="empty-state">현재 FAIL/WARN 케이블이 없습니다.</div>';
   }
 
   function renderDiagnosticRow(kind, key, middle, value) {
@@ -3649,7 +3613,7 @@
     const password = dom.loginPw.value;
 
     if (!id || !password) {
-      updateAuthStatus('warn', 'ID? 鍮꾨?踰덊샇瑜?紐⑤몢 ?낅젰??二쇱꽭??');
+       updateAuthStatus('warn', 'ID와 비밀번호를 모두 입력해 주세요.');
       return;
     }
 
@@ -3665,24 +3629,24 @@
         applyAuthState();
         return;
       } catch (error) {
-        updateAuthStatus('error', error.message || '濡쒖뺄 濡쒓렇?몄뿉 ?ㅽ뙣?덉뒿?덈떎.');
+         updateAuthStatus('error', error.message || '로컬 로그인에 실패했습니다.');
       }
     }
 
     if (DEMO_AUTH_ENABLED && id === FALLBACK_LOCAL_CREDENTIALS.id && password === FALLBACK_LOCAL_CREDENTIALS.password) {
       state.auth.user = { ...FALLBACK_LOCAL_USER };
       persistFallbackSession();
-      updateAuthStatus('success', '濡쒖뺄 ?곕え 濡쒓렇?몄뿉 ?깃났?덉뒿?덈떎.');
+       updateAuthStatus('success', '로컬 데모 로그인에 성공했습니다.');
       applyAuthState();
       return;
     }
 
-    updateAuthStatus('error', '濡쒖뺄 濡쒓렇???뺣낫媛 留욎? ?딆뒿?덈떎.');
+     updateAuthStatus('error', '로컬 로그인 정보가 맞지 않습니다.');
   }
 
   async function startNaverLogin() {
     if (!state.auth.backendAvailable) {
-      updateAuthStatus('warn', 'Naver 濡쒓렇?몄쓣 ?ъ슜?섎젮硫?auth worker媛 ?꾩슂?⑸땲??');
+       updateAuthStatus('warn', 'Naver 로그인을 사용하려면 auth worker가 필요합니다.');
       return;
     }
     window.location.href = `${state.apiBase}/naver/start`;
@@ -3694,8 +3658,8 @@
       dom.loginOverlay.classList.remove('hidden');
       dom.userPanel.classList.add('hidden');
       dom.authBackendHint.textContent = state.auth.backendAvailable
-        ? '諛깆뿏?쒓? ?곌껐?섏뿀?듬땲?? Google / Naver / 愿由ъ옄 濡쒓렇??以??섎굹瑜??좏깮?섏꽭??'
-        : '?몄쬆 ?뚯빱媛 ?놁뼱???뚯뀥 濡쒓렇??踰꾪듉? 鍮꾪솢?깊솕?⑸땲?? 濡쒖뺄 ?곕え 濡쒓렇?몃쭔 ?ъ슜?????덉뒿?덈떎.';
+         ? '백엔드가 연결되었습니다. Google / Naver / 관리자 로그인 중 하나를 선택하세요.'
+         : '인증 백엔드가 없어서 네이버 로그인 버튼이 비활성화됩니다. 로컬 데모 로그인만 사용할 수 있습니다.';
       dom.naverLoginBtn.disabled = !state.auth.backendAvailable;
       return;
     }
@@ -3713,8 +3677,8 @@
     if (!state.auth.backendAvailable || !googleConfig.enabled || !googleConfig.clientId) {
       dom.googleButtonHost.innerHTML = '';
       const message = state.auth.backendAvailable
-        ? 'Google Client ID媛 ?ㅼ젙?섏? ?딆븯?듬땲??'
-        : '諛깆뿏???곌껐 ??Google 濡쒓렇?몄쓣 ?ъ슜?????덉뒿?덈떎.';
+         ? 'Google Client ID가 설정되지 않았습니다.'
+         : '백엔드 연결 후 Google 로그인을 사용할 수 있습니다.';
       dom.googleButtonHost.innerHTML = `<div class="login-note">${escapeHtml(message)}</div>`;
       return;
     }
@@ -3723,7 +3687,7 @@
       if (attempt < 10) {
         window.setTimeout(() => renderGoogleButtonWithRetry(attempt + 1), 400);
       } else {
-        dom.googleButtonHost.innerHTML = '<div class="login-note">Google GIS ?ㅽ겕由쏀듃瑜?遺덈윭?ㅼ? 紐삵뻽?듬땲??</div>';
+         dom.googleButtonHost.innerHTML = '<div class="login-note">Google GIS 스크립트를 불러오지 못했습니다.</div>';
       }
       return;
     }
@@ -3747,11 +3711,11 @@
 
   async function handleGoogleCredential(response) {
     if (!response?.credential) {
-      updateAuthStatus('error', 'Google ?몄쬆 ?좏겙??鍮꾩뼱 ?덉뒿?덈떎.');
+       updateAuthStatus('error', 'Google 인증 토큰이 비어 있습니다.');
       return;
     }
     if (!state.auth.backendAvailable) {
-      updateAuthStatus('warn', '諛깆뿏?쒓? ?놁뼱 Google ?몄쬆??寃利앺븷 ???놁뒿?덈떎.');
+       updateAuthStatus('warn', '백엔드가 없어 Google 인증을 검증할 수 없습니다.');
       return;
     }
     try {
@@ -3763,7 +3727,7 @@
       updateAuthStatus('success', String(payload.user.name || 'User') + ' login success');
       applyAuthState();
     } catch (error) {
-      updateAuthStatus('error', error.message || 'Google ?몄쬆 寃利앹뿉 ?ㅽ뙣?덉뒿?덈떎.');
+       updateAuthStatus('error', error.message || 'Google 인증 검증에 실패했습니다.');
     }
   }
 
@@ -3778,7 +3742,7 @@
     removeFallbackSession();
     state.auth.user = null;
     state.auth.googleRendered = false;
-    updateAuthStatus('info', '濡쒓렇?꾩썐?섏뿀?듬땲??');
+     updateAuthStatus('info', '로그아웃했습니다.');
     applyAuthState();
     renderGoogleButtonWithRetry();
   }
@@ -4158,7 +4122,7 @@
 
   function exportProjectWorkbook() {
     if (!window.XLSX) {
-      pushToast('XLSX ?쇱씠釉뚮윭由ш? ?놁뼱 ?묒? ??μ쓣 ?????놁뒿?덈떎.', 'warn');
+       pushToast('XLSX 라이브러리가 없어 엑셀 내보내기를 할 수 없습니다.', 'warn');
       return;
     }
 
@@ -4207,17 +4171,6 @@
     pushToast('?묒? ?뚯씪????ν뻽?듬땲??', 'success');
   }
 
-  function setActiveTab(tab) {
-    dom.tabButtons.forEach((button) => {
-      button.classList.toggle('is-active', button.dataset.tab === tab);
-    });
-    dom.tabPanels.forEach((panel) => {
-      panel.classList.toggle('is-active', panel.dataset.panel === tab);
-    });
-    if (tab === 'routing') {
-      renderRoutingPanel();
-    }
-  }
 
   function showBusy(message) {
     dom.busyText.textContent = message;
@@ -4289,7 +4242,7 @@
 // --- END 40-auth-project-foundation.js ---
 
 // --- BEGIN 50-import-export-bom-reports-utils.js ---
-﻿    renderSummary();
+    renderSummary();
     renderGrid();
     renderSelectedCable();
     renderRoutingPanel();
@@ -5610,11 +5563,11 @@
 
       if (state.auth.user && DEMO_AUTH_ENABLED) {
         ensureFallbackAdminContext();
-        updateAuthStatus('warn', '諛깆뿏?쒓? ?놁뼱 ?곕え 愿由ъ옄 ?몄뀡?쇰줈 吏꾩엯?⑸땲??');
+         updateAuthStatus('warn', '백엔드가 없어 데모 관리자 세션으로 진입합니다.');
       } else if (authQueryState?.type === 'error') {
         updateAuthStatus('error', authQueryState.message);
       } else {
-        updateAuthStatus('warn', '?몄쬆 ?뚯빱瑜?李얠? 紐삵뻽?듬땲?? ?댁쁺 諛고룷?먯꽌??auth worker? ?섍꼍?ㅼ젙???꾩슂?⑸땲??');
+         updateAuthStatus('warn', '인증 백엔드를 찾지 못했습니다. 운영 배포에서는 auth worker와 환경설정이 필요합니다.');
       }
     }
 
@@ -5628,7 +5581,7 @@
     const password = dom.loginPw.value;
 
     if (!id || !password) {
-      updateAuthStatus('warn', 'ID? 鍮꾨?踰덊샇瑜?紐⑤몢 ?낅젰??二쇱꽭??');
+       updateAuthStatus('warn', 'ID와 비밀번호를 모두 입력해 주세요.');
       return;
     }
 
@@ -5645,7 +5598,7 @@
         renderAll();
         return;
       } catch (error) {
-        updateAuthStatus('error', error.message || '愿由ъ옄 濡쒓렇?몄뿉 ?ㅽ뙣?덉뒿?덈떎.');
+         updateAuthStatus('error', error.message || '관리자 로그인에 실패했습니다.');
         return;
       }
     }
@@ -5654,15 +5607,15 @@
       state.auth.user = { ...FALLBACK_LOCAL_USER };
       persistFallbackSession();
       ensureFallbackAdminContext();
-      updateAuthStatus('success', '?곕え 愿由ъ옄 濡쒓렇?몄뿉 ?깃났?덉뒿?덈떎.');
+       updateAuthStatus('success', '데모 관리자 로그인에 성공했습니다.');
       applyAuthState();
       renderAll();
       return;
     }
 
     updateAuthStatus('warn', state.auth.backendAvailable
-      ? '愿由ъ옄 濡쒖뺄 濡쒓렇?몄? ?쒕쾭 ?섍꼍?ㅼ젙???꾨즺?????ъ슜?????덉뒿?덈떎.'
-      : '?몄쬆 ?뚯빱媛 ?놁쑝硫?愿由ъ옄 濡쒖뺄 濡쒓렇?몄쓣 ?ъ슜?????놁뒿?덈떎.');
+       ? '관리자 로컬 로그인은 서버 환경설정이 완료돼야 사용할 수 있습니다.'
+       : '인증 백엔드가 없으면 관리자 로컬 로그인을 사용할 수 없습니다.');
   }
 
   function applyAuthState() {
@@ -5672,8 +5625,8 @@
 
     if (dom.loginHint) {
       dom.loginHint.textContent = localProviderEnabled()
-        ? '愿由ъ옄 怨꾩젙? ?쒕쾭 ?섍꼍?ㅼ젙?먯꽌留?愿由щ맗?덈떎.'
-        : '?댁쁺 諛고룷?먯꽌??auth worker? SESSION_SECRET, ADMIN_* ?섍꼍?ㅼ젙???꾩슂?⑸땲??';
+         ? '관리자 계정은 서버 환경설정에서만 관리됩니다.'
+         : '운영 배포에서는 auth worker와 SESSION_SECRET, ADMIN_* 환경설정이 필요합니다.';
     }
 
     dom.naverLoginBtn.disabled = !state.auth.backendAvailable;
@@ -5685,8 +5638,8 @@
       dom.loginOverlay.classList.remove('hidden');
       dom.userPanel.classList.add('hidden');
       dom.authBackendHint.textContent = state.auth.backendAvailable
-        ? 'Google / Naver 濡쒓렇?몄? 愿由ъ옄 ?뱀씤 ???쒖꽦?붾맗?덈떎. 愿由ъ옄 濡쒖뺄 濡쒓렇?몄? ?쒕쾭 ?섍꼍?ㅼ젙 ?꾨즺 ???ъ슜?????덉뒿?덈떎.'
-        : '?댁쁺 諛고룷?먯꽌???몄쬆 ?뚯빱? ?섍꼍蹂?섎? 癒쇱? ?곌껐?댁빞 ?⑸땲??';
+         ? 'Google / Naver 로그인과 관리자 사인 후 활성화됩니다. 관리자 로컬 로그인은 서버 환경설정 완료 후 사용할 수 있습니다.'
+         : '운영 배포에서는 인증 백엔드와 환경변수를 먼저 연결해야 합니다.';
       renderGroupSpace();
       return;
     }
@@ -5768,21 +5721,21 @@
       spaces.ADMIN = {
         groupCode: 'ADMIN',
         groupName: 'ADMIN',
-        announcement: '濡쒖뺄 ?곕え 愿由ъ옄 怨듦컙?낅땲??',
-        notes: '諛고룷 ?꾩뿉??Google/Naver ?뱀씤 ?붿껌怨?洹몃９ 怨듦컙??auth worker????λ맗?덈떎.',
+         announcement: '로컬 데모 관리자 공간입니다.',
+         notes: '배포 후에는 Google/Naver 사인 요청과 그룹 공간이 auth worker에서 처리됩니다.',
         updatedAt: now,
-        updatedBy: '愿由ъ옄',
+         updatedBy: '관리자',
         memberCount: 1,
-        memberNames: ['愿由ъ옄']
+         memberNames: ['관리자']
       };
       saveFallbackGroupSpaces(spaces);
     }
     state.auth.groups = [{
       code: 'ADMIN',
       name: 'ADMIN',
-      description: '愿由ъ옄 洹몃９',
+       description: '관리자 그룹',
       memberCount: 1,
-      memberNames: ['愿由ъ옄'],
+       memberNames: ['관리자'],
       updatedAt: spaces.ADMIN.updatedAt
     }];
     state.auth.groupSpaces = [spaces.ADMIN];
@@ -5826,13 +5779,13 @@
     if (String(auth || '').toLowerCase() === 'pending') {
       return {
         type: 'pending',
-        message: '?ъ슜 ?붿껌??愿由ъ옄?먭쾶 ?꾨떖?섏뿀?듬땲?? ?뱀씤??湲곕떎?ㅼ＜?몄슂.'
+         message: '사용 요청이 관리자에게 전달되었습니다. 승인을 기다려주세요.'
       };
     }
 
     return {
       type: 'success',
-      message: '?뚯뀥 濡쒓렇?몄씠 ?꾨즺?섏뿀?듬땲??'
+       message: '네이버 로그인이 완료되었습니다.'
     };
   }
 
@@ -5864,11 +5817,11 @@
       setDependencyStatus(dom.depApi, 'warn', 'AUTH API');
       if (state.auth.user && DEMO_AUTH_ENABLED) {
         ensureFallbackAdminContext();
-        updateAuthStatus('warn', '諛깆뿏?쒓? ?놁뼱 濡쒖뺄 愿由ъ옄 ?곕え ?몄뀡?쇰줈 吏꾩엯?⑸땲??');
+         updateAuthStatus('warn', '백엔드가 없어 로컬 관리자 데모 세션으로 진입합니다.');
       } else if (authQueryState?.type === 'error') {
         updateAuthStatus('error', authQueryState.message);
       } else {
-        updateAuthStatus('warn', '?몄쬆 ?뚯빱瑜?李얠? 紐삵뻽?듬땲?? ?댁쁺 諛고룷?먯꽌??auth worker? ?쒕쾭 ?섍꼍?ㅼ젙???꾩슂?⑸땲??');
+         updateAuthStatus('warn', '인증 백엔드를 찾지 못했습니다. 운영 배포에서는 auth worker와 서버 환경설정이 필요합니다.');
       }
     }
 
@@ -5883,7 +5836,7 @@
     const password = dom.loginPw.value;
 
     if (!id || !password) {
-      updateAuthStatus('warn', 'ID? 鍮꾨?踰덊샇瑜?紐⑤몢 ?낅젰??二쇱꽭??');
+       updateAuthStatus('warn', 'ID와 비밀번호를 모두 입력해 주세요.');
       return;
     }
 
@@ -5901,7 +5854,7 @@
         renderAll();
         return;
       } catch (error) {
-        updateAuthStatus('error', error.message || '愿由ъ옄 濡쒓렇?몄뿉 ?ㅽ뙣?덉뒿?덈떎.');
+         updateAuthStatus('error', error.message || '관리자 로그인에 실패했습니다.');
       }
     }
 
@@ -5909,14 +5862,14 @@
       state.auth.user = { ...FALLBACK_LOCAL_USER };
       persistFallbackSession();
       ensureFallbackAdminContext();
-      updateAuthStatus('success', '濡쒖뺄 愿由ъ옄 ?곕え 濡쒓렇?몄뿉 ?깃났?덉뒿?덈떎.');
+       updateAuthStatus('success', '로컬 관리자 데모 로그인에 성공했습니다.');
       applyAuthState();
       await loadProjectFromServer({ announce: false });
       renderAll();
       return;
     }
 
-    updateAuthStatus('error', state.auth.backendAvailable ? '愿由ъ옄 濡쒓렇???뺣낫媛 留욎? ?딆뒿?덈떎.' : '愿由ъ옄 濡쒓렇?몄? auth worker? ADMIN_* ?쒕쾭 ?ㅼ젙??以鍮꾨맂 ???ъ슜?????덉뒿?덈떎.');
+     updateAuthStatus('error', state.auth.backendAvailable ? '관리자 로그인 정보가 맞지 않습니다.' : '관리자 로그인은 auth worker와 ADMIN_* 서버 설정이 준비된 뒤 사용할 수 있습니다.');
   }
 
   function applyAuthState() {
@@ -5926,8 +5879,8 @@
 
     if (dom.loginHint) {
       dom.loginHint.textContent = state.auth.backendAvailable
-        ? '愿由ъ옄 怨꾩젙? ?쒕쾭 ?섍꼍?ㅼ젙?먯꽌留?愿由щ맗?덈떎.'
-        : '?댁쁺 諛고룷?먯꽌??auth worker? ADMIN_* ?섍꼍?ㅼ젙???꾩슂?⑸땲??';
+         ? '관리자 계정은 서버 환경설정에서만 관리됩니다.'
+         : '운영 배포에서는 auth worker와 ADMIN_* 환경설정이 필요합니다.';
     }
 
     dom.naverLoginBtn.disabled = !state.auth.backendAvailable;
@@ -5938,8 +5891,8 @@
       dom.loginOverlay.classList.remove('hidden');
       dom.userPanel.classList.add('hidden');
       dom.authBackendHint.textContent = state.auth.backendAvailable
-        ? 'Google / Naver 濡쒓렇?몄? 愿由ъ옄 ?뱀씤 ???쒖꽦?붾맗?덈떎. 愿由ъ옄 濡쒓렇???먮뒗 ?뚯뀥 濡쒓렇?몄쑝濡?吏꾩엯??二쇱꽭??'
-        : '?몄쬆 ?뚯빱媛 ?놁쑝硫?紐⑤뱺 濡쒓렇?몄? 李⑤떒?⑸땲?? ?댁쁺 諛고룷?먯꽌??auth worker? ?섍꼍蹂?섎? 癒쇱? ?곌껐?섏꽭??';
+         ? 'Google / Naver 로그인과 관리자 사인 후 활성화됩니다. 관리자 로그인 또는 네이버 로그인으로 진입해 주세요.'
+         : '인증 백엔드가 없으면 모든 로그인이 차단됩니다. 운영 배포에서는 auth worker와 환경변수를 먼저 연결하세요.';
       renderGroupSpace();
       return;
     }
@@ -5972,11 +5925,11 @@
 
   async function handleGoogleCredential(response) {
     if (!response?.credential) {
-      updateAuthStatus('error', 'Google ?몄쬆 ?좏겙??鍮꾩뼱 ?덉뒿?덈떎.');
+       updateAuthStatus('error', 'Google 인증 토큰이 비어 있습니다.');
       return;
     }
     if (!state.auth.backendAvailable) {
-      updateAuthStatus('warn', '諛깆뿏?쒓? ?놁뼱 Google ?몄쬆??寃利앺븷 ???놁뒿?덈떎.');
+       updateAuthStatus('warn', '백엔드가 없어 Google 인증을 검증할 수 없습니다.');
       return;
     }
     try {
@@ -5993,7 +5946,7 @@
       await loadProjectFromServer({ announce: false });
       renderAll();
     } catch (error) {
-      updateAuthStatus('error', error.message || 'Google ?몄쬆 寃利앹뿉 ?ㅽ뙣?덉뒿?덈떎.');
+       updateAuthStatus('error', error.message || 'Google 인증 검증에 실패했습니다.');
     }
   }
 
@@ -6019,7 +5972,7 @@
       source: 'memory',
       dirty: false
     };
-    updateAuthStatus('info', '濡쒓렇?꾩썐?섏뿀?듬땲??');
+     updateAuthStatus('info', '로그아웃했습니다.');
     applyAuthState();
     renderGoogleButtonWithRetry();
     updateProjectStatus('LOGGED OUT');
@@ -6036,11 +5989,11 @@
     const user = state.auth.user;
     const groupCode = getCurrentGroupCode();
     if (!user || !groupCode) {
-      pushToast('??ν븷 洹몃９ 怨듦컙???놁뒿?덈떎.', 'warn');
+       pushToast('저장할 그룹 공간이 없습니다.', 'warn');
       return;
     }
     if (!isAdminUser(user) && trimText(user.groupCode) !== groupCode) {
-      pushToast('?꾩옱 洹몃９ 怨듦컙留??섏젙?????덉뒿?덈떎.', 'warn');
+       pushToast('현재 그룹 공간만 수정할 수 있습니다.', 'warn');
       return;
     }
 
@@ -6063,7 +6016,7 @@
       saveFallbackGroupSpaces(spaces);
       ensureFallbackAdminContext();
       renderAll();
-      pushToast('濡쒖뺄 洹몃９ 怨듦컙????ν뻽?듬땲??', 'success');
+       pushToast('로컬 그룹 공간을 저장했습니다.', 'success');
       return;
     }
 
@@ -6073,9 +6026,9 @@
         body: JSON.stringify({ groupCode, announcement, notes })
       });
       await refreshAuthContext();
-      pushToast('洹몃９ 怨듦컙????ν뻽?듬땲??', 'success');
+       pushToast('그룹 공간을 저장했습니다.', 'success');
     } catch (error) {
-      pushToast(error.message || '洹몃９ 怨듦컙 ??μ뿉 ?ㅽ뙣?덉뒿?덈떎.', 'error');
+       pushToast(error.message || '그룹 공간 저장에 실패했습니다.', 'error');
     }
   }
 
@@ -6083,11 +6036,11 @@
     const button = event.target.closest('[data-request-action]');
     if (!button) return;
     if (!isAdminUser()) {
-      pushToast('愿由ъ옄留??붿껌??泥섎━?????덉뒿?덈떎.', 'warn');
+       pushToast('관리자만 요청을 처리할 수 있습니다.', 'warn');
       return;
     }
     if (!state.auth.backendAvailable) {
-      pushToast('??湲곕뒫? auth worker媛 ?곌껐???곹깭?먯꽌留??숈옉?⑸땲??', 'warn');
+       pushToast('이 기능은 auth worker가 연결된 상태에서만 동작합니다.', 'warn');
       return;
     }
 
@@ -6111,7 +6064,7 @@
           method: 'POST',
           body: JSON.stringify({})
         });
-        pushToast('?ъ슜 ?붿껌??諛섎젮?덉뒿?덈떎.', 'warn');
+         pushToast('사용 요청이 반려됐습니다.', 'warn');
       }
       await refreshAuthContext();
     } catch (error) {
@@ -6159,7 +6112,7 @@
     const memberNames = Array.isArray(space?.memberNames) ? space.memberNames : [];
     dom.spaceMemberList.innerHTML = memberNames.length
       ? memberNames.map((name) => renderIssueItem('info', name)).join('')
-      : '<div class="empty-state">?쒖떆??洹몃９ 硫ㅻ쾭媛 ?놁뒿?덈떎.</div>';
+       : '<div class="empty-state">표시할 그룹 멤버가 없습니다.</div>';
 
     dom.adminApprovalPanel.classList.toggle('hidden', !isAdmin);
     dom.refreshAdminBtn.disabled = !isAdmin;
@@ -6178,16 +6131,16 @@
     dom.adminGroupCount.textContent = formatInt(groups.length);
     dom.adminActiveUsers.textContent = formatInt(activeUsers);
     if (dom.adminDisplayName) {
-      dom.adminDisplayName.textContent = isAdminUser() ? (state.auth.user?.name || '愿由ъ옄') : '愿由ъ옄';
+       dom.adminDisplayName.textContent = isAdminUser() ? (state.auth.user?.name || '관리자') : '관리자';
     }
 
     if (!isAdminUser()) {
-      dom.adminRequestList.innerHTML = '<div class="empty-state">愿由ъ옄留??뱀씤 ?먮? 蹂????덉뒿?덈떎.</div>';
+       dom.adminRequestList.innerHTML = '<div class="empty-state">관리자만 사인 요청을 볼 수 있습니다.</div>';
       return;
     }
 
     if (!requests.length) {
-      dom.adminRequestList.innerHTML = '<div class="empty-state">?꾩옱 ?湲?以묒씤 ?ъ슜 ?붿껌???놁뒿?덈떎.</div>';
+       dom.adminRequestList.innerHTML = '<div class="empty-state">현재 대기 중인 사용 요청이 없습니다.</div>';
       return;
     }
 
@@ -6279,6 +6232,7 @@
     applyAuthState();
     updateProjectStatus();
     updateHistoryControls();
+    normalizeUiText();
   }
 
   function setTextContent(element, text) {
@@ -6503,445 +6457,6 @@
       type: 'success',
       message: '소셜 로그인이 완료되었습니다.'
     };
-  }
-
-  async function initAuth() {
-    normalizeUiText();
-    const authQueryState = consumeAuthQueryParams();
-    restoreFallbackSession();
-    try {
-      const payload = await apiRequest('/session', { method: 'GET' });
-      state.auth.backendAvailable = true;
-      applyAuthPayload(payload);
-      state.auth.googleRendered = false;
-      setDependencyStatus(dom.depApi, 'ok', 'AUTH API');
-      if (authQueryState?.type === 'error') {
-        updateAuthStatus('error', authQueryState.message);
-      } else if (payload.user?.status === 'pending') {
-        updateAuthStatus('warn', payload.message || '사용 요청이 관리자에게 전달되었습니다. 승인 대기 중입니다.');
-      } else if (authQueryState?.type === 'pending') {
-        updateAuthStatus('warn', authQueryState.message);
-      } else if (payload.user) {
-        updateAuthStatus(
-          payload.user.role === 'admin' || payload.user.status === 'active' ? 'success' : 'warn',
-          payload.message || `${String(payload.user.name || '사용자')} 세션이 복원되었습니다.`
-        );
-      } else {
-        updateAuthStatus('info', '로그인 방식을 선택해 주세요.');
-      }
-    } catch (error) {
-      state.auth.backendAvailable = false;
-      setDependencyStatus(dom.depApi, 'warn', 'AUTH API');
-      if (state.auth.user && DEMO_AUTH_ENABLED) {
-        ensureFallbackAdminContext();
-        updateAuthStatus('warn', '백엔드 연결이 없어 로컬 관리자 세션으로 진입합니다.');
-      } else if (authQueryState?.type === 'error') {
-        updateAuthStatus('error', authQueryState.message);
-      } else {
-        updateAuthStatus('warn', '인증 백엔드를 찾을 수 없습니다. 운영 배포에서는 auth worker와 환경설정이 필요합니다.');
-      }
-    }
-
-    applyAuthState();
-    updateDependencyPills();
-    renderGoogleButtonWithRetry();
-    await loadProjectFromServer({ announce: false });
-  }
-
-  async function handleLocalLogin() {
-    normalizeUiText();
-    const id = trimText(dom.loginId.value);
-    const password = dom.loginPw.value;
-
-    if (!id || !password) {
-      updateAuthStatus('warn', 'ID와 비밀번호를 모두 입력해 주세요.');
-      return;
-    }
-
-    if (state.auth.backendAvailable) {
-      try {
-        const payload = await apiRequest('/local/login', {
-          method: 'POST',
-          body: JSON.stringify({ username: id, password })
-        });
-        applyAuthPayload(payload);
-        removeFallbackSession();
-        updateAuthStatus('success', payload.message || `${String(payload.user.name || '관리자')} 로그인 성공`);
-        applyAuthState();
-        await loadProjectFromServer({ announce: false });
-        renderAll();
-        return;
-      } catch (error) {
-        updateAuthStatus('error', error.message || '관리자 로그인에 실패했습니다.');
-      }
-    }
-
-    if (DEMO_AUTH_ENABLED && id === FALLBACK_LOCAL_CREDENTIALS.id && password === FALLBACK_LOCAL_CREDENTIALS.password) {
-      state.auth.user = { ...FALLBACK_LOCAL_USER };
-      persistFallbackSession();
-      ensureFallbackAdminContext();
-      updateAuthStatus('success', '로컬 관리자 데모 로그인에 성공했습니다.');
-      applyAuthState();
-      await loadProjectFromServer({ announce: false });
-      renderAll();
-      return;
-    }
-
-    updateAuthStatus(
-      'error',
-      state.auth.backendAvailable
-        ? '관리자 로그인 정보가 올바르지 않거나 서버 설정이 완료되지 않았습니다.'
-        : '관리자 로그인을 사용하려면 auth worker와 ADMIN_* 환경설정이 필요합니다.'
-    );
-  }
-
-  function applyAuthState() {
-    normalizeUiText();
-    const user = state.auth.user;
-    const canAccess = isWorkspaceAllowed(user);
-    const isAdmin = isAdminUser(user);
-
-    if (dom.loginHint) {
-      dom.loginHint.textContent = state.auth.backendAvailable
-        ? '관리자 계정은 서버 환경설정에서만 활성화됩니다.'
-        : '운영 배포에서는 auth worker와 ADMIN_* 환경설정이 필요합니다.';
-    }
-
-    dom.naverLoginBtn.disabled = !(state.auth.backendAvailable && state.auth.providers?.naver?.enabled);
-    dom.authRequestMeta.classList.add('hidden');
-    dom.overlayLogoutBtn.classList.add('hidden');
-
-    if (!user) {
-      dom.loginOverlay.classList.remove('hidden');
-      dom.userPanel.classList.add('hidden');
-      dom.authBackendHint.textContent = state.auth.backendAvailable
-        ? 'Google, Naver, 관리자 로그인을 사용할 수 있습니다. 원하는 로그인 방식을 선택해 주세요.'
-        : '인증 백엔드가 연결되지 않아 소셜 로그인이 비활성화되어 있습니다. 운영 환경에서는 auth worker와 환경변수를 먼저 연결해 주세요.';
-      renderGroupSpace();
-      return;
-    }
-
-    dom.userName.textContent = user.name || user.email || user.id || 'User';
-    dom.userRole.textContent = String(user.role || 'user').toUpperCase();
-    dom.userProvider.textContent = user.provider || 'local';
-    dom.userGroup.textContent = trimText(user.groupCode || user.groupName) || 'NO GROUP';
-
-    if (!canAccess) {
-      dom.loginOverlay.classList.remove('hidden');
-      dom.userPanel.classList.add('hidden');
-      dom.overlayLogoutBtn.classList.remove('hidden');
-      dom.authRequestMeta.classList.remove('hidden');
-      dom.authRequestMeta.textContent = user.status === 'pending'
-        ? `사용 요청이 관리자에게 전달되었습니다. 현재 상태: ${String(user.status).toUpperCase()}.`
-        : `현재 계정 상태: ${String(user.status || 'unknown').toUpperCase()}.`;
-      dom.authBackendHint.textContent = '관리자 승인 전까지 메인 작업 화면은 잠겨 있습니다.';
-      renderGroupSpace();
-      return;
-    }
-
-    dom.loginOverlay.classList.add('hidden');
-    dom.userPanel.classList.remove('hidden');
-    dom.authBackendHint.textContent = isAdmin
-      ? '관리자는 요청 승인, 그룹 배정, 그룹 공간 관리를 수행할 수 있습니다.'
-      : `현재 그룹: ${trimText(user.groupCode || user.groupName) || 'UNASSIGNED'}`;
-    renderGroupSpace();
-  }
-
-  async function handleGoogleCredential(response) {
-    if (!response?.credential) {
-      updateAuthStatus('error', 'Google 인증 토큰이 비어 있습니다.');
-      return;
-    }
-    if (!state.auth.backendAvailable) {
-      updateAuthStatus('warn', '백엔드 연결이 없어 Google 인증을 검증할 수 없습니다.');
-      return;
-    }
-    try {
-      const payload = await apiRequest('/google/verify', {
-        method: 'POST',
-        body: JSON.stringify({ credential: response.credential })
-      });
-      applyAuthPayload(payload);
-      updateAuthStatus(
-        payload.user?.status === 'pending' ? 'warn' : 'success',
-        payload.message || `${String(payload.user?.name || '사용자')} 로그인 성공`
-      );
-      applyAuthState();
-      await loadProjectFromServer({ announce: false });
-      renderAll();
-    } catch (error) {
-      updateAuthStatus('error', error.message || 'Google 인증 검증에 실패했습니다.');
-    }
-  }
-
-  async function logout() {
-    try {
-      if (state.auth.backendAvailable) {
-        await apiRequest('/logout', { method: 'POST' });
-      }
-    } catch (error) {
-      console.error(error);
-    }
-    removeFallbackSession();
-    state.auth.user = null;
-    state.auth.groups = [];
-    state.auth.groupSpaces = [];
-    state.auth.pendingRequests = [];
-    state.auth.activeGroupCode = '';
-    state.auth.selectedGroupCode = '';
-    state.auth.googleRendered = false;
-    state.project = {
-      ...state.project,
-      groupCode: '',
-      source: 'memory',
-      dirty: false
-    };
-    updateAuthStatus('info', '로그아웃되었습니다.');
-    applyAuthState();
-    renderGoogleButtonWithRetry();
-    updateProjectStatus('LOGGED OUT');
-    renderAll();
-  }
-
-  async function saveCurrentGroupSpace() {
-    const user = state.auth.user;
-    const groupCode = getCurrentGroupCode();
-    if (!user || !groupCode) {
-      pushToast('저장할 그룹 공간이 없습니다.', 'warn');
-      return;
-    }
-    if (!isAdminUser(user) && trimText(user.groupCode) !== groupCode) {
-      pushToast('현재 사용자의 그룹 공간만 수정할 수 있습니다.', 'warn');
-      return;
-    }
-
-    const announcement = trimText(dom.spaceAnnouncement.value);
-    const notes = trimText(dom.spaceNotes.value);
-
-    if (!state.auth.backendAvailable) {
-      const spaces = loadFallbackGroupSpaces();
-      spaces[groupCode] = {
-        ...(spaces[groupCode] || {}),
-        groupCode,
-        groupName: groupCode,
-        announcement,
-        notes,
-        updatedAt: new Date().toISOString(),
-        updatedBy: user.name || user.id,
-        memberCount: 1,
-        memberNames: [user.name || user.id]
-      };
-      saveFallbackGroupSpaces(spaces);
-      ensureFallbackAdminContext();
-      renderAll();
-      pushToast('로컬 그룹 공간을 저장했습니다.', 'success');
-      return;
-    }
-
-    try {
-      await apiRequest('/groups/space', {
-        method: 'POST',
-        body: JSON.stringify({ groupCode, announcement, notes })
-      });
-      await refreshAuthContext();
-      pushToast('그룹 공간을 저장했습니다.', 'success');
-    } catch (error) {
-      pushToast(error.message || '그룹 공간 저장에 실패했습니다.', 'error');
-    }
-  }
-
-  async function handleAdminRequestAction(event) {
-    const button = event.target.closest('[data-request-action]');
-    if (!button) return;
-    if (!isAdminUser()) {
-      pushToast('관리자만 요청을 처리할 수 있습니다.', 'warn');
-      return;
-    }
-    if (!state.auth.backendAvailable) {
-      pushToast('이 기능은 auth worker가 연결된 상태에서만 동작합니다.', 'warn');
-      return;
-    }
-
-    const requestId = trimText(button.dataset.requestId);
-    const action = trimText(button.dataset.requestAction);
-    if (!requestId || !action) return;
-
-    const row = button.closest('[data-request-id]');
-    const groupCode = trimText(row?.querySelector('[data-field="groupCode"]')?.value);
-    const groupName = trimText(row?.querySelector('[data-field="groupName"]')?.value);
-
-    try {
-      if (action === 'approve') {
-        await apiRequest('/admin/requests/' + encodeURIComponent(requestId) + '/approve', {
-          method: 'POST',
-          body: JSON.stringify({ groupCode, groupName })
-        });
-        pushToast('사용 요청을 승인했습니다.', 'success');
-      } else if (action === 'reject') {
-        await apiRequest('/admin/requests/' + encodeURIComponent(requestId) + '/reject', {
-          method: 'POST',
-          body: JSON.stringify({})
-        });
-        pushToast('사용 요청을 반려했습니다.', 'warn');
-      }
-      await refreshAuthContext();
-    } catch (error) {
-      pushToast(error.message || '요청 처리에 실패했습니다.', 'error');
-    }
-  }
-
-  function renderGroupSpace() {
-    normalizeUiText();
-    if (!dom.spaceGroupSelect) return;
-
-    const user = state.auth.user;
-    const canAccess = isWorkspaceAllowed(user);
-    const isAdmin = isAdminUser(user);
-    const groups = Array.isArray(state.auth.groups) ? state.auth.groups : [];
-    const selectedCode = getCurrentGroupCode();
-    const space = getCurrentGroupSpace();
-    const accessLabel = !user ? 'LOCKED' : isAdmin ? 'ADMIN' : canAccess ? 'ACTIVE' : String(user.status || 'LOCKED').toUpperCase();
-
-    dom.spaceGroupSelect.innerHTML = ['<option value="">No Group</option>']
-      .concat(groups.map((group) => {
-        const code = escapeHtml(group.code);
-        const suffix = group.name && group.name !== group.code ? (' - ' + escapeHtml(group.name)) : '';
-        return '<option value="' + code + '">' + code + suffix + '</option>';
-      }))
-      .join('');
-    dom.spaceStatus.textContent = !user
-      ? '로그인 후 그룹 공간을 사용할 수 있습니다.'
-      : !canAccess
-        ? '관리자 승인 전까지 그룹 공간은 잠겨 있습니다.'
-        : isAdmin
-          ? '관리자 모드에서는 모든 그룹 공간을 조회하고 수정할 수 있습니다.'
-          : `${trimText(user.groupCode || user.groupName) || 'UNASSIGNED'} 그룹 공간이 연결되었습니다.`;
-
-    dom.spaceActiveGroup.textContent = space?.groupCode || selectedCode || '-';
-    dom.spaceMemberCount.textContent = formatInt(space?.memberCount || 0);
-    dom.spaceUpdatedAt.textContent = space?.updatedAt ? formatDateTime(space.updatedAt) : '-';
-    dom.spaceAccessLevel.textContent = accessLabel;
-    dom.spaceAnnouncement.value = space?.announcement || '';
-    dom.spaceNotes.value = space?.notes || '';
-
-    const editable = Boolean(user && (isAdmin || (user.status === 'active' && trimText(user.groupCode) === selectedCode)));
-    dom.spaceGroupSelect.disabled = !user || (!isAdmin && groups.length <= 1);
-    dom.spaceAnnouncement.disabled = !editable;
-    dom.spaceNotes.disabled = !editable;
-    dom.saveSpaceBtn.disabled = !editable;
-
-    const memberNames = Array.isArray(space?.memberNames) ? space.memberNames : [];
-    dom.spaceMemberList.innerHTML = memberNames.length
-      ? memberNames.map((name) => renderIssueItem('info', name)).join('')
-      : '<div class="empty-state">표시할 그룹 멤버가 없습니다.</div>';
-
-    dom.adminApprovalPanel.classList.toggle('hidden', !isAdmin);
-    dom.refreshAdminBtn.disabled = !isAdmin;
-    renderAdminRequestList();
-  }
-
-  function renderAdminRequestList() {
-    if (!dom.adminRequestList) return;
-    const requests = Array.isArray(state.auth.pendingRequests) ? state.auth.pendingRequests : [];
-    const groups = Array.isArray(state.auth.groups) ? state.auth.groups : [];
-    const activeUsers = Array.isArray(state.auth.groupSpaces)
-      ? state.auth.groupSpaces.reduce((sum, space) => sum + toNumber(space.memberCount, 0), 0)
-      : 0;
-
-    dom.adminPendingCount.textContent = formatInt(requests.length);
-    dom.adminGroupCount.textContent = formatInt(groups.length);
-    dom.adminActiveUsers.textContent = formatInt(activeUsers);
-    if (dom.adminDisplayName) {
-      dom.adminDisplayName.textContent = isAdminUser() ? (state.auth.user?.name || '관리자') : '관리자';
-    }
-
-    if (!isAdminUser()) {
-      dom.adminRequestList.innerHTML = '<div class="empty-state">관리자만 승인 큐를 볼 수 있습니다.</div>';
-      return;
-    }
-
-    if (!requests.length) {
-      dom.adminRequestList.innerHTML = '<div class="empty-state">현재 대기 중인 사용 요청이 없습니다.</div>';
-      return;
-    }
-
-    dom.adminRequestList.innerHTML = requests.map((request) => {
-      const requestIdValue = escapeHtml(request.id);
-      const requestName = escapeHtml(request.name || request.email || request.userId);
-      const requestProvider = escapeHtml(request.provider || 'social');
-      const requestEmail = escapeHtml(request.email || 'no-email');
-      const requestStatus = escapeHtml(String(request.status || 'pending').toUpperCase());
-      const requestGroupCode = escapeHtml(request.suggestedGroupCode || 'GROUP-A');
-      const requestGroupName = escapeHtml(request.suggestedGroupName || request.suggestedGroupCode || 'Group A');
-      const requestDate = escapeHtml(formatDateTime(request.requestedAt));
-      return ''
-        + '<div class="admin-request-row" data-request-id="' + requestIdValue + '">'
-        + '<div class="admin-request-head">'
-        + '<div><strong>' + requestName + '</strong><div class="muted">' + requestProvider + ' - ' + requestEmail + '</div></div>'
-        + '<span class="badge badge-warn">' + requestStatus + '</span>'
-        + '</div>'
-        + '<div class="admin-request-grid">'
-        + '<label class="field"><span>GROUP CODE</span><input data-field="groupCode" type="text" value="' + requestGroupCode + '" placeholder="GROUP-A"></label>'
-        + '<label class="field"><span>GROUP NAME</span><input data-field="groupName" type="text" value="' + requestGroupName + '" placeholder="Group A"></label>'
-        + '<div class="admin-request-meta">요청 시각: ' + requestDate + '</div>'
-        + '</div>'
-        + '<div class="editor-actions">'
-        + '<button class="toolbar-btn accent" type="button" data-request-id="' + requestIdValue + '" data-request-action="approve">승인 후 그룹 배정</button>'
-        + '<button class="toolbar-btn danger" type="button" data-request-id="' + requestIdValue + '" data-request-action="reject">반려</button>'
-        + '</div>'
-        + '</div>';
-    }).join('');
-  }
-
-  function setActiveTab(tab) {
-    dom.tabButtons.forEach((button) => {
-      button.classList.toggle('is-active', button.dataset.tab === tab);
-    });
-    dom.tabPanels.forEach((panel) => {
-      panel.classList.toggle('is-active', panel.dataset.panel === tab);
-    });
-    if (tab !== 'routing') {
-      disposeThree();
-    }
-    if (tab !== 'nodes') {
-      disposeNodeThree();
-    }
-    if (tab === 'routing') {
-      renderRoutingPanel();
-    }
-    if (tab === 'nodes') {
-      renderNodesPanel();
-    }
-    if (tab === 'bom') {
-      renderBomTab();
-    }
-    if (tab === 'reports') {
-      renderReportsTab();
-    }
-    if (tab === 'space') {
-      renderGroupSpace();
-    }
-    if (tab === 'diagnostics') {
-      renderVersionComparison();
-    }
-    normalizeUiText();
-  }
-
-  function renderAll() {
-    renderSummary();
-    renderGrid();
-    renderSelectedCable();
-    renderRoutingPanel();
-    renderNodesPanel();
-    renderBomTab();
-    renderReportsTab();
-    renderGroupSpace();
-    renderDiagnostics();
-    renderVersionComparison();
-    applyAuthState();
-    updateProjectStatus();
-    updateHistoryControls();
-    normalizeUiText();
   }
 })();
 

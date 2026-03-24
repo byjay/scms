@@ -11,7 +11,7 @@
     const password = dom.loginPw.value;
 
     if (!id || !password) {
-      updateAuthStatus('warn', 'ID? 鍮꾨?踰덊샇瑜?紐⑤몢 ?낅젰??二쇱꽭??');
+       updateAuthStatus('warn', 'ID와 비밀번호를 모두 입력해 주세요.');
       return;
     }
 
@@ -27,24 +27,24 @@
         applyAuthState();
         return;
       } catch (error) {
-        updateAuthStatus('error', error.message || '濡쒖뺄 濡쒓렇?몄뿉 ?ㅽ뙣?덉뒿?덈떎.');
+         updateAuthStatus('error', error.message || '로컬 로그인에 실패했습니다.');
       }
     }
 
     if (DEMO_AUTH_ENABLED && id === FALLBACK_LOCAL_CREDENTIALS.id && password === FALLBACK_LOCAL_CREDENTIALS.password) {
       state.auth.user = { ...FALLBACK_LOCAL_USER };
       persistFallbackSession();
-      updateAuthStatus('success', '濡쒖뺄 ?곕え 濡쒓렇?몄뿉 ?깃났?덉뒿?덈떎.');
+       updateAuthStatus('success', '로컬 데모 로그인에 성공했습니다.');
       applyAuthState();
       return;
     }
 
-    updateAuthStatus('error', '濡쒖뺄 濡쒓렇???뺣낫媛 留욎? ?딆뒿?덈떎.');
+     updateAuthStatus('error', '로컬 로그인 정보가 맞지 않습니다.');
   }
 
   async function startNaverLogin() {
     if (!state.auth.backendAvailable) {
-      updateAuthStatus('warn', 'Naver 濡쒓렇?몄쓣 ?ъ슜?섎젮硫?auth worker媛 ?꾩슂?⑸땲??');
+       updateAuthStatus('warn', 'Naver 로그인을 사용하려면 auth worker가 필요합니다.');
       return;
     }
     window.location.href = `${state.apiBase}/naver/start`;
@@ -56,8 +56,8 @@
       dom.loginOverlay.classList.remove('hidden');
       dom.userPanel.classList.add('hidden');
       dom.authBackendHint.textContent = state.auth.backendAvailable
-        ? '諛깆뿏?쒓? ?곌껐?섏뿀?듬땲?? Google / Naver / 愿由ъ옄 濡쒓렇??以??섎굹瑜??좏깮?섏꽭??'
-        : '?몄쬆 ?뚯빱媛 ?놁뼱???뚯뀥 濡쒓렇??踰꾪듉? 鍮꾪솢?깊솕?⑸땲?? 濡쒖뺄 ?곕え 濡쒓렇?몃쭔 ?ъ슜?????덉뒿?덈떎.';
+         ? '백엔드가 연결되었습니다. Google / Naver / 관리자 로그인 중 하나를 선택하세요.'
+         : '인증 백엔드가 없어서 네이버 로그인 버튼이 비활성화됩니다. 로컬 데모 로그인만 사용할 수 있습니다.';
       dom.naverLoginBtn.disabled = !state.auth.backendAvailable;
       return;
     }
@@ -75,8 +75,8 @@
     if (!state.auth.backendAvailable || !googleConfig.enabled || !googleConfig.clientId) {
       dom.googleButtonHost.innerHTML = '';
       const message = state.auth.backendAvailable
-        ? 'Google Client ID媛 ?ㅼ젙?섏? ?딆븯?듬땲??'
-        : '諛깆뿏???곌껐 ??Google 濡쒓렇?몄쓣 ?ъ슜?????덉뒿?덈떎.';
+         ? 'Google Client ID가 설정되지 않았습니다.'
+         : '백엔드 연결 후 Google 로그인을 사용할 수 있습니다.';
       dom.googleButtonHost.innerHTML = `<div class="login-note">${escapeHtml(message)}</div>`;
       return;
     }
@@ -85,7 +85,7 @@
       if (attempt < 10) {
         window.setTimeout(() => renderGoogleButtonWithRetry(attempt + 1), 400);
       } else {
-        dom.googleButtonHost.innerHTML = '<div class="login-note">Google GIS ?ㅽ겕由쏀듃瑜?遺덈윭?ㅼ? 紐삵뻽?듬땲??</div>';
+         dom.googleButtonHost.innerHTML = '<div class="login-note">Google GIS 스크립트를 불러오지 못했습니다.</div>';
       }
       return;
     }
@@ -109,11 +109,11 @@
 
   async function handleGoogleCredential(response) {
     if (!response?.credential) {
-      updateAuthStatus('error', 'Google ?몄쬆 ?좏겙??鍮꾩뼱 ?덉뒿?덈떎.');
+       updateAuthStatus('error', 'Google 인증 토큰이 비어 있습니다.');
       return;
     }
     if (!state.auth.backendAvailable) {
-      updateAuthStatus('warn', '諛깆뿏?쒓? ?놁뼱 Google ?몄쬆??寃利앺븷 ???놁뒿?덈떎.');
+       updateAuthStatus('warn', '백엔드가 없어 Google 인증을 검증할 수 없습니다.');
       return;
     }
     try {
@@ -125,7 +125,7 @@
       updateAuthStatus('success', String(payload.user.name || 'User') + ' login success');
       applyAuthState();
     } catch (error) {
-      updateAuthStatus('error', error.message || 'Google ?몄쬆 寃利앹뿉 ?ㅽ뙣?덉뒿?덈떎.');
+       updateAuthStatus('error', error.message || 'Google 인증 검증에 실패했습니다.');
     }
   }
 
@@ -140,7 +140,7 @@
     removeFallbackSession();
     state.auth.user = null;
     state.auth.googleRendered = false;
-    updateAuthStatus('info', '濡쒓렇?꾩썐?섏뿀?듬땲??');
+     updateAuthStatus('info', '로그아웃했습니다.');
     applyAuthState();
     renderGoogleButtonWithRetry();
   }
@@ -520,7 +520,7 @@
 
   function exportProjectWorkbook() {
     if (!window.XLSX) {
-      pushToast('XLSX ?쇱씠釉뚮윭由ш? ?놁뼱 ?묒? ??μ쓣 ?????놁뒿?덈떎.', 'warn');
+       pushToast('XLSX 라이브러리가 없어 엑셀 내보내기를 할 수 없습니다.', 'warn');
       return;
     }
 
@@ -569,17 +569,6 @@
     pushToast('?묒? ?뚯씪????ν뻽?듬땲??', 'success');
   }
 
-  function setActiveTab(tab) {
-    dom.tabButtons.forEach((button) => {
-      button.classList.toggle('is-active', button.dataset.tab === tab);
-    });
-    dom.tabPanels.forEach((panel) => {
-      panel.classList.toggle('is-active', panel.dataset.panel === tab);
-    });
-    if (tab === 'routing') {
-      renderRoutingPanel();
-    }
-  }
 
   function showBusy(message) {
     dom.busyText.textContent = message;
