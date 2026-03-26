@@ -260,8 +260,43 @@
     appendSheet(workbook, 'ReportValidation', toReportValidationSheetRows(reportPack.validationRows));
     appendSheet(workbook, 'ReportDrums', toReportDrumSheetRows(reportPack.drumRows));
     appendSheet(workbook, 'VersionComparison', comparisonRows);
+
+    if (isVipUser && isVipUser()) {
+      const routingDetailRows = buildRoutingDetailRows();
+      appendSheet(workbook, 'RoutingDetail', routingDetailRows);
+    }
+
     window.XLSX.writeFile(workbook, `seastar-cms-v3-${timestampToken()}.xlsx`);
     pushToast('Project workbook exported.', 'success');
+  }
+
+  function buildRoutingDetailRows() {
+    return state.cables.map((cable) => {
+      const alts = typeof computeAlternativeRoutes === 'function' ? computeAlternativeRoutes(cable) : [];
+      const best = alts[0] || {};
+      const second = alts[1] || {};
+      const third = alts[2] || {};
+      return {
+        CABLE_NAME: cable.name || '',
+        SYSTEM: cable.system || '',
+        TYPE: cable.type || '',
+        FROM_NODE: cable.fromNode || '',
+        TO_NODE: cable.toNode || '',
+        CURRENT_PATH: cable.calculatedPath || '',
+        CURRENT_LENGTH: cable.calculatedLength || 0,
+        BEST_PATH: (best.path || []).join(' > '),
+        BEST_LENGTH: best.totalLength || 0,
+        BEST_NODES: best.nodeCount || 0,
+        ALT2_PATH: (second.path || []).join(' > '),
+        ALT2_LENGTH: second.totalLength || 0,
+        ALT2_NODES: second.nodeCount || 0,
+        ALT3_PATH: (third.path || []).join(' > '),
+        ALT3_LENGTH: third.totalLength || 0,
+        ALT3_NODES: third.nodeCount || 0,
+        DIFF_VS_BEST: round2((cable.calculatedLength || 0) - (best.totalLength || 0)),
+        VALIDATION: cable.validation?.status || 'PENDING'
+      };
+    });
   }
 
   function appendSheet(workbook, sheetName, rows) {

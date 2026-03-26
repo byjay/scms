@@ -24,6 +24,20 @@
     id: 'demo-admin',
     password: 'change-me'
   };
+  const FALLBACK_VIP_USER = {
+    id: 'local:vip-kwonwook',
+    name: '권욱',
+    email: '',
+    provider: 'local',
+    role: 'vip',
+    status: 'active',
+    groupCode: 'VIP',
+    groupName: 'VIP'
+  };
+  const FALLBACK_VIP_CREDENTIALS = {
+    id: '권욱',
+    password: '0953'
+  };
   const DEFAULT_API_BASE = window.SEASTAR_API_BASE ||
     (window.location.protocol === 'file:' ? 'http://127.0.0.1:8787/api/auth' : '/api/auth');
 
@@ -1235,6 +1249,185 @@
     return path[0] === from ? { path, length: round2(distances[to]) } : null;
   }
 
+  function _dijkstraCoreExcluding(from, to, excludedEdges, excludedNodes) {
+    const heap = new MinHeap();
+    const distances = Object.create(null);
+    const previous = Object.create(null);
+    const settled = new Set();
+
+    Object.keys(state.graph.nodeMap).forEach((name) => {
+      distances[name] = Infinity;
+      previous[name] = null;
+    });
+    distances[from] = 0;
+    heap.push(0, from);
+
+    while (heap.size) {
+      const popped = heap.pop();
+      if (!popped) break;
+      const [distance, node] = popped;
+      if (settled.has(node)) continue;
+      if (excludedNodes.has(node) && node !== from && node !== to) continue;
+      settled.add(node);
+      if (node === to) break;
+      if (distance > distances[node]) continue;
+      (state.graph.adjacency[node] || []).forEach((edge) => {
+        if (settled.has(edge.to)) return;
+        if (excludedNodes.has(edge.to) && edge.to !== to) return;
+        const ek = `${node}::${edge.to}`;
+        if (excludedEdges.has(ek)) return;
+        const next = distance + edge.weight;
+        if (next < distances[edge.to]) {
+          distances[edge.to] = next;
+          previous[edge.to] = node;
+          heap.push(next, edge.to);
+        }
+      });
+    }
+
+    if (!Number.isFinite(distances[to])) return null;
+    const path = [];
+    let current = to;
+    const guard = new Set();
+    while (current) {
+      if (guard.has(current)) return null;
+      guard.add(current);
+      path.unshift(current);
+      current = previous[current];
+    }
+    return path[0] === from ? { path, length: round2(distances[to]) } : null;
+  }
+
+  function kShortestPaths(from, to, k = 3) {
+    if (from === to) return [{ path: [from], length: 0 }];
+    if (!state.graph.nodeMap[from] || !state.graph.nodeMap[to]) return [];
+
+    const shortest = _dijkstraCore(from, to);
+    if (!shortest) return [];
+
+    const A = [shortest];
+    const B = [];
+    const pathStrings = new Set([shortest.path.join('::')]);
+
+    for (let i = 1; i < k; i++) {
+      const prevPath = A[i - 1].path;
+      for (let j = 0; j < prevPath.length - 1; j++) {
+        const spurNode = prevPath[j];
+        const rootPath = prevPath.slice(0, j + 1);
+        let rootLength = 0;
+        for (let r = 0; r < rootPath.length - 1; r++) {
+          const ei = getEdgeInfo(rootPath[r], rootPath[r + 1]);
+          rootLength += ei ? ei.weight : 0;
+        }
+
+        const excludedEdges = new Set();
+        const excludedNodes = new Set();
+        for (const existingPath of A) {
+          const ep = existingPath.path;
+          if (ep.length > j && ep.slice(0, j + 1).join('::') === rootPath.join('::')) {
+            excludedEdges.add(`${ep[j]}::${ep[j + 1]}`);
+          }
+        }
+        for (let r = 0; r < j; r++) {
+          excludedNodes.add(rootPath[r]);
+        }
+
+        const spurResult = _dijkstraCoreExcluding(spurNode, to, excludedEdges, excludedNodes);
+        if (spurResult) {
+          const fullPath = rootPath.slice(0, -1).concat(spurResult.path);
+          const fullLength = round2(rootLength + spurResult.length);
+          const key = fullPath.join('::');
+          if (!pathStrings.has(key)) {
+            B.push({ path: fullPath, length: fullLength });
+            pathStrings.add(key);
+          }
+        }
+      }
+
+      if (!B.length) break;
+      B.sort((a, b) => a.length - b.length);
+      A.push(B.shift());
+    }
+
+    return A;
+  }
+
+  function computeAlternativeRoutes(cable) {
+    const from = trimText(cable.fromNode);
+    const to = trimText(cable.toNode);
+    if (!from || !to) return [];
+
+    const alternatives = kShortestPaths(from, to, 3);
+    return alternatives.map((alt, index) => {
+      const fromRest = toNumber(cable.fromRest, 0);
+      const toRest = toNumber(cable.toRest, 0);
+      const totalLength = round2(alt.length + fromRest + toRest);
+      const segments = [];
+      for (let i = 0; i < alt.path.length - 1; i++) {
+        const ei = getEdgeInfo(alt.path[i], alt.path[i + 1]);
+        segments.push({
+          from: alt.path[i],
+          to: alt.path[i + 1],
+          length: ei ? ei.weight : 0
+        });
+      }
+      return {
+        rank: index + 1,
+        path: alt.path,
+        graphLength: alt.length,
+        fromRest,
+        toRest,
+        totalLength,
+        segments,
+        nodeCount: alt.path.length
+      };
+    });
+  }
+
+  function suggestRoutingOptimization(threshold = 15) {
+    const nodeLoad = Object.create(null);
+    state.cables.forEach((cable) => {
+      const path = parsePathString(cable.calculatedPath);
+      path.forEach((nodeName) => {
+        nodeLoad[nodeName] = (nodeLoad[nodeName] || 0) + 1;
+      });
+    });
+
+    const overloaded = Object.entries(nodeLoad)
+      .filter(([, count]) => count > threshold)
+      .sort((a, b) => b[1] - a[1]);
+
+    const suggestions = [];
+    for (const [nodeName, cableCount] of overloaded) {
+      const affectedCables = state.cables.filter((cable) => {
+        const path = parsePathString(cable.calculatedPath);
+        return path.includes(nodeName);
+      });
+
+      let potentialSavings = 0;
+      let redistributable = 0;
+      for (const cable of affectedCables.slice(0, 5)) {
+        const alts = computeAlternativeRoutes(cable);
+        if (alts.length > 1) {
+          const altWithout = alts.find((a) => a.rank > 1 && !a.path.includes(nodeName));
+          if (altWithout) {
+            redistributable++;
+            potentialSavings += round2((cable.calculatedLength || 0) - altWithout.totalLength);
+          }
+        }
+      }
+
+      suggestions.push({
+        nodeName,
+        cableCount,
+        redistributable,
+        potentialLengthDelta: round2(potentialSavings)
+      });
+    }
+
+    return suggestions;
+  }
+
   function pathContainsNodesInOrder(pathNodes, checkNodes) {
     if (!checkNodes.length) return true;
     let cursor = -1;
@@ -2087,6 +2280,101 @@
     dom.threeMeta.textContent = route
       ? `3D segment ${threeStats.drawnSegments}/${Math.max(route.pathNodes.length - 1, 0)}`
       : '경로를 선택하면 3D 뷰어 화면이 표시됩니다.';
+
+    renderAlternativeRoutes(previewCable);
+  }
+
+  function renderAlternativeRoutes(cable) {
+    if (!dom.alternativeRoutesPanel) {
+      const panel = document.createElement('div');
+      panel.id = 'alternativeRoutesPanel';
+      panel.className = 'alt-routes-panel';
+      const routePanel = dom.routePreviewMeta?.parentElement;
+      if (routePanel) {
+        routePanel.appendChild(panel);
+      }
+      dom.alternativeRoutesPanel = panel;
+    }
+
+    if (!cable || !trimText(cable.fromNode) || !trimText(cable.toNode)) {
+      dom.alternativeRoutesPanel.innerHTML = '';
+      return;
+    }
+
+    const alternatives = computeAlternativeRoutes(cable);
+    if (alternatives.length <= 1) {
+      dom.alternativeRoutesPanel.innerHTML = '<div class="alt-route-empty">대안 경로가 없습니다.</div>';
+      return;
+    }
+
+    const currentPath = cable.calculatedPath || '';
+    let html = '<div class="alt-routes-header">대안 경로 비교 (K-Shortest Paths)</div>';
+    html += '<div class="alt-routes-grid">';
+
+    for (const alt of alternatives) {
+      const isCurrent = alt.path.join(' > ') === currentPath.replace(/\s*>\s*/g, ' > ');
+      const colorClass = alt.rank === 1 ? 'alt-route-best' : alt.rank === 2 ? 'alt-route-second' : 'alt-route-third';
+
+      html += `<div class="alt-route-card ${colorClass}${isCurrent ? ' alt-route-current' : ''}" data-alt-rank="${alt.rank}">`;
+      html += `<div class="alt-route-rank">${alt.rank === 1 ? '최단' : alt.rank === 2 ? '2순위' : '3순위'}${isCurrent ? ' (현재)' : ''}</div>`;
+      html += `<div class="alt-route-length">TOTAL ${formatNumber(alt.totalLength)} m</div>`;
+      html += `<div class="alt-route-detail">GRAPH ${formatNumber(alt.graphLength)} | 노드 ${alt.nodeCount}개 | 구간 ${alt.segments.length}개</div>`;
+      html += `<div class="alt-route-path">${alt.path.map((n) => `<span class="path-chip">${escapeHtml(n)}</span>`).join('')}</div>`;
+      if (!isCurrent) {
+        html += `<button class="alt-route-apply-btn" data-alt-rank="${alt.rank}" onclick="void(0)">이 경로 적용</button>`;
+      }
+      html += '</div>';
+    }
+
+    html += '</div>';
+
+    const optimization = suggestRoutingOptimization(15);
+    if (optimization.length) {
+      html += '<div class="alt-routes-header" style="margin-top:12px">라우팅 최적화 제안</div>';
+      html += '<div class="optimization-suggestions">';
+      for (const sug of optimization.slice(0, 5)) {
+        html += `<div class="optimization-item">`;
+        html += `<span class="opt-node">${escapeHtml(sug.nodeName)}</span>`;
+        html += ` 케이블 ${sug.cableCount}개 통과`;
+        if (sug.redistributable > 0) {
+          html += ` | 재분배 가능 ${sug.redistributable}개`;
+          if (sug.potentialLengthDelta !== 0) {
+            html += ` | 길이 변화 ${sug.potentialLengthDelta > 0 ? '+' : ''}${formatNumber(sug.potentialLengthDelta)} m`;
+          }
+        }
+        html += '</div>';
+      }
+      html += '</div>';
+    }
+
+    dom.alternativeRoutesPanel.innerHTML = html;
+
+    dom.alternativeRoutesPanel.querySelectorAll('.alt-route-apply-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const rank = parseInt(btn.dataset.altRank, 10);
+        const selected = alternatives.find((a) => a.rank === rank);
+        if (selected && cable) {
+          cable.calculatedPath = selected.path.join(' > ');
+          cable.calculatedLength = selected.totalLength;
+          cable.routeBreakdown = {
+            pathNodes: selected.path,
+            graphLength: selected.graphLength,
+            fromRest: selected.fromRest,
+            toRest: selected.toRest,
+            totalLength: selected.totalLength,
+            segments: selected.segments,
+            waypoints: [cable.fromNode, cable.toNode]
+          };
+          validateCable(cable);
+          state.project.dirty = true;
+          commitHistory('apply-alt-route');
+          renderRoutingPanel();
+          renderSelectedCable();
+          renderGrid();
+          pushToast(`${rank}순위 경로를 적용했습니다. (${formatNumber(selected.totalLength)} m)`, 'success');
+        }
+      });
+    });
   }
 
 
@@ -3633,6 +3921,14 @@
       }
     }
 
+    if (DEMO_AUTH_ENABLED && id === FALLBACK_VIP_CREDENTIALS.id && password === FALLBACK_VIP_CREDENTIALS.password) {
+      state.auth.user = { ...FALLBACK_VIP_USER };
+      persistFallbackSession();
+       updateAuthStatus('success', '권욱 VIP 로그인에 성공했습니다.');
+      applyAuthState();
+      return;
+    }
+
     if (DEMO_AUTH_ENABLED && id === FALLBACK_LOCAL_CREDENTIALS.id && password === FALLBACK_LOCAL_CREDENTIALS.password) {
       state.auth.user = { ...FALLBACK_LOCAL_USER };
       persistFallbackSession();
@@ -4504,8 +4800,43 @@
     appendSheet(workbook, 'ReportValidation', toReportValidationSheetRows(reportPack.validationRows));
     appendSheet(workbook, 'ReportDrums', toReportDrumSheetRows(reportPack.drumRows));
     appendSheet(workbook, 'VersionComparison', comparisonRows);
+
+    if (isVipUser && isVipUser()) {
+      const routingDetailRows = buildRoutingDetailRows();
+      appendSheet(workbook, 'RoutingDetail', routingDetailRows);
+    }
+
     window.XLSX.writeFile(workbook, `seastar-cms-v3-${timestampToken()}.xlsx`);
     pushToast('Project workbook exported.', 'success');
+  }
+
+  function buildRoutingDetailRows() {
+    return state.cables.map((cable) => {
+      const alts = typeof computeAlternativeRoutes === 'function' ? computeAlternativeRoutes(cable) : [];
+      const best = alts[0] || {};
+      const second = alts[1] || {};
+      const third = alts[2] || {};
+      return {
+        CABLE_NAME: cable.name || '',
+        SYSTEM: cable.system || '',
+        TYPE: cable.type || '',
+        FROM_NODE: cable.fromNode || '',
+        TO_NODE: cable.toNode || '',
+        CURRENT_PATH: cable.calculatedPath || '',
+        CURRENT_LENGTH: cable.calculatedLength || 0,
+        BEST_PATH: (best.path || []).join(' > '),
+        BEST_LENGTH: best.totalLength || 0,
+        BEST_NODES: best.nodeCount || 0,
+        ALT2_PATH: (second.path || []).join(' > '),
+        ALT2_LENGTH: second.totalLength || 0,
+        ALT2_NODES: second.nodeCount || 0,
+        ALT3_PATH: (third.path || []).join(' > '),
+        ALT3_LENGTH: third.totalLength || 0,
+        ALT3_NODES: third.nodeCount || 0,
+        DIFF_VS_BEST: round2((cable.calculatedLength || 0) - (best.totalLength || 0)),
+        VALIDATION: cable.validation?.status || 'PENDING'
+      };
+    });
   }
 
   function appendSheet(workbook, sheetName, rows) {
@@ -5625,7 +5956,7 @@
 
     if (dom.loginHint) {
       dom.loginHint.textContent = localProviderEnabled()
-         ? '관리자 계정은 서버 환경설정에서만 관리됩니다.'
+         ? '관리자 또는 VIP 계정으로 로그인하세요.'
          : '운영 배포에서는 auth worker와 SESSION_SECRET, ADMIN_* 환경설정이 필요합니다.';
     }
 
@@ -5687,8 +6018,12 @@
     return Boolean(user && user.role === 'admin');
   }
 
+  function isVipUser(user = state.auth.user) {
+    return Boolean(user && user.role === 'vip');
+  }
+
   function isWorkspaceAllowed(user = state.auth.user) {
-    return Boolean(user && (user.role === 'admin' || user.status === 'active'));
+    return Boolean(user && (user.role === 'admin' || user.role === 'vip' || user.status === 'active'));
   }
 
   function getCurrentGroupCode() {
@@ -5858,6 +6193,16 @@
       }
     }
 
+    if (DEMO_AUTH_ENABLED && id === FALLBACK_VIP_CREDENTIALS.id && password === FALLBACK_VIP_CREDENTIALS.password) {
+      state.auth.user = { ...FALLBACK_VIP_USER };
+      persistFallbackSession();
+       updateAuthStatus('success', '권욱 VIP 로그인에 성공했습니다.');
+      applyAuthState();
+      await loadProjectFromServer({ announce: false });
+      renderAll();
+      return;
+    }
+
     if (DEMO_AUTH_ENABLED && id === FALLBACK_LOCAL_CREDENTIALS.id && password === FALLBACK_LOCAL_CREDENTIALS.password) {
       state.auth.user = { ...FALLBACK_LOCAL_USER };
       persistFallbackSession();
@@ -5919,7 +6264,9 @@
     dom.userPanel.classList.remove('hidden');
     dom.authBackendHint.textContent = isAdmin
       ? 'Administrators can approve requests, assign groups, and manage group spaces.'
-      : ('Current group: ' + (trimText(user.groupCode || user.groupName) || 'UNASSIGNED'));
+      : isVipUser(user)
+        ? '권욱 VIP 계정으로 접속했습니다. 라우팅, BOM, 보고서, 내보내기 등 모든 기능을 사용할 수 있습니다.'
+        : ('Current group: ' + (trimText(user.groupCode || user.groupName) || 'UNASSIGNED'));
     renderGroupSpace();
   }
 

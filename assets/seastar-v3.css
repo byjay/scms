@@ -2326,3 +2326,39 @@ button {
     grid-template-columns: 1fr;
   }
 }
+
+/* Alternative Routes Panel */
+.alt-routes-panel { margin-top: 12px; }
+.alt-routes-header {
+  font-size: 13px; font-weight: 700; color: var(--text);
+  padding: 6px 0; border-bottom: 1px solid var(--border);
+  margin-bottom: 8px;
+}
+.alt-routes-grid { display: flex; gap: 8px; flex-wrap: wrap; }
+.alt-route-card {
+  flex: 1; min-width: 200px; padding: 10px; border-radius: 8px;
+  border: 2px solid var(--border); background: var(--bg-card);
+  cursor: default; transition: border-color 0.15s;
+}
+.alt-route-card:hover { border-color: var(--accent); }
+.alt-route-best { border-color: #22c55e; }
+.alt-route-second { border-color: #f59e0b; }
+.alt-route-third { border-color: #94a3b8; }
+.alt-route-current { background: var(--bg-soft); box-shadow: inset 0 0 0 1px var(--accent); }
+.alt-route-rank { font-size: 12px; font-weight: 700; color: var(--accent); margin-bottom: 4px; }
+.alt-route-length { font-size: 16px; font-weight: 700; color: var(--text); }
+.alt-route-detail { font-size: 11px; color: var(--text-soft); margin: 4px 0; }
+.alt-route-path { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 6px; }
+.alt-route-apply-btn {
+  margin-top: 8px; padding: 4px 12px; font-size: 11px; font-weight: 600;
+  border: 1px solid var(--accent); border-radius: 4px;
+  background: var(--accent); color: #fff; cursor: pointer;
+}
+.alt-route-apply-btn:hover { opacity: 0.85; }
+.alt-route-empty { font-size: 12px; color: var(--text-soft); padding: 8px 0; }
+.optimization-suggestions { display: flex; flex-direction: column; gap: 4px; }
+.optimization-item {
+  font-size: 12px; color: var(--text); padding: 6px 8px;
+  background: var(--bg-soft); border-radius: 4px;
+}
+.opt-node { font-weight: 700; color: var(--accent); }

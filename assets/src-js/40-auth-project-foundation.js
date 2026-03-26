@@ -31,6 +31,14 @@
       }
     }
 
+    if (DEMO_AUTH_ENABLED && id === FALLBACK_VIP_CREDENTIALS.id && password === FALLBACK_VIP_CREDENTIALS.password) {
+      state.auth.user = { ...FALLBACK_VIP_USER };
+      persistFallbackSession();
+       updateAuthStatus('success', '권욱 VIP 로그인에 성공했습니다.');
+      applyAuthState();
+      return;
+    }
+
     if (DEMO_AUTH_ENABLED && id === FALLBACK_LOCAL_CREDENTIALS.id && password === FALLBACK_LOCAL_CREDENTIALS.password) {
       state.auth.user = { ...FALLBACK_LOCAL_USER };
       persistFallbackSession();

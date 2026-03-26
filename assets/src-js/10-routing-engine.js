@@ -384,6 +384,185 @@
     return path[0] === from ? { path, length: round2(distances[to]) } : null;
   }
 
+  function _dijkstraCoreExcluding(from, to, excludedEdges, excludedNodes) {
+    const heap = new MinHeap();
+    const distances = Object.create(null);
+    const previous = Object.create(null);
+    const settled = new Set();
+
+    Object.keys(state.graph.nodeMap).forEach((name) => {
+      distances[name] = Infinity;
+      previous[name] = null;
+    });
+    distances[from] = 0;
+    heap.push(0, from);
+
+    while (heap.size) {
+      const popped = heap.pop();
+      if (!popped) break;
+      const [distance, node] = popped;
+      if (settled.has(node)) continue;
+      if (excludedNodes.has(node) && node !== from && node !== to) continue;
+      settled.add(node);
+      if (node === to) break;
+      if (distance > distances[node]) continue;
+      (state.graph.adjacency[node] || []).forEach((edge) => {
+        if (settled.has(edge.to)) return;
+        if (excludedNodes.has(edge.to) && edge.to !== to) return;
+        const ek = `${node}::${edge.to}`;
+        if (excludedEdges.has(ek)) return;
+        const next = distance + edge.weight;
+        if (next < distances[edge.to]) {
+          distances[edge.to] = next;
+          previous[edge.to] = node;
+          heap.push(next, edge.to);
+        }
+      });
+    }
+
+    if (!Number.isFinite(distances[to])) return null;
+    const path = [];
+    let current = to;
+    const guard = new Set();
+    while (current) {
+      if (guard.has(current)) return null;
+      guard.add(current);
+      path.unshift(current);
+      current = previous[current];
+    }
+    return path[0] === from ? { path, length: round2(distances[to]) } : null;
+  }
+
+  function kShortestPaths(from, to, k = 3) {
+    if (from === to) return [{ path: [from], length: 0 }];
+    if (!state.graph.nodeMap[from] || !state.graph.nodeMap[to]) return [];
+
+    const shortest = _dijkstraCore(from, to);
+    if (!shortest) return [];
+
+    const A = [shortest];
+    const B = [];
+    const pathStrings = new Set([shortest.path.join('::')]);
+
+    for (let i = 1; i < k; i++) {
+      const prevPath = A[i - 1].path;
+      for (let j = 0; j < prevPath.length - 1; j++) {
+        const spurNode = prevPath[j];
+        const rootPath = prevPath.slice(0, j + 1);
+        let rootLength = 0;
+        for (let r = 0; r < rootPath.length - 1; r++) {
+          const ei = getEdgeInfo(rootPath[r], rootPath[r + 1]);
+          rootLength += ei ? ei.weight : 0;
+        }
+
+        const excludedEdges = new Set();
+        const excludedNodes = new Set();
+        for (const existingPath of A) {
+          const ep = existingPath.path;
+          if (ep.length > j && ep.slice(0, j + 1).join('::') === rootPath.join('::')) {
+            excludedEdges.add(`${ep[j]}::${ep[j + 1]}`);
+          }
+        }
+        for (let r = 0; r < j; r++) {
+          excludedNodes.add(rootPath[r]);
+        }
+
+        const spurResult = _dijkstraCoreExcluding(spurNode, to, excludedEdges, excludedNodes);
+        if (spurResult) {
+          const fullPath = rootPath.slice(0, -1).concat(spurResult.path);
+          const fullLength = round2(rootLength + spurResult.length);
+          const key = fullPath.join('::');
+          if (!pathStrings.has(key)) {
+            B.push({ path: fullPath, length: fullLength });
+            pathStrings.add(key);
+          }
+        }
+      }
+
+      if (!B.length) break;
+      B.sort((a, b) => a.length - b.length);
+      A.push(B.shift());
+    }
+
+    return A;
+  }
+
+  function computeAlternativeRoutes(cable) {
+    const from = trimText(cable.fromNode);
+    const to = trimText(cable.toNode);
+    if (!from || !to) return [];
+
+    const alternatives = kShortestPaths(from, to, 3);
+    return alternatives.map((alt, index) => {
+      const fromRest = toNumber(cable.fromRest, 0);
+      const toRest = toNumber(cable.toRest, 0);
+      const totalLength = round2(alt.length + fromRest + toRest);
+      const segments = [];
+      for (let i = 0; i < alt.path.length - 1; i++) {
+        const ei = getEdgeInfo(alt.path[i], alt.path[i + 1]);
+        segments.push({
+          from: alt.path[i],
+          to: alt.path[i + 1],
+          length: ei ? ei.weight : 0
+        });
+      }
+      return {
+        rank: index + 1,
+        path: alt.path,
+        graphLength: alt.length,
+        fromRest,
+        toRest,
+        totalLength,
+        segments,
+        nodeCount: alt.path.length
+      };
+    });
+  }
+
+  function suggestRoutingOptimization(threshold = 15) {
+    const nodeLoad = Object.create(null);
+    state.cables.forEach((cable) => {
+      const path = parsePathString(cable.calculatedPath);
+      path.forEach((nodeName) => {
+        nodeLoad[nodeName] = (nodeLoad[nodeName] || 0) + 1;
+      });
+    });
+
+    const overloaded = Object.entries(nodeLoad)
+      .filter(([, count]) => count > threshold)
+      .sort((a, b) => b[1] - a[1]);
+
+    const suggestions = [];
+    for (const [nodeName, cableCount] of overloaded) {
+      const affectedCables = state.cables.filter((cable) => {
+        const path = parsePathString(cable.calculatedPath);
+        return path.includes(nodeName);
+      });
+
+      let potentialSavings = 0;
+      let redistributable = 0;
+      for (const cable of affectedCables.slice(0, 5)) {
+        const alts = computeAlternativeRoutes(cable);
+        if (alts.length > 1) {
+          const altWithout = alts.find((a) => a.rank > 1 && !a.path.includes(nodeName));
+          if (altWithout) {
+            redistributable++;
+            potentialSavings += round2((cable.calculatedLength || 0) - altWithout.totalLength);
+          }
+        }
+      }
+
+      suggestions.push({
+        nodeName,
+        cableCount,
+        redistributable,
+        potentialLengthDelta: round2(potentialSavings)
+      });
+    }
+
+    return suggestions;
+  }
+
   function pathContainsNodesInOrder(pathNodes, checkNodes) {
     if (!checkNodes.length) return true;
     let cursor = -1;

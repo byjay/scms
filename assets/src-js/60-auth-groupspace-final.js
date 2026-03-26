@@ -96,7 +96,7 @@
 
     if (dom.loginHint) {
       dom.loginHint.textContent = localProviderEnabled()
-         ? '관리자 계정은 서버 환경설정에서만 관리됩니다.'
+         ? '관리자 또는 VIP 계정으로 로그인하세요.'
          : '운영 배포에서는 auth worker와 SESSION_SECRET, ADMIN_* 환경설정이 필요합니다.';
     }
 
@@ -158,8 +158,12 @@
     return Boolean(user && user.role === 'admin');
   }
 
+  function isVipUser(user = state.auth.user) {
+    return Boolean(user && user.role === 'vip');
+  }
+
   function isWorkspaceAllowed(user = state.auth.user) {
-    return Boolean(user && (user.role === 'admin' || user.status === 'active'));
+    return Boolean(user && (user.role === 'admin' || user.role === 'vip' || user.status === 'active'));
   }
 
   function getCurrentGroupCode() {
@@ -329,6 +333,16 @@
       }
     }
 
+    if (DEMO_AUTH_ENABLED && id === FALLBACK_VIP_CREDENTIALS.id && password === FALLBACK_VIP_CREDENTIALS.password) {
+      state.auth.user = { ...FALLBACK_VIP_USER };
+      persistFallbackSession();
+       updateAuthStatus('success', '권욱 VIP 로그인에 성공했습니다.');
+      applyAuthState();
+      await loadProjectFromServer({ announce: false });
+      renderAll();
+      return;
+    }
+
     if (DEMO_AUTH_ENABLED && id === FALLBACK_LOCAL_CREDENTIALS.id && password === FALLBACK_LOCAL_CREDENTIALS.password) {
       state.auth.user = { ...FALLBACK_LOCAL_USER };
       persistFallbackSession();
@@ -390,7 +404,9 @@
     dom.userPanel.classList.remove('hidden');
     dom.authBackendHint.textContent = isAdmin
       ? 'Administrators can approve requests, assign groups, and manage group spaces.'
-      : ('Current group: ' + (trimText(user.groupCode || user.groupName) || 'UNASSIGNED'));
+      : isVipUser(user)
+        ? '권욱 VIP 계정으로 접속했습니다. 라우팅, BOM, 보고서, 내보내기 등 모든 기능을 사용할 수 있습니다.'
+        : ('Current group: ' + (trimText(user.groupCode || user.groupName) || 'UNASSIGNED'));
     renderGroupSpace();
   }
 

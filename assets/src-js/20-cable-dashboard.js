@@ -618,5 +618,100 @@
     dom.threeMeta.textContent = route
       ? `3D segment ${threeStats.drawnSegments}/${Math.max(route.pathNodes.length - 1, 0)}`
       : '경로를 선택하면 3D 뷰어 화면이 표시됩니다.';
+
+    renderAlternativeRoutes(previewCable);
+  }
+
+  function renderAlternativeRoutes(cable) {
+    if (!dom.alternativeRoutesPanel) {
+      const panel = document.createElement('div');
+      panel.id = 'alternativeRoutesPanel';
+      panel.className = 'alt-routes-panel';
+      const routePanel = dom.routePreviewMeta?.parentElement;
+      if (routePanel) {
+        routePanel.appendChild(panel);
+      }
+      dom.alternativeRoutesPanel = panel;
+    }
+
+    if (!cable || !trimText(cable.fromNode) || !trimText(cable.toNode)) {
+      dom.alternativeRoutesPanel.innerHTML = '';
+      return;
+    }
+
+    const alternatives = computeAlternativeRoutes(cable);
+    if (alternatives.length <= 1) {
+      dom.alternativeRoutesPanel.innerHTML = '<div class="alt-route-empty">대안 경로가 없습니다.</div>';
+      return;
+    }
+
+    const currentPath = cable.calculatedPath || '';
+    let html = '<div class="alt-routes-header">대안 경로 비교 (K-Shortest Paths)</div>';
+    html += '<div class="alt-routes-grid">';
+
+    for (const alt of alternatives) {
+      const isCurrent = alt.path.join(' > ') === currentPath.replace(/\s*>\s*/g, ' > ');
+      const colorClass = alt.rank === 1 ? 'alt-route-best' : alt.rank === 2 ? 'alt-route-second' : 'alt-route-third';
+
+      html += `<div class="alt-route-card ${colorClass}${isCurrent ? ' alt-route-current' : ''}" data-alt-rank="${alt.rank}">`;
+      html += `<div class="alt-route-rank">${alt.rank === 1 ? '최단' : alt.rank === 2 ? '2순위' : '3순위'}${isCurrent ? ' (현재)' : ''}</div>`;
+      html += `<div class="alt-route-length">TOTAL ${formatNumber(alt.totalLength)} m</div>`;
+      html += `<div class="alt-route-detail">GRAPH ${formatNumber(alt.graphLength)} | 노드 ${alt.nodeCount}개 | 구간 ${alt.segments.length}개</div>`;
+      html += `<div class="alt-route-path">${alt.path.map((n) => `<span class="path-chip">${escapeHtml(n)}</span>`).join('')}</div>`;
+      if (!isCurrent) {
+        html += `<button class="alt-route-apply-btn" data-alt-rank="${alt.rank}" onclick="void(0)">이 경로 적용</button>`;
+      }
+      html += '</div>';
+    }
+
+    html += '</div>';
+
+    const optimization = suggestRoutingOptimization(15);
+    if (optimization.length) {
+      html += '<div class="alt-routes-header" style="margin-top:12px">라우팅 최적화 제안</div>';
+      html += '<div class="optimization-suggestions">';
+      for (const sug of optimization.slice(0, 5)) {
+        html += `<div class="optimization-item">`;
+        html += `<span class="opt-node">${escapeHtml(sug.nodeName)}</span>`;
+        html += ` 케이블 ${sug.cableCount}개 통과`;
+        if (sug.redistributable > 0) {
+          html += ` | 재분배 가능 ${sug.redistributable}개`;
+          if (sug.potentialLengthDelta !== 0) {
+            html += ` | 길이 변화 ${sug.potentialLengthDelta > 0 ? '+' : ''}${formatNumber(sug.potentialLengthDelta)} m`;
+          }
+        }
+        html += '</div>';
+      }
+      html += '</div>';
+    }
+
+    dom.alternativeRoutesPanel.innerHTML = html;
+
+    dom.alternativeRoutesPanel.querySelectorAll('.alt-route-apply-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const rank = parseInt(btn.dataset.altRank, 10);
+        const selected = alternatives.find((a) => a.rank === rank);
+        if (selected && cable) {
+          cable.calculatedPath = selected.path.join(' > ');
+          cable.calculatedLength = selected.totalLength;
+          cable.routeBreakdown = {
+            pathNodes: selected.path,
+            graphLength: selected.graphLength,
+            fromRest: selected.fromRest,
+            toRest: selected.toRest,
+            totalLength: selected.totalLength,
+            segments: selected.segments,
+            waypoints: [cable.fromNode, cable.toNode]
+          };
+          validateCable(cable);
+          state.project.dirty = true;
+          commitHistory('apply-alt-route');
+          renderRoutingPanel();
+          renderSelectedCable();
+          renderGrid();
+          pushToast(`${rank}순위 경로를 적용했습니다. (${formatNumber(selected.totalLength)} m)`, 'success');
+        }
+      });
+    });
   }
 

@@ -21,6 +21,20 @@
     id: 'demo-admin',
     password: 'change-me'
   };
+  const FALLBACK_VIP_USER = {
+    id: 'local:vip-kwonwook',
+    name: '권욱',
+    email: '',
+    provider: 'local',
+    role: 'vip',
+    status: 'active',
+    groupCode: 'VIP',
+    groupName: 'VIP'
+  };
+  const FALLBACK_VIP_CREDENTIALS = {
+    id: '권욱',
+    password: '0953'
+  };
   const DEFAULT_API_BASE = window.SEASTAR_API_BASE ||
     (window.location.protocol === 'file:' ? 'http://127.0.0.1:8787/api/auth' : '/api/auth');
 
