@@ -134,7 +134,7 @@
       </div>
       <div class="ship-list" id="shipList"></div>
       <div class="ship-add-section">
-        <button id="shipAddToggle" class="ship-add-toggle" type="button">+ 새 호선 추가 (Add New Ship)</button>
+        <button id="shipAddToggle" class="ship-add-toggle" type="button" onclick="var f=document.getElementById('shipAddForm');if(f)f.classList.toggle('hidden');">+ 새 호선 추가 (Add New Ship)</button>
         <div id="shipAddForm" class="ship-add-form hidden">
           <input id="newShipName" class="ship-add-input" placeholder="Ship Name (e.g. MV_PANOPI)">
           <input id="newShipNo" class="ship-add-input ship-add-input-sm" placeholder="Hull No.">

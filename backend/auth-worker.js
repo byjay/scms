@@ -356,7 +356,26 @@ export default {
             await env.AUTH_KV.delete(`${kvKey}:meta`);
           }
         }
-        return json(request, { success: true, message: 'Ship data saved.', key: kvKey, updatedAt: record.updatedAt });
+        // ── Version snapshot (최대 20개 유지) ──
+        const verKey = `${kvKey}:ver:${record.updatedAt}`;
+        await env.AUTH_KV.put(verKey, JSON.stringify({
+          ...record,
+          versionLabel: `v${record.updatedAt.replace('T', ' ').slice(0, 16)} by ${record.updatedBy}`
+        }));
+        // 버전 인덱스 갱신
+        const verIndexKey = `${kvKey}:versions`;
+        let versions = [];
+        try { versions = JSON.parse(await env.AUTH_KV.get(verIndexKey) || '[]'); } catch (_) { versions = []; }
+        versions.unshift({ key: verKey, savedAt: record.updatedAt, savedBy: record.updatedBy, cableCount: record.cables.length, nodeCount: record.nodes.length });
+        // 20개 초과분 삭제
+        const MAX_VERSIONS = 20;
+        if (versions.length > MAX_VERSIONS) {
+          const toDelete = versions.splice(MAX_VERSIONS);
+          for (const old of toDelete) await env.AUTH_KV.delete(old.key);
+        }
+        await env.AUTH_KV.put(verIndexKey, JSON.stringify(versions));
+
+        return json(request, { success: true, message: 'Ship data saved.', key: kvKey, updatedAt: record.updatedAt, versionKey: verKey });
       }
 
       if (path === '/data/load' && request.method === 'GET') {

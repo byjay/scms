@@ -8459,8 +8459,16 @@ async function syncLocalToServer() {
   const SHIP_SESSION_KEY = 'seastar_v3_current_ship';
 
   function getShips() {
-    try { return JSON.parse(localStorage.getItem(SHIP_STORAGE_KEY)) || []; }
-    catch { return []; }
+    try {
+      const ships = JSON.parse(localStorage.getItem(SHIP_STORAGE_KEY)) || [];
+      // TEST1 기본 호선 자동 추가
+      if (!ships.some(function(s) { return s.id === 'ship_default_test1'; })) {
+        ships.unshift({ id: 'ship_default_test1', name: 'TEST1', no: 'HULL-001', groupCode: 'DEFAULT', createdBy: 'system', createdAt: '2023-01-01T00:00:00.000Z' });
+        localStorage.setItem(SHIP_STORAGE_KEY, JSON.stringify(ships));
+      }
+      return ships;
+    }
+    catch { return [{ id: 'ship_default_test1', name: 'TEST1', no: 'HULL-001', groupCode: 'DEFAULT', createdBy: 'system', createdAt: '2023-01-01T00:00:00.000Z' }]; }
   }
   function saveShips(ships) {
     localStorage.setItem(SHIP_STORAGE_KEY, JSON.stringify(ships));
