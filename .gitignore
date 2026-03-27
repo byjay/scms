@@ -1,0 +1,10 @@
+.wrangler/
+node_modules/
+dist/
+*.log
+local-smoke-server.out.log
+local-smoke-server.err.log
+Thumbs.db
+.DS_Store
+.claude/
+ops-skills/

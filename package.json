@@ -1,0 +1,18 @@
+{
+  "name": "scms",
+  "private": true,
+  "version": "3.0.0",
+  "description": "Seastar CMS V3 production workspace",
+  "scripts": {
+    "build": "node ./tools/build-seastar-v3.js",
+    "check": "node ./tools/check-seastar-v3.js",
+    "deploy": "npx wrangler deploy",
+    "version-upload": "npx wrangler versions upload"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "xlsx": "^0.18.5"
+  }
+}

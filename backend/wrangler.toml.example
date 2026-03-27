@@ -1,0 +1,19 @@
+name = "seastar-cms-v3-auth"
+main = "auth-worker.js"
+compatibility_date = "2026-03-15"
+
+[vars]
+SESSION_SECRET = "replace-with-a-long-random-secret"
+ADMIN_USERNAME = "replace-with-admin-username"
+ADMIN_PASSWORD = "replace-with-admin-password"
+ADMIN_NAME = "replace-with-admin-display-name"
+ADMIN_EMAIL = "admin@example.com"
+GOOGLE_CLIENT_ID = "replace-with-google-client-id"
+NAVER_CLIENT_ID = "replace-with-naver-client-id"
+NAVER_CLIENT_SECRET = "replace-with-naver-client-secret"
+NAVER_CALLBACK_URL = "https://your-domain.example/api/auth/naver/callback"
+APP_REDIRECT_URL = "https://your-domain.example/seastar-cms-v3.html"
+
+[[kv_namespaces]]
+binding = "AUTH_KV"
+id = "replace-with-kv-namespace-id"
