@@ -8801,6 +8801,89 @@ async function syncLocalToServer() {
     }
   }
 
+  // ── Version History Panel ──
+  function initVersionHistoryPanel() {
+    var groupSel = document.getElementById('verGroupSelect');
+    var shipSel  = document.getElementById('verShipSelect');
+    var refreshBtn = document.getElementById('versionRefreshBtn');
+    if (!groupSel || !shipSel) return;
+
+    function populateGroupShip() {
+      var ships = getShips();
+      var groups = [...new Set(ships.map(function(s) { return s.groupCode || state.auth.user?.groupCode || 'GUEST'; }))];
+      groupSel.innerHTML = groups.map(function(g) { return '<option value="' + g + '">' + g + '</option>'; }).join('');
+      var selectedGroup = groupSel.value;
+      shipSel.innerHTML = ships.filter(function(s) { return !selectedGroup || (s.groupCode || 'GUEST') === selectedGroup; })
+        .map(function(s) { return '<option value="' + s.id + '">' + (s.name || s.id) + '</option>'; }).join('');
+      if (!shipSel.innerHTML) shipSel.innerHTML = '<option value="">호선 없음</option>';
+    }
+
+    function loadVersions() {
+      var group = groupSel.value;
+      var ship = shipSel.value;
+      var listEl = document.getElementById('versionList');
+      if (!listEl || !ship) return;
+      listEl.innerHTML = '<div style="padding:12px;color:#6c757d;font-size:11px;">불러오는 중...</div>';
+      apiRequest('/data/versions?group=' + encodeURIComponent(group) + '&ship=' + encodeURIComponent(ship))
+        .then(function(res) {
+          if (!res.success || !res.versions || !res.versions.length) {
+            listEl.innerHTML = '<div style="padding:12px;color:#6c757d;font-size:11px;">저장된 버전이 없습니다.</div>';
+            return;
+          }
+          listEl.innerHTML = res.versions.map(function(v, i) {
+            var dt = v.savedAt ? v.savedAt.replace('T', ' ').slice(0, 16) : '-';
+            var isBackup = v.isPreRestoreBackup ? ' [복원 전 백업]' : '';
+            return '<div class="ver-row" style="display:flex;align-items:center;gap:8px;padding:6px 4px;border-bottom:1px solid #e9ecef;">'
+              + '<span style="font-size:10px;font-weight:700;color:#6c757d;min-width:24px;text-align:right;">' + (i + 1) + '</span>'
+              + '<div style="flex:1;min-width:0;">'
+              + '<div style="font-size:11px;font-weight:600;color:#212529;">' + dt + isBackup + '</div>'
+              + '<div style="font-size:10px;color:#6c757d;">by ' + (v.savedBy || '-') + ' · 케이블 ' + (v.cableCount || 0) + '개 / 노드 ' + (v.nodeCount || 0) + '개</div>'
+              + '</div>'
+              + '<button class="toolbar-btn" style="font-size:10px;padding:0 8px;min-height:22px;" data-ver-key="' + v.key + '" data-ship="' + ship + '" data-group="' + group + '">복원</button>'
+              + '</div>';
+          }).join('');
+
+          listEl.querySelectorAll('[data-ver-key]').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+              if (!confirm('이 버전으로 복원하시겠습니까? 현재 데이터는 자동으로 백업됩니다.')) return;
+              btn.disabled = true;
+              btn.textContent = '...';
+              apiRequest('/data/restore', {
+                method: 'POST',
+                body: JSON.stringify({ group: btn.dataset.group, ship: btn.dataset.ship, versionKey: btn.dataset.verKey })
+              }).then(function(r) {
+                if (r.success) {
+                  pushToast('복원 완료: 케이블 ' + r.cables + '개, 노드 ' + r.nodes + '개', 'success');
+                  loadVersions();
+                } else {
+                  pushToast(r.message || '복원 실패', 'error');
+                  btn.disabled = false; btn.textContent = '복원';
+                }
+              }).catch(function(e) {
+                pushToast('복원 오류: ' + e.message, 'error');
+                btn.disabled = false; btn.textContent = '복원';
+              });
+            });
+          });
+        })
+        .catch(function() {
+          listEl.innerHTML = '<div style="padding:12px;color:#dc3545;font-size:11px;">버전 목록을 불러오지 못했습니다.</div>';
+        });
+    }
+
+    populateGroupShip();
+    groupSel.addEventListener('change', function() { populateGroupShip(); loadVersions(); });
+    shipSel.addEventListener('change', loadVersions);
+    if (refreshBtn) refreshBtn.addEventListener('click', function() { populateGroupShip(); loadVersions(); });
+
+    // 탭 전환 시 자동 로드
+    document.querySelectorAll('[data-tab="admin"]').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        setTimeout(function() { populateGroupShip(); loadVersions(); }, 100);
+      });
+    });
+  }
+
   function showAdminTabIfAllowed() {
     var adminTabBtn = document.getElementById('adminTabBtn');
     if (adminTabBtn) {
@@ -8816,6 +8899,7 @@ async function syncLocalToServer() {
     document.addEventListener('DOMContentLoaded', function() {
       bindShipSelectEvents();
       showAdminTabIfAllowed();
+      initVersionHistoryPanel();
       var adminRefresh = document.getElementById('adminRefreshAll');
       if (adminRefresh) adminRefresh.addEventListener('click', renderAdminTab);
     });
@@ -8823,6 +8907,7 @@ async function syncLocalToServer() {
     if (document.readyState !== 'loading') {
       bindShipSelectEvents();
       showAdminTabIfAllowed();
+      initVersionHistoryPanel();
     }
   }
 

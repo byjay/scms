@@ -3332,6 +3332,164 @@ body.light-theme { --bg: #ffffff; --bg-soft: #f5f5f5; --bg-elev: #ffffff; --bg-c
 }
 
 /* =================================================================
+   TYPOGRAPHY & LAYOUT CONSISTENCY OVERRIDES
+   ─ 전체 앱 글자 크기/굵기/색상 일관성 강제 적용
+   ================================================================= */
+
+/* ── 앱 전역 기준 폰트 ── */
+html, body, input, button, select, textarea {
+  font-family: 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+}
+
+/* ── 에디터 패널 필드 라벨: 9px → 10px, 통일 ── */
+.dash-col-basic .field.compact span,
+.dash-col-route .field.compact span,
+.dash-endpoint .field.compact span {
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  color: #495057 !important;
+  min-width: 62px !important;
+  letter-spacing: 0 !important;
+}
+
+/* ── 에디터 입력 필드 ── */
+.dash-col-basic .field.compact input,
+.dash-col-basic .field.compact textarea,
+.dash-col-route .field.compact input,
+.dash-col-route .field.compact textarea,
+.dash-endpoint .field.compact input {
+  height: 22px !important;
+  font-size: 11px !important;
+  padding: 0 6px !important;
+  border: 1px solid #ced4da !important;
+  border-radius: 3px !important;
+  background: #fff !important;
+  color: #212529 !important;
+}
+.dash-col-basic .field.compact input:focus,
+.dash-col-route .field.compact input:focus,
+.dash-endpoint .field.compact input:focus {
+  outline: none !important;
+  border-color: #0066cc !important;
+  box-shadow: 0 0 0 2px rgba(0,102,204,0.12) !important;
+}
+
+/* ── 에디터 FROM/TO 범례 ── */
+.dash-endpoint legend {
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  color: #0066cc !important;
+}
+
+/* ── 에디터 상태바 ── */
+.dash-editor-status .editor-status {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  color: #0066cc !important;
+}
+
+/* ── 에디터 액션 미니 버튼 ── */
+.dash-editor-actions-mini .toolbar-btn {
+  font-size: 11px !important;
+  padding: 0 8px !important;
+  min-height: 24px !important;
+}
+
+/* ── 그리드 헤더 셀 ── */
+.grid-header-cell {
+  font-size: 10.5px !important;
+  font-weight: 700 !important;
+  color: #343a40 !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+}
+
+/* ── 그리드 데이터 셀 ── */
+.grid-cell {
+  font-size: 11px !important;
+  color: #212529 !important;
+  font-family: 'Noto Sans KR', sans-serif !important;
+}
+.grid-cell.mono {
+  font-family: 'JetBrains Mono', 'Consolas', monospace !important;
+  font-size: 10.5px !important;
+}
+
+/* ── 탭 버튼 폰트 통일 ── */
+.tab-btn {
+  font-family: 'Noto Sans KR', sans-serif !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0 !important;
+}
+
+/* ── 서브탭 버튼 폰트 통일 ── */
+.sub-tab-btn {
+  font-family: 'Noto Sans KR', sans-serif !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0 !important;
+}
+
+/* ── 툴바 버튼 폰트 통일 ── */
+.toolbar-btn {
+  font-family: 'Noto Sans KR', sans-serif !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0 !important;
+}
+
+/* ── 사이드바 아이템 ── */
+.list-tab-sidebar-item,
+.deck-tree-item {
+  font-size: 11px !important;
+  font-family: 'Noto Sans KR', sans-serif !important;
+}
+.list-tab-sidebar-head,
+.deck-tree-head {
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  color: #6c757d !important;
+}
+
+/* ── 필터/검색 입력 ── */
+.list-tab-search, .dash-search,
+.list-tab-filter, .dash-filter-select {
+  font-size: 11px !important;
+  font-family: 'Noto Sans KR', sans-serif !important;
+  color: #212529 !important;
+}
+.list-tab-count, .dash-count {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  color: #495057 !important;
+}
+
+/* ── Badge & 뱃지 폰트 ── */
+.badge, .dep-pill {
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  font-family: 'Noto Sans KR', sans-serif !important;
+  letter-spacing: 0 !important;
+}
+
+/* ── topbar 사용자 이름 ── */
+#userName {
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  color: #f1f5f9 !important;
+}
+
+/* ── 빈 상태 ── */
+.empty-state {
+  font-size: 12px !important;
+  color: #6c757d !important;
+}
+
+/* =================================================================
    DESIGN REFRESH — UI 품질 개선 (topbar dark, badge dark, gear btn)
    ================================================================= */
 

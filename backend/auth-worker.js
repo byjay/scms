@@ -417,6 +417,74 @@ export default {
         });
       }
 
+      if (path === '/data/versions' && request.method === 'GET') {
+        const store = await loadStore(env);
+        const user = await requireAuthenticatedUser(request, env, store);
+        if (!isWorkspaceAllowed(user)) {
+          return json(request, { success: false, message: '승인된 사용자만 버전 목록을 볼 수 있습니다.' }, 403);
+        }
+        const groupCode = resolveProjectGroupCode(user, url.searchParams.get('group'));
+        const shipId = String(url.searchParams.get('ship') || '').trim();
+        if (!shipId) {
+          return json(request, { success: false, message: 'ship parameter is required.' }, 400);
+        }
+        const kvKey = `shipdata:${groupCode}:${shipId}`;
+        const verIndexKey = `${kvKey}:versions`;
+        let versions = [];
+        try { versions = JSON.parse(await env.AUTH_KV.get(verIndexKey) || '[]'); } catch (_) { versions = []; }
+        return json(request, { success: true, versions });
+      }
+
+      if (path === '/data/restore' && request.method === 'POST') {
+        const store = await loadStore(env);
+        const user = await requireAuthenticatedUser(request, env, store);
+        if (!isWorkspaceAllowed(user)) {
+          return json(request, { success: false, message: '승인된 사용자만 버전을 복원할 수 있습니다.' }, 403);
+        }
+        const body = await safeJson(request);
+        const groupCode = resolveProjectGroupCode(user, body.group);
+        const shipId = String(body.ship || '').trim();
+        const versionKey = String(body.versionKey || '').trim();
+        if (!shipId || !versionKey) {
+          return json(request, { success: false, message: 'ship and versionKey are required.' }, 400);
+        }
+        // 버전 키가 해당 호선의 것인지 검증
+        const kvKey = `shipdata:${groupCode}:${shipId}`;
+        if (!versionKey.startsWith(`${kvKey}:ver:`)) {
+          return json(request, { success: false, message: 'Invalid versionKey for this ship.' }, 400);
+        }
+        const raw = await env.AUTH_KV.get(versionKey);
+        if (!raw) {
+          return json(request, { success: false, message: '해당 버전을 찾을 수 없습니다.' }, 404);
+        }
+        const record = JSON.parse(raw);
+        // 현재 데이터를 복원 전 스냅샷으로 저장 (안전망)
+        const nowTs = new Date().toISOString();
+        const backupKey = `${kvKey}:ver:${nowTs}`;
+        const currentRaw = await env.AUTH_KV.get(kvKey);
+        if (currentRaw) {
+          await env.AUTH_KV.put(backupKey, JSON.stringify({
+            ...JSON.parse(currentRaw),
+            versionLabel: `[복원 전 백업] ${nowTs.replace('T',' ').slice(0,16)} by ${user.name || user.id}`
+          }));
+        }
+        // 버전 인덱스에 백업 추가
+        const verIndexKey = `${kvKey}:versions`;
+        let versions = [];
+        try { versions = JSON.parse(await env.AUTH_KV.get(verIndexKey) || '[]'); } catch (_) { versions = []; }
+        if (currentRaw) {
+          const cur = JSON.parse(currentRaw);
+          versions.unshift({ key: backupKey, savedAt: nowTs, savedBy: user.name || user.id, cableCount: cur.cables?.length || 0, nodeCount: cur.nodes?.length || 0, isPreRestoreBackup: true });
+          if (versions.length > 20) { const td = versions.splice(20); for (const d of td) await env.AUTH_KV.delete(d.key); }
+          await env.AUTH_KV.put(verIndexKey, JSON.stringify(versions));
+        }
+        // 선택한 버전을 현재 데이터로 복원
+        const restored = { ...record, updatedAt: nowTs, updatedBy: `${user.name || user.id} (restored)`, versionLabel: undefined };
+        delete restored.versionLabel;
+        await env.AUTH_KV.put(kvKey, JSON.stringify(restored));
+        return json(request, { success: true, message: '버전이 성공적으로 복원되었습니다.', cables: restored.cables?.length || 0, nodes: restored.nodes?.length || 0 });
+      }
+
       if (path === '/data/list' && request.method === 'GET') {
         const store = await loadStore(env);
         const user = await requireAuthenticatedUser(request, env, store);

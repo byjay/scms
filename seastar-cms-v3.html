@@ -1140,6 +1140,24 @@
             </div>
             <div id="adminServerData" class="admin-server-data"></div>
           </article>
+
+          <!-- Version History Panel -->
+          <article class="panel" id="versionHistoryPanel">
+            <div class="panel-header compact">
+              <div>
+                <p class="eyebrow">VERSION HISTORY</p>
+                <h3>버전 히스토리 &amp; 복원</h3>
+              </div>
+              <button id="versionRefreshBtn" class="toolbar-btn" type="button">새로고침</button>
+            </div>
+            <div class="ver-ship-select" style="display:flex;gap:8px;align-items:center;padding:8px 0;flex-wrap:wrap;">
+              <label style="font-size:11px;font-weight:600;color:#495057;">그룹:</label>
+              <select id="verGroupSelect" style="height:26px;font-size:11px;border:1px solid #ced4da;border-radius:3px;padding:0 6px;min-width:100px;"></select>
+              <label style="font-size:11px;font-weight:600;color:#495057;">호선:</label>
+              <select id="verShipSelect" style="height:26px;font-size:11px;border:1px solid #ced4da;border-radius:3px;padding:0 6px;min-width:120px;"></select>
+            </div>
+            <div id="versionList" class="ver-list"></div>
+          </article>
         </div>
       </section>
     </main>
