@@ -1,7 +1,7 @@
 name = "scms"
 main = "./backend/auth-worker.js"
 compatibility_date = "2026-03-16"
-workers_dev = true
+workers_dev = false
 routes = [
   { pattern = "scms.seastar.work/*", zone_name = "seastar.work" }
 ]
@@ -15,4 +15,4 @@ run_worker_first = ["/api/*"]
 [vars]
 ADMIN_PASSWORD = ""
 NAVER_CLIENT_ID = "Sc7hFrtTJvFG2vfxWzM"
-NAVER_CLIENT_SECRET = "LZCk6JFWxy"
+# NAVER_CLIENT_SECRET → Cloudflare 대시보드 Secret으로 관리 (GitHub 노출 방지)
