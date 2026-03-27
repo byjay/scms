@@ -15,4 +15,6 @@ run_worker_first = ["/api/*"]
 [vars]
 ADMIN_PASSWORD = ""
 NAVER_CLIENT_ID = "Sc7hFrtTJvFG2vfxWzM"
+APP_REDIRECT_URL = "https://scms.seastar.work/seastar-cms-v3.html"
+NAVER_CALLBACK_URL = "https://scms.seastar.work/api/auth/naver/callback"
 # NAVER_CLIENT_SECRET → Cloudflare 대시보드 Secret으로 관리 (GitHub 노출 방지)

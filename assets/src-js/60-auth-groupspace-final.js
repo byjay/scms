@@ -1663,7 +1663,7 @@
       '<div class="settings-card">' +
         '<div class="settings-header">' +
           '<h3>Settings</h3>' +
-          '<button id="settingsCloseBtn" class="toolbar-btn subtle" type="button">✕</button>' +
+          '<button id="settingsCloseBtn" class="toolbar-btn subtle view-only" type="button">✕</button>' +
         '</div>' +
         '<div class="settings-body">' +
           '<label class="settings-row">' +

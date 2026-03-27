@@ -2959,13 +2959,14 @@ button {
 .opt-node { font-weight: 700; color: var(--accent); }
 
 /* ── Guest Mode ── */
-body.guest-mode .toolbar-btn:not(.view-only),
+body.guest-mode .toolbar-btn:not(.view-only):not(.subtle),
 body.guest-mode #localLoginBtn,
 body.guest-mode .editor-save-btn { opacity: 0.3; pointer-events: none; }
-body.guest-mode .toolbar-btn.view-only { opacity: 1; pointer-events: auto; }
+body.guest-mode .toolbar-btn.view-only,
+body.guest-mode .toolbar-btn.subtle { opacity: 1; pointer-events: auto; }
 
 /* ── VIP Mode (권욱 — 전체 열람, 수정 불가) ── */
-body.vip-mode .toolbar-btn:not(.view-only),
+body.vip-mode .toolbar-btn:not(.view-only):not(.subtle),
 body.vip-mode .editor-save-btn,
 body.vip-mode #importCableBtn,
 body.vip-mode #importNodeBtn,
@@ -2976,7 +2977,8 @@ body.vip-mode [data-request-action],
 body.vip-mode #saveSpaceBtn,
 body.vip-mode #spaceAnnouncement,
 body.vip-mode #spaceNotes { opacity: 0.3; pointer-events: none; }
-body.vip-mode .toolbar-btn.view-only { opacity: 1; pointer-events: auto; }
+body.vip-mode .toolbar-btn.view-only,
+body.vip-mode .toolbar-btn.subtle { opacity: 1; pointer-events: auto; }
 /* VIP는 ADMIN 탭 숨김 */
 body.vip-mode #adminTabBtn { display: none !important; }
 
