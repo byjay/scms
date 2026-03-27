@@ -21,7 +21,11 @@
   --shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
   --radius: 8px;
   --radius-sm: 6px;
-  --grid-row-h: 24px;
+  --grid-row-h: 27px;
+  --topbar-bg: #0f172a;
+  --topbar-border: #1e293b;
+  --topbar-text: #e2e8f0;
+  --topbar-muted: #94a3b8;
 }
 
 * {
@@ -495,7 +499,7 @@ button {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  padding: 4px;
+  padding: 0;
 }
 
 .topbar,
@@ -505,7 +509,7 @@ button {
 .tabbar,
 .panel {
   width: 100%;
-  margin: 0 auto;
+  margin: 0;
 }
 
 .topbar {
@@ -513,12 +517,13 @@ button {
   justify-content: space-between;
   gap: 6px;
   align-items: center;
-  min-height: 34px;
-  padding: 2px 8px;
-  border: 1px solid #e0e0e0;
-  border-radius: 4px;
-  background: #ffffff;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  min-height: 48px;
+  padding: 4px 14px;
+  border: none;
+  border-bottom: 2px solid #1e3a5f;
+  border-radius: 0;
+  background: var(--topbar-bg);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.18);
 }
 
 .brand-block {
@@ -536,18 +541,20 @@ button {
 
 .brand-scms {
   font-family: 'Orbitron', sans-serif;
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 900;
-  color: #0068c9;
-  letter-spacing: 0.08em;
+  color: #38bdf8;
+  letter-spacing: 0.1em;
+  text-shadow: 0 0 20px rgba(56, 189, 248, 0.4);
 }
 
 .brand-block h1 {
   margin: 0;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: 0.02em;
   white-space: nowrap;
+  color: #94a3b8;
 }
 
 .brand-subtitle {
@@ -556,14 +563,15 @@ button {
 
 .brand-logo {
   display: block;
-  width: 88px;
+  width: 100px;
   height: auto;
-  max-height: 24px;
+  max-height: 32px;
   padding: 0;
-  border-radius: 0;
+  border-radius: 4px;
   object-fit: contain;
   background: transparent;
   border: 0;
+  filter: brightness(1.4) contrast(1.1);
 }
 
 .topbar-actions {
@@ -583,13 +591,15 @@ button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 22px;
+  min-height: 20px;
   padding: 0 8px;
   border-radius: 999px;
-  border: 1px solid var(--border);
-  background: #fff;
-  font-size: 11px;
+  border: 1px solid rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.08);
+  color: #cbd5e1;
+  font-size: 10px;
   white-space: nowrap;
+  font-weight: 600;
 }
 
 .dep-pill.ok,
@@ -626,14 +636,20 @@ button {
 .user-panel {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 10px;
+  color: var(--topbar-text);
+}
+
+.user-panel strong {
+  color: #f1f5f9;
+  font-size: 13px;
 }
 
 .user-meta {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   justify-content: flex-end;
 }
 
@@ -641,12 +657,13 @@ button {
   display: flex;
   justify-content: space-between;
   gap: 4px;
-  margin-top: 2px;
-  padding: 2px 6px;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  background: var(--bg-elev);
-  box-shadow: none;
+  margin-top: 0;
+  padding: 5px 10px;
+  border: none;
+  border-bottom: 1px solid #e5e7eb;
+  border-radius: 0;
+  background: #f8fafc;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
 }
 
 .toolbar-left,
@@ -698,15 +715,21 @@ button {
 }
 
 .toolbar-btn {
-  min-height: 22px;
-  padding: 0 7px;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  background: #fff;
-  color: var(--text);
+  min-height: 28px;
+  padding: 0 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 5px;
+  background: #ffffff;
+  color: #374151;
   font-weight: 600;
-  font-size: 10px;
+  font-size: 11px;
   line-height: 1;
+  transition: background 0.1s, border-color 0.1s, box-shadow 0.1s;
+}
+.toolbar-btn:hover:not(:disabled) {
+  background: #f3f4f6;
+  border-color: #9ca3af;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
 }
 
 .toolbar-btn,
@@ -742,24 +765,43 @@ button {
 
 .toolbar-btn.primary {
   background: #0066cc;
-  border-color: #0066cc;
+  border-color: #0052a3;
   color: #ffffff;
+  box-shadow: 0 1px 4px rgba(0,102,204,0.3);
+}
+.toolbar-btn.primary:hover:not(:disabled) {
+  background: #0052a3;
+  border-color: #003d7a;
 }
 
 .toolbar-btn.accent {
-  background: #e8f0fe;
-  border-color: #90caf9;
-  color: #0055aa;
+  background: #dbeafe;
+  border-color: #93c5fd;
+  color: #1d4ed8;
+}
+.toolbar-btn.accent:hover:not(:disabled) {
+  background: #bfdbfe;
+  border-color: #60a5fa;
 }
 
 .toolbar-btn.subtle {
-  color: var(--muted);
+  color: #6b7280;
+  background: #f9fafb;
+  border-color: #e5e7eb;
+}
+.toolbar-btn.subtle:hover:not(:disabled) {
+  background: #f3f4f6;
+  color: #374151;
 }
 
 .toolbar-btn.danger {
-  color: #d32f2f;
-  border-color: #ef9a9a;
-  background: #ffebee;
+  color: #dc2626;
+  border-color: #fca5a5;
+  background: #fef2f2;
+}
+.toolbar-btn.danger:hover:not(:disabled) {
+  background: #fee2e2;
+  border-color: #f87171;
 }
 
 .summary-strip {
@@ -867,27 +909,40 @@ button {
 
 .tabbar {
   display: flex;
-  flex-wrap: wrap;
-  gap: 2px;
-  margin-top: 2px;
+  flex-wrap: nowrap;
+  gap: 0;
+  margin-top: 0;
+  background: #ffffff;
+  border-bottom: 2px solid #e5e7eb;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
 }
+.tabbar::-webkit-scrollbar { display: none; }
 
 .tab-btn {
-  min-height: 22px;
-  padding: 0 8px;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  background: #fff;
-  color: var(--text);
+  flex-shrink: 0;
+  min-height: 36px;
+  padding: 0 14px;
+  border: none;
+  border-bottom: 3px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  color: #6b7280;
   font-weight: 600;
-  font-size: 10px;
+  font-size: 12px;
+  white-space: nowrap;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.tab-btn:hover {
+  color: #374151;
+  background: #f9fafb;
 }
 
 .tab-btn.is-active {
   color: #0066cc;
   background: #ffffff;
-  border-color: #e0e0e0;
-  border-bottom: 2px solid #0066cc;
+  border-bottom: 3px solid #0066cc;
 }
 
 .tab-btn.is-active .tab-icon {
@@ -896,7 +951,7 @@ button {
 
 .workspace {
   width: 100%;
-  margin: 2px auto 0;
+  margin: 0;
   flex: 1;
   min-height: 0;
 }
@@ -1570,8 +1625,8 @@ button {
   position: sticky;
   top: 0;
   z-index: 2;
-  border-bottom: 2px solid #ccc;
-  background: #f0f2f5;
+  border-bottom: 2px solid #93c5fd;
+  background: #1e3a5f;
 }
 
 .grid-header-cell,
@@ -1581,19 +1636,23 @@ button {
 }
 
 .grid-header-cell {
-  min-height: 22px;
-  color: #1a1a1a;
+  min-height: 28px;
+  color: #e2e8f0;
   font-size: 10px;
-  letter-spacing: 0;
-  text-transform: none;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   display: flex;
   align-items: center;
   font-weight: 700;
-  border-right: 1px solid #e0e0e0;
-  border-bottom: 1px solid #e0e0e0;
-  background: #f0f2f5;
+  border-right: 1px solid #2d4a6b;
+  border-bottom: none;
+  background: #1e3a5f;
   justify-content: center;
   text-align: center;
+  padding: 0 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .grid-viewport {
@@ -1689,20 +1748,21 @@ button {
   left: 0;
   right: 0;
   min-height: var(--grid-row-h);
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid #e9ecef;
   background: #ffffff;
 }
 
 .grid-row:nth-child(even) {
-  background: #f8f9fa;
+  background: #f7f9fc;
 }
 
 .grid-row:hover {
-  background: #e8f0fe;
+  background: #eff6ff;
+  border-bottom-color: #bfdbfe;
 }
 
 .grid-row.selected {
-  background: #0066cc;
+  background: #1d4ed8;
 }
 
 .grid-cell {
@@ -1710,12 +1770,13 @@ button {
   align-items: center;
   min-height: var(--grid-row-h);
   overflow: hidden;
-  color: #1a1a1a;
-  font-size: 11px;
+  color: #1e293b;
+  font-size: 11.5px;
   text-overflow: ellipsis;
   white-space: nowrap;
-  border-right: 1px solid #e0e0e0;
+  border-right: 1px solid #e9ecef;
   line-height: 1;
+  padding: 0 5px;
 }
 
 .grid-row.selected .grid-cell {
@@ -3265,4 +3326,127 @@ body.light-theme { --bg: #ffffff; --bg-soft: #f5f5f5; --bg-elev: #ffffff; --bg-c
 @media (min-width: 768px) {
   .bottom-sheet { left: 50%; right: auto; width: 520px; transform: translate(-50%, 100%); }
   .bottom-sheet.is-open { transform: translate(-50%, 0); }
+}
+
+/* =================================================================
+   DESIGN REFRESH — UI 품질 개선 (topbar dark, badge dark, gear btn)
+   ================================================================= */
+
+/* Topbar 내 버튼들: 다크 배경에서 보이도록 */
+.topbar .toolbar-btn.subtle {
+  background: rgba(255,255,255,0.07);
+  border-color: rgba(255,255,255,0.12);
+  color: #94a3b8;
+}
+.topbar .toolbar-btn.subtle:hover:not(:disabled) {
+  background: rgba(255,255,255,0.14);
+  border-color: rgba(255,255,255,0.2);
+  color: #e2e8f0;
+}
+
+/* Settings gear btn — dark topbar */
+#settingsGearBtn {
+  background: rgba(255,255,255,0.07) !important;
+  border: 1px solid rgba(255,255,255,0.12) !important;
+  border-radius: 5px !important;
+  font-size: 16px !important;
+  color: #94a3b8 !important;
+  padding: 4px 8px !important;
+  transition: all 0.15s !important;
+  cursor: pointer !important;
+}
+#settingsGearBtn:hover {
+  background: rgba(255,255,255,0.14) !important;
+  color: #e2e8f0 !important;
+}
+
+/* dep-pill in dark topbar: success/warn/fail overrides */
+.topbar .dep-pill.ok { color: #86efac; background: rgba(34,197,94,0.15); border-color: rgba(34,197,94,0.3); }
+.topbar .dep-pill.warn { color: #fde68a; background: rgba(245,158,11,0.15); border-color: rgba(245,158,11,0.3); }
+.topbar .dep-pill.error { color: #fca5a5; background: rgba(239,68,68,0.15); border-color: rgba(239,68,68,0.3); }
+
+/* Badge styles — dark topbar */
+.topbar .badge-info { color: #7dd3fc; background: rgba(14,165,233,0.15); border-color: rgba(14,165,233,0.3); }
+.topbar .badge-success { color: #86efac; background: rgba(34,197,94,0.15); border-color: rgba(34,197,94,0.3); }
+.topbar .badge-neutral { color: #94a3b8; background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.12); }
+
+/* grid-table top padding 제거 */
+.grid-table { padding: 0 0 4px; }
+
+/* 그리드 viewport 스크롤바 스타일 */
+.grid-viewport::-webkit-scrollbar { width: 7px; height: 7px; }
+.grid-viewport::-webkit-scrollbar-track { background: #f1f5f9; }
+.grid-viewport::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 4px; }
+.grid-viewport::-webkit-scrollbar-thumb:hover { background: #64748b; }
+
+/* 현재 선택된 행의 셀 텍스트 밝게 */
+.grid-row.selected .grid-cell { color: #dbeafe; }
+.grid-row.selected .grid-cell.path-cell { color: #93c5fd; }
+
+/* 탭 아이콘 색상 조정 */
+.tab-icon { color: #9ca3af; font-size: 11px; }
+.tab-btn.is-active .tab-icon { color: #0066cc; }
+.tab-btn:hover .tab-icon { color: #374151; }
+
+/* dash-editor 배경 및 경계 */
+.dash-editor {
+  background: #f8fafc !important;
+  border-bottom: 2px solid #e5e7eb !important;
+}
+
+/* sub-tabbar 스타일 개선 */
+.sub-tabbar {
+  background: #ffffff;
+  border: none;
+  border-bottom: 2px solid #e5e7eb;
+  border-radius: 0;
+  margin: 0;
+  padding: 0 10px;
+}
+.sub-tab-btn {
+  min-height: 34px;
+  font-size: 12px;
+  font-family: 'Noto Sans KR', sans-serif;
+  border-bottom: 3px solid transparent;
+  padding: 0 16px;
+  transition: color 0.15s, border-color 0.15s;
+}
+.sub-tab-btn:hover { background: #f9fafb; }
+.sub-tab-btn.is-active {
+  color: #0066cc;
+  background: transparent;
+  border-bottom: 3px solid #0066cc;
+}
+
+/* list-tab-wrapper 경계 제거 */
+.list-tab-wrapper {
+  border: none;
+  border-top: none;
+  border-radius: 0;
+  height: calc(100vh - 155px);
+}
+
+/* list-tab-toolbar 배경 */
+.list-tab-toolbar {
+  background: #f8fafc;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 6px 12px;
+}
+
+/* ── Admin Request Grid ── */
+.admin-request-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+/* body.vip-mode user name 색상 */
+body.vip-mode #userName { color: #38bdf8; }
+
+/* Toolbar icon 크기 */
+.toolbar-icon { font-size: 14px; width: 16px; min-width: 16px; }
+
+/* 빈 상태 텍스트 */
+.empty-state {
+  font-size: 13px;
+  color: #94a3b8;
+  padding: 48px 24px;
 }
