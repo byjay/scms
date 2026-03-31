@@ -330,6 +330,7 @@
       'authStatus',
       'googleButtonHost',
       'naverLoginBtn',
+      'kakaoLoginBtn',
       'loginId',
       'loginPw',
       'localLoginBtn',
@@ -547,176 +548,7 @@
     dom.tabPanels = Array.from(document.querySelectorAll('.tab-panel'));
   }
 
-  function initLoginNetworkCanvas() {
-    const canvas = dom.loginNetworkCanvas;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const GRID = 60;
-    const PACKET_COUNT = 30;
-    const SPEED = 2;
-    const TRAIL_LENGTH = 20;
-    const NODE_PROB = 0.3;
-    const BG = '#0f172a';
-    const GRID_COLOR = '#1e293b';
-    const NODE_COLOR = '#334155';
-    const PACKET_COLORS = ['#3b82f6', '#22d3ee'];
-
-    let nodes = [];
-    let packets = [];
-    let cols = 0;
-    let rows = 0;
-    let frameId = 0;
-
-    function resize() {
-      const rect = canvas.parentElement.getBoundingClientRect();
-      canvas.width = rect.width;
-      canvas.height = rect.height;
-      buildGrid();
-    }
-
-    function buildGrid() {
-      cols = Math.floor(canvas.width / GRID) + 1;
-      rows = Math.floor(canvas.height / GRID) + 1;
-      nodes = [];
-      for (let r = 0; r < rows; r++) {
-        for (let c = 0; c < cols; c++) {
-          if (Math.random() < NODE_PROB) {
-            nodes.push({ x: c * GRID, y: r * GRID });
-          }
-        }
-      }
-      initPackets();
-    }
-
-    function pickNode() {
-      return nodes.length ? nodes[Math.floor(Math.random() * nodes.length)] : { x: 0, y: 0 };
-    }
-
-    function createPacket() {
-      const from = pickNode();
-      const to = pickNode();
-      const xFirst = Math.random() < 0.5;
-      const color = PACKET_COLORS[Math.floor(Math.random() * PACKET_COLORS.length)];
-      return { from, to, xFirst, color, progress: 0, trail: [] };
-    }
-
-    function initPackets() {
-      packets = [];
-      for (let i = 0; i < PACKET_COUNT; i++) {
-        const p = createPacket();
-        p.progress = Math.random();
-        packets.push(p);
-      }
-    }
-
-    function lerpPacket(p) {
-      const dx = p.to.x - p.from.x;
-      const dy = p.to.y - p.from.y;
-      const totalDist = Math.abs(dx) + Math.abs(dy);
-      if (totalDist === 0) return { x: p.from.x, y: p.from.y };
-      const traveled = p.progress * totalDist;
-      if (p.xFirst) {
-        if (traveled <= Math.abs(dx)) {
-          return { x: p.from.x + Math.sign(dx) * traveled, y: p.from.y };
-        }
-        const remaining = traveled - Math.abs(dx);
-        return { x: p.to.x, y: p.from.y + Math.sign(dy) * remaining };
-      }
-      if (traveled <= Math.abs(dy)) {
-        return { x: p.from.x, y: p.from.y + Math.sign(dy) * traveled };
-      }
-      const remaining = traveled - Math.abs(dy);
-      return { x: p.from.x + Math.sign(dx) * remaining, y: p.to.y };
-    }
-
-    function draw() {
-      if (dom.loginOverlay && dom.loginOverlay.classList.contains('hidden')) {
-        cancelAnimationFrame(frameId);
-        frameId = 0;
-        return;
-      }
-
-      ctx.fillStyle = BG;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      // Grid lines
-      ctx.strokeStyle = GRID_COLOR;
-      ctx.lineWidth = 1;
-      for (let c = 0; c <= cols; c++) {
-        const x = c * GRID;
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, canvas.height);
-        ctx.stroke();
-      }
-      for (let r = 0; r <= rows; r++) {
-        const y = r * GRID;
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(canvas.width, y);
-        ctx.stroke();
-      }
-
-      // Nodes
-      ctx.fillStyle = NODE_COLOR;
-      for (const n of nodes) {
-        ctx.beginPath();
-        ctx.arc(n.x, n.y, 3, 0, Math.PI * 2);
-        ctx.fill();
-      }
-
-      // Packets
-      for (const p of packets) {
-        const totalDist = Math.abs(p.to.x - p.from.x) + Math.abs(p.to.y - p.from.y);
-        const step = totalDist > 0 ? SPEED / totalDist : 1;
-        p.progress += step;
-        const pos = lerpPacket(p);
-        p.trail.push({ x: pos.x, y: pos.y });
-        if (p.trail.length > TRAIL_LENGTH) p.trail.shift();
-
-        // Trail with gradient
-        if (p.trail.length > 1) {
-          for (let i = 1; i < p.trail.length; i++) {
-            const alpha = (i / p.trail.length) * 0.6;
-            ctx.strokeStyle = p.color + Math.round(alpha * 255).toString(16).padStart(2, '0');
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.moveTo(p.trail[i - 1].x, p.trail[i - 1].y);
-            ctx.lineTo(p.trail[i].x, p.trail[i].y);
-            ctx.stroke();
-          }
-        }
-
-        // Packet head
-        ctx.save();
-        ctx.shadowColor = '#ffffff';
-        ctx.shadowBlur = 10;
-        ctx.fillStyle = '#ffffff';
-        ctx.beginPath();
-        ctx.arc(pos.x, pos.y, 3, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
-
-        if (p.progress >= 1) {
-          const np = createPacket();
-          p.from = np.from;
-          p.to = np.to;
-          p.xFirst = np.xFirst;
-          p.color = np.color;
-          p.progress = 0;
-          p.trail = [];
-        }
-      }
-
-      frameId = requestAnimationFrame(draw);
-    }
-
-    resize();
-    window.addEventListener('resize', resize);
-    frameId = requestAnimationFrame(draw);
-  }
+  // initLoginNetworkCanvas() → 60-auth-groupspace-final.js (최종본, BUG-003 중복 제거)
 
   function buildGridHeader() {
     dom.cableGridHeader.style.gridTemplateColumns = GRID_TEMPLATE;
@@ -856,6 +688,7 @@
     });
     dom.exportReportsBtn.addEventListener('click', exportReportsWorkbook);
     dom.naverLoginBtn.addEventListener('click', startNaverLogin);
+    if (dom.kakaoLoginBtn) dom.kakaoLoginBtn.addEventListener('click', startKakaoLogin);
     dom.localLoginBtn.addEventListener('click', handleLocalLogin);
     dom.logoutBtn.addEventListener('click', logout);
     dom.overlayLogoutBtn.addEventListener('click', logout);
@@ -885,41 +718,8 @@
 
   // initAuth() is defined in 60-auth-groupspace-final.js (final version)
 
-  function consumeAuthQueryParams() {
-    const url = new URL(window.location.href);
-    const auth = url.searchParams.get('auth');
-    const authError = url.searchParams.get('authError');
-    if (!auth && !authError) {
-      return null;
-    }
-
-    url.searchParams.delete('auth');
-    url.searchParams.delete('authError');
-    window.history.replaceState({}, document.title, url.toString());
-
-    if (authError) {
-      return {
-        type: 'error',
-        message: decodeAuthError(authError)
-      };
-    }
-
-    return {
-      type: 'success',
-      message: '네이버 로그인이 완료되었습니다.'
-    };
-  }
-
-  function decodeAuthError(code) {
-    const key = String(code || '').toLowerCase();
-    const map = {
-      naver_state_mismatch: 'Naver 로그인 state 검증에 실패했습니다.',
-      naver_token_exchange_failed: 'Naver 토큰 교환에 실패했습니다.',
-      naver_profile_failed: 'Naver 사용자 프로필 조회에 실패했습니다.',
-      access_denied: '로그인이 취소되었습니다.'
-    };
-    return map[key] || `인증 오류: ${code}`;
-  }
+  // consumeAuthQueryParams() → 60-auth-groupspace-final.js (최종본)
+  // decodeAuthError() → 60-auth-groupspace-final.js (최종본)
 
   function updateDependencyPills() {
     setDependencyStatus(dom.depXlsx, window.XLSX ? 'ok' : 'warn', 'XLSX');

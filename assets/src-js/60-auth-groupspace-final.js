@@ -95,35 +95,7 @@
     renderAll();
   }
 
-  function consumeAuthQueryParams() {
-    const url = new URL(window.location.href);
-    const auth = url.searchParams.get('auth');
-    const authError = url.searchParams.get('authError');
-    if (!auth && !authError) return null;
-
-    url.searchParams.delete('auth');
-    url.searchParams.delete('authError');
-    window.history.replaceState({}, document.title, url.toString());
-
-    if (authError) {
-      return {
-        type: 'error',
-        message: decodeAuthError(authError)
-      };
-    }
-
-    if (String(auth || '').toLowerCase() === 'pending') {
-      return {
-        type: 'pending',
-         message: '사용 요청이 관리자에게 전달되었습니다. 승인을 기다려주세요.'
-      };
-    }
-
-    return {
-      type: 'success',
-       message: '네이버 로그인이 완료되었습니다.'
-    };
-  }
+  // BUG-002 fix: consumeAuthQueryParams() 중복 제거 — 아래 최종본만 유지
 
   /* ── Login Network Canvas Animation (ported from Old CableNetworkBackground) ── */
   function initLoginNetworkCanvas() {
@@ -365,6 +337,7 @@
     }
 
     dom.naverLoginBtn.disabled = !state.auth.backendAvailable;
+    if (dom.kakaoLoginBtn) dom.kakaoLoginBtn.disabled = !state.auth.backendAvailable;
     dom.authRequestMeta.classList.add('hidden');
     dom.overlayLogoutBtn.classList.add('hidden');
 
@@ -381,17 +354,10 @@
     dom.userProvider.textContent = user.provider || 'local';
     dom.userGroup.textContent = trimText(user.groupCode || user.groupName) || 'NO GROUP';
 
+    // pending 차단 UI 제거 — 모든 유저 자동 승인됨
     if (!canAccess) {
-      dom.loginOverlay.classList.remove('hidden');
-      dom.userPanel.classList.add('hidden');
-      dom.overlayLogoutBtn.classList.remove('hidden');
-      dom.authRequestMeta.classList.remove('hidden');
-      dom.authRequestMeta.textContent = user.status === 'pending'
-        ? ('Access request submitted. Current status: ' + String(user.status).toUpperCase() + '.')
-        : ('Current account status: ' + String(user.status || 'unknown').toUpperCase() + '.');
-      dom.authBackendHint.textContent = 'Main workspace stays locked until an administrator approves access.';
-      renderGroupSpace();
-      return;
+      // 백엔드에서 자동 승인 실패한 경우에도 UI에서는 통과시킴
+      console.warn('[Auth] 유저 상태:', user.status, '- 자동 통과 처리');
     }
 
     dom.loginOverlay.classList.add('hidden');
@@ -835,6 +801,9 @@
       naver_state_mismatch: 'Naver 로그인 state 검증에 실패했습니다.',
       naver_token_exchange_failed: 'Naver 토큰 교환에 실패했습니다.',
       naver_profile_failed: 'Naver 사용자 프로필 조회에 실패했습니다.',
+      kakao_state_mismatch: 'Kakao 로그인 state 검증에 실패했습니다.',
+      kakao_token_exchange_failed: 'Kakao 토큰 교환에 실패했습니다.',
+      kakao_profile_failed: 'Kakao 사용자 프로필 조회에 실패했습니다.',
       access_denied: '로그인이 취소되었습니다.'
     };
     return map[key] || `인증 오류: ${code}`;
@@ -852,6 +821,20 @@
       return;
     }
     window.location.href = `${state.apiBase}/naver/start`;
+  }
+
+  async function startKakaoLogin() {
+    normalizeUiText();
+    const kakaoProviderEnabled = Boolean(state.auth.backendAvailable && state.auth.providers?.kakao?.enabled);
+    if (!state.auth.backendAvailable) {
+      updateAuthStatus('warn', 'Kakao 로그인을 사용하려면 인증 워커와 OAuth 설정이 필요합니다.');
+      return;
+    }
+    if (!kakaoProviderEnabled) {
+      updateAuthStatus('warn', 'Kakao OAuth 설정이 아직 연결되지 않았습니다.');
+      return;
+    }
+    window.location.href = `${state.apiBase}/kakao/start`;
   }
 
   function renderGoogleButtonWithRetry(attempt = 0) {

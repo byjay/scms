@@ -215,22 +215,36 @@
     }
 
     showBusy(`전체 경로를 계산하는 중입니다... 0 / ${state.cables.length}`);
-    for (let index = 0; index < state.cables.length; index += 1) {
-      const cable = state.cables[index];
-      applyRouteToCable(cable);
-      cable.validation = validateCable(cable);
-      if (index % 120 === 0) {
-        dom.busyText.textContent = `전체 경로를 계산하는 중입니다... ${index + 1} / ${state.cables.length}`;
-        await pause();
+    let errors = 0;
+    try {
+      for (let index = 0; index < state.cables.length; index += 1) {
+        const cable = state.cables[index];
+        try {
+          applyRouteToCable(cable);
+          cable.validation = validateCable(cable);
+        } catch (cableErr) {
+          errors++;
+          console.error(`[Routing] Cable #${index} "${cable.name}" 오류:`, cableErr);
+          console.error(`  → fromNode=${cable.fromNode}, toNode=${cable.toNode}, checkNode=${cable.checkNode}`);
+          cable.routeError = { type: 'CALC_ERROR', message: String(cableErr) };
+        }
+        if (index % 120 === 0) {
+          dom.busyText.textContent = `전체 경로를 계산하는 중입니다... ${index + 1} / ${state.cables.length}`;
+          await pause();
+        }
       }
+    } finally {
+      hideBusy();
     }
-    hideBusy();
 
     runTripleValidation({ quiet: true });
     state.project.dirty = true;
     renderAll();
     commitHistory('route-all');
     updateProjectStatus('ROUTES RECALCULATED');
+    if (errors > 0) {
+      pushToast(`${errors}건의 케이블에서 라우팅 오류 발생`, 'warn');
+    }
     if (!quiet) {
       pushToast(`전체 케이블 ${state.cables.length}건의 경로 계산이 완료됐습니다.`, 'success');
     }
@@ -303,7 +317,14 @@
     for (let index = 0; index < fullPath.length - 1; index += 1) {
       const edge = getEdgeInfo(fullPath[index], fullPath[index + 1]);
       if (!edge) {
-        return { error: 'EDGE_MISSING', from: fullPath[index], to: fullPath[index + 1], pathNodes: [], totalLength: 0 };
+        // BUG-014 fix: 단일구간 등에서 edge 없어도 경로 유지 (length=0 처리)
+        console.warn(`[Routing] Edge missing: ${fullPath[index]} → ${fullPath[index + 1]}, 길이 0으로 대체`);
+        edgeSegments.push({
+          from: fullPath[index],
+          to: fullPath[index + 1],
+          length: 0
+        });
+        continue;
       }
       edgeSegments.push({
         from: fullPath[index],

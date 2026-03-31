@@ -106,51 +106,8 @@ function scheduleAutoSave() {
 // NOTE: exportProjectJson() and exportProjectWorkbook() are defined in
 // 50-import-export-bom-reports-utils.js (the final/valid versions).
 
-async function startNaverLogin() {
-  if (!state.auth.backendAvailable) {
-     updateAuthStatus('warn', 'Naver 로그인을 사용하려면 auth worker가 필요합니다.');
-    return;
-  }
-  window.location.href = `${state.apiBase}/naver/start`;
-}
-
-function renderGoogleButtonWithRetry(attempt = 0) {
-  updateDependencyPills();
-  const googleConfig = state.auth.providers.google || { enabled: false, clientId: '' };
-  if (!state.auth.backendAvailable || !googleConfig.enabled || !googleConfig.clientId) {
-    dom.googleButtonHost.innerHTML = '';
-    const message = state.auth.backendAvailable
-       ? 'Google Client ID가 설정되지 않았습니다.'
-       : '백엔드 연결 후 Google 로그인을 사용할 수 있습니다.';
-    dom.googleButtonHost.innerHTML = `<div class="login-note">${escapeHtml(message)}</div>`;
-    return;
-  }
-
-  if (!window.google?.accounts?.id) {
-    if (attempt < 10) {
-      window.setTimeout(() => renderGoogleButtonWithRetry(attempt + 1), 400);
-    } else {
-       dom.googleButtonHost.innerHTML = '<div class="login-note">Google GIS 스크립트를 불러오지 못했습니다.</div>';
-    }
-    return;
-  }
-
-  if (state.auth.googleRendered) return;
-  dom.googleButtonHost.innerHTML = '';
-  window.google.accounts.id.initialize({
-    client_id: googleConfig.clientId,
-    callback: handleGoogleCredential
-  });
-  window.google.accounts.id.renderButton(dom.googleButtonHost, {
-    theme: 'filled_black',
-    shape: 'pill',
-    size: 'large',
-    width: 280,
-    text: 'signin_with'
-  });
-  state.auth.googleRendered = true;
-  setDependencyStatus(dom.depGoogle, 'ok', 'GIS');
-}
+// startNaverLogin() → 60-auth-groupspace-final.js (최종본)
+// renderGoogleButtonWithRetry() → 60-auth-groupspace-final.js (최종본)
 
 // handleGoogleCredential() and logout() are defined in 60-auth-groupspace-final.js (final versions)
 

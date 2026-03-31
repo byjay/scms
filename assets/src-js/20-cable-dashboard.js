@@ -104,7 +104,7 @@
       row.className = `grid-row${cable.id === state.selectedCableId ? ' selected' : ''}`;
       row.style.top = `${index * ROW_HEIGHT}px`;
       row.style.height = `${ROW_HEIGHT}px`;
-      row.style.gridTemplateColumns = GRID_TEMPLATE;
+      row.style.gridTemplateColumns = getGridTemplate();
       row.innerHTML = GRID_COLUMNS.map((column) => renderGridCell(cable, column, index)).join('');
       row.addEventListener('click', () => selectCable(cable.id));
       row.addEventListener('dblclick', () => selectCable(cable.id, { focusEditor: true }));
@@ -145,6 +145,10 @@
       const hasValue = !(value == null || value === '');
       content = escapeHtml(hasValue ? formatNumber(value) : '-');
       title = hasValue ? String(value) : '-';
+    } else if (column.key === '_cablePath') {
+      const text = cable.calculatedPath || cable.path || '-';
+      content = escapeHtml(truncate(text, 64));
+      title = text;
     } else if (column.key === 'path') {
       const text = cable.path || '-';
       content = escapeHtml(truncate(text, 64));
@@ -850,7 +854,6 @@
         activeSubTab = target;
         subTabBtns.forEach((b) => b.classList.toggle('is-active', b.dataset.subtab === target));
         subTabPanels.forEach((p) => p.classList.toggle('is-active', p.dataset.subpanel === target));
-        if (target === 'cablelist') renderCableListTab();
         if (target === 'nodelist') renderNodeListTab();
       });
     });

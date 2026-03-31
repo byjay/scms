@@ -1,5 +1,6 @@
 const SESSION_COOKIE = 'seastar_auth';
 const NAVER_STATE_COOKIE = 'seastar_naver_state';
+const KAKAO_STATE_COOKIE = 'seastar_kakao_state';
 const SESSION_TTL_SECONDS = 60 * 60 * 8;
 const STORE_KEY = 'seastar-auth-store-v3';
 const ADMIN_GROUP_CODE = 'ADMIN';
@@ -155,6 +156,98 @@ export default {
         await saveStore(env, store);
         return issueSessionRedirect(request, user, env, store, appRedirect, {
           clearNaverState: true
+        });
+      }
+
+      // ── Kakao OAuth ──
+      if (path === '/kakao/start' && request.method === 'GET') {
+        if (!env.KAKAO_REST_API_KEY) {
+          return json(request, { success: false, message: 'Kakao OAuth 설정이 없습니다.' }, 503);
+        }
+        const state = crypto.randomUUID().replace(/-/g, '');
+        const callbackUrl = env.KAKAO_CALLBACK_URL || `${url.origin}/api/auth/kakao/callback`;
+        const redirectUrl = `https://kauth.kakao.com/oauth/authorize?response_type=code&client_id=${encodeURIComponent(env.KAKAO_REST_API_KEY)}&redirect_uri=${encodeURIComponent(callbackUrl)}&state=${encodeURIComponent(state)}`;
+        return redirect(redirectUrl, {
+          'Set-Cookie': buildCookie(KAKAO_STATE_COOKIE, state, {
+            maxAge: 600,
+            httpOnly: true,
+            secure: isSecure(url),
+            sameSite: 'Lax',
+            path: '/'
+          })
+        });
+      }
+
+      if (path === '/kakao/callback' && request.method === 'GET') {
+        const cookies = parseCookies(request);
+        const state = url.searchParams.get('state') || '';
+        const code = url.searchParams.get('code') || '';
+        const error = url.searchParams.get('error');
+        const callbackUrl = env.KAKAO_CALLBACK_URL || `${url.origin}/api/auth/kakao/callback`;
+        const appRedirect = env.APP_REDIRECT_URL || `${url.origin}/seastar-cms-v3.html`;
+
+        if (error) {
+          return redirect(`${appRedirect}?authError=${encodeURIComponent(error)}`, {
+            'Set-Cookie': clearCookie(KAKAO_STATE_COOKIE, url)
+          });
+        }
+
+        if (!code || !state || cookies[KAKAO_STATE_COOKIE] !== state) {
+          return redirect(`${appRedirect}?authError=kakao_state_mismatch`, {
+            'Set-Cookie': clearCookie(KAKAO_STATE_COOKIE, url)
+          });
+        }
+
+        const tokenBody = new URLSearchParams();
+        tokenBody.set('grant_type', 'authorization_code');
+        tokenBody.set('client_id', env.KAKAO_REST_API_KEY || '');
+        if (env.KAKAO_CLIENT_SECRET) {
+          tokenBody.set('client_secret', env.KAKAO_CLIENT_SECRET);
+        }
+        tokenBody.set('redirect_uri', callbackUrl);
+        tokenBody.set('code', code);
+
+        const tokenResponse = await fetch('https://kauth.kakao.com/oauth/token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: tokenBody.toString()
+        });
+        const tokenData = await tokenResponse.json();
+        if (!tokenResponse.ok || !tokenData.access_token) {
+          console.error('Kakao token exchange failed:', { status: tokenResponse.status, error: tokenData.error, desc: tokenData.error_description });
+          return redirect(`${appRedirect}?authError=kakao_token_exchange_failed`, {
+            'Set-Cookie': clearCookie(KAKAO_STATE_COOKIE, url)
+          });
+        }
+
+        const profileResponse = await fetch('https://kapi.kakao.com/v2/user/me', {
+          headers: {
+            Authorization: `Bearer ${tokenData.access_token}`,
+            'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8'
+          }
+        });
+        const profileData = await profileResponse.json();
+        if (!profileResponse.ok || !profileData.id) {
+          console.error('Kakao profile failed:', { status: profileResponse.status, msg: profileData.msg, code: profileData.code });
+          return redirect(`${appRedirect}?authError=kakao_profile_failed`, {
+            'Set-Cookie': clearCookie(KAKAO_STATE_COOKIE, url)
+          });
+        }
+
+        const kakaoAccount = profileData.kakao_account || {};
+        const kakaoProfile = kakaoAccount.profile || {};
+        const store = await loadStore(env);
+        const { user } = registerSocialUser(store, {
+          id: `kakao:${profileData.id}`,
+          provider: 'kakao',
+          providerUserId: String(profileData.id),
+          email: kakaoAccount.email || '',
+          name: kakaoProfile.nickname || kakaoAccount.name || 'Kakao User',
+          avatarUrl: kakaoProfile.thumbnail_image_url || kakaoProfile.profile_image_url || ''
+        }, env);
+        await saveStore(env, store);
+        return issueSessionRedirect(request, user, env, store, appRedirect, {
+          clearKakaoState: true
         });
       }
 
@@ -640,7 +733,7 @@ function createInitialStore(env) {
         groupCode: ADMIN_GROUP_CODE,
         groupName: ADMIN_GROUP_CODE,
         announcement: '관리자 승인 큐와 그룹 공간을 관리하는 전용 공간입니다.',
-        notes: 'Google/Naver 사용 요청은 이 공간에서 승인하고 그룹을 배정합니다.',
+        notes: 'Google/Naver/Kakao 사용 요청은 이 공간에서 승인하고 그룹을 배정합니다.',
         updatedAt: now,
         updatedBy: adminIdentity.name
       }
@@ -796,7 +889,7 @@ function ensurePendingRequest(store, user) {
 function suggestGroupForUser(user) {
   const emailName = String(user.email || '').split('@')[0].trim();
   const cleaned = normalizeGroupCode(emailName || user.provider || 'GROUP-A');
-  if (!cleaned || cleaned === 'GOOGLE' || cleaned === 'NAVER') {
+  if (!cleaned || cleaned === 'GOOGLE' || cleaned === 'NAVER' || cleaned === 'KAKAO') {
     return { code: 'GROUP-A', name: 'Group A' };
   }
   return {
@@ -839,6 +932,9 @@ async function issueSessionRedirect(request, user, env, store, appRedirect, opti
   }));
   if (options.clearNaverState) {
     headers.append('Set-Cookie', clearCookie(NAVER_STATE_COOKIE, new URL(request.url)));
+  }
+  if (options.clearKakaoState) {
+    headers.append('Set-Cookie', clearCookie(KAKAO_STATE_COOKIE, new URL(request.url)));
   }
   return new Response(null, { status: 302, headers });
 }
@@ -1020,7 +1116,20 @@ async function hydrateSessionUser(sessionUser, env, store) {
   if (sessionUser.role === 'admin') {
     return upsertAdminUser(store, env);
   }
-  return store.users[sessionUser.id] || sanitizeUser(sessionUser);
+  const user = store.users[sessionUser.id] || sanitizeUser(sessionUser);
+  // 기존 pending 유저 자동 승인
+  if (user && user.status === 'pending') {
+    user.status = 'active';
+    user.groupCode = user.groupCode || 'DEFAULT';
+    user.groupName = user.groupName || 'DEFAULT';
+    user.approvedAt = new Date().toISOString();
+    user.approvedBy = 'AUTO';
+    if (store.users[user.id]) {
+      store.users[user.id] = user;
+      await saveStore(env, store);
+    }
+  }
+  return user;
 }
 
 function isAdminUser(user) {
@@ -1254,11 +1363,13 @@ function registerSocialUser(store, profile, env) {
       name: profile.name || profile.email || 'User',
       avatarUrl: profile.avatarUrl || '',
       role: 'user',
-      status: 'pending',
-      groupCode: '',
-      groupName: '',
+      status: 'active',
+      groupCode: 'DEFAULT',
+      groupName: 'DEFAULT',
       phone: '',
       company: '',
+      approvedAt: now,
+      approvedBy: 'AUTO',
       requestedAt: now,
       lastLoginAt: now
     };
@@ -1271,10 +1382,11 @@ function registerSocialUser(store, profile, env) {
     user.avatarUrl = profile.avatarUrl || user.avatarUrl || '';
     user.lastLoginAt = now;
     if (user.status !== 'active') {
-      user.status = 'pending';
-      user.groupCode = '';
-      user.groupName = '';
-      user.requestedAt = now;
+      user.status = 'active';
+      user.groupCode = user.groupCode || 'DEFAULT';
+      user.groupName = user.groupName || 'DEFAULT';
+      user.approvedAt = now;
+      user.approvedBy = 'AUTO';
     }
   }
 
@@ -1331,6 +1443,9 @@ async function buildSessionPayload(user, env, store, message = '') {
       },
       naver: {
         enabled: Boolean(env.NAVER_CLIENT_ID && env.NAVER_CLIENT_SECRET)
+      },
+      kakao: {
+        enabled: Boolean(env.KAKAO_REST_API_KEY)
       },
       local: {
         enabled: Boolean(getAdminIdentity(env).enabled)

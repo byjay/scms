@@ -1,14 +1,1234 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <meta http-equiv="refresh" content="0; url=./seastar-cms-v3.html">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Seastar CMS V3</title>
+  <title>Seastar CMS</title>
+  <!-- ══ SCMS 강제 캐시 클리어 ══ -->
+  <script>
+  (function(){
+    var VER='20260331-v2';
+    if('serviceWorker' in navigator) navigator.serviceWorker.getRegistrations().then(function(r){r.forEach(function(s){s.unregister();});});
+    if('caches' in window) caches.keys().then(function(k){k.forEach(function(n){caches.delete(n);});});
+    var p=sessionStorage.getItem('_scms_ver');
+    if(p&&p!==VER){sessionStorage.clear();sessionStorage.setItem('_scms_ver',VER);location.replace(location.pathname+'?_cb='+VER+location.hash);return;}
+    sessionStorage.setItem('_scms_ver',VER);
+  })();
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=JetBrains+Mono:wght@400;600&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+  <script>var _v='?v='+Date.now();</script>
+  <script>document.write('<link rel="stylesheet" href="./assets/seastar-v0.css'+_v+'">');</script>
+  <script>document.write('<link rel="stylesheet" href="./assets/seastar-v0-extra.css'+_v+'">');</script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" crossorigin="anonymous"></script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script>document.write('<scr'+'ipt src="./assets/embedded-nodes.js'+_v+'"><\/scr'+'ipt>');</script>
+  <script>document.write('<scr'+'ipt defer src="./assets/seastar-v0.js'+_v+'"><\/scr'+'ipt>');</script>
 </head>
 <body>
-  <script>
-    window.location.replace('./seastar-cms-v3.html');
-  </script>
+  <div id="busyOverlay" class="busy-overlay hidden">
+    <div class="busy-card">
+      <div class="busy-spinner"></div>
+      <div id="busyText" class="busy-text">준비 중...</div>
+    </div>
+  </div>
+
+  <div id="loginOverlay" class="login-overlay">
+    <!-- Animated network background canvas -->
+    <canvas id="loginNetworkCanvas" class="login-network-bg"></canvas>
+
+    <div class="login-shell">
+      <section class="login-card">
+        <!-- Logo + Title -->
+        <div class="login-card-head">
+          <img src="./assets/logo.jpg" alt="SCMS logo" class="login-logo">
+          <div class="login-brand">
+            <span class="login-brand-sub">SEASTAR CABLE MANAGEMENT SYSTEM</span>
+          </div>
+        </div>
+
+        <!-- Auth status -->
+        <div id="authStatus" class="auth-status info"></div>
+        <div id="authRequestMeta" class="login-note hidden"></div>
+        <button id="overlayLogoutBtn" class="toolbar-btn subtle hidden" type="button">로그아웃</button>
+
+        <!-- Login form -->
+        <div class="login-form-group">
+          <label class="login-field">
+            <span class="login-field-label">ACCOUNT ID</span>
+            <div class="login-input-wrap">
+              <svg class="login-input-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              <input id="loginId" type="email" autocomplete="username" placeholder="Employee ID">
+            </div>
+          </label>
+          <label class="login-field">
+            <span class="login-field-label">PASSWORD</span>
+            <div class="login-input-wrap">
+              <svg class="login-input-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              <input id="loginPw" type="password" autocomplete="current-password" placeholder="••••••••">
+              <button type="button" class="login-eye-btn" onclick="this.previousElementSibling.type=this.previousElementSibling.type==='password'?'text':'password'">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+          </label>
+          <button id="localLoginBtn" class="login-btn-primary" type="button">SECURE LOGIN</button>
+          <p id="loginHint" class="login-hint"></p>
+        </div>
+
+        <!-- Divider -->
+        <div class="login-divider"><span>OR</span></div>
+
+        <!-- Social login -->
+        <div class="auth-group">
+          <div id="googleButtonHost" class="google-button-host"></div>
+          <button id="naverLoginBtn" class="login-btn-naver" type="button">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="#fff"><path d="M16.27 12.27L7.49 0H0v24h7.73V11.73L16.51 24H24V0h-7.73z"/></svg>
+            SIGN IN WITH NAVER
+          </button>
+          <button id="kakaoLoginBtn" class="login-btn-kakao" type="button">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="#191919"><path d="M12 3C6.48 3 2 6.36 2 10.44c0 2.62 1.75 4.93 4.38 6.24l-1.12 4.1c-.1.36.3.65.6.44l4.9-3.22c.41.04.82.06 1.24.06 5.52 0 10-3.36 10-7.5S17.52 3 12 3z"/></svg>
+            SIGN IN WITH KAKAO
+          </button>
+        </div>
+
+        <div class="guest-access-group">
+          <button id="guestToggleBtn" class="login-btn-guest-toggle" type="button">GUEST ACCESS</button>
+          <div id="guestForm" class="guest-form hidden">
+            <input id="guestName" type="text" placeholder="이름 (Name)" class="guest-input">
+            <input id="guestCode" type="text" placeholder="승인코드 (Approval Code)" class="guest-input">
+            <button id="guestLoginBtn" class="login-btn-guest" type="button">GUEST LOGIN</button>
+            <p id="guestHint" class="login-hint"></p>
+          </div>
+        </div>
+        <div class="login-guide-text">아이디가 없으면 게스트모드로 사용신청하세요</div>
+        <div id="authBackendHint" class="login-note"></div>
+
+        <!-- Video section -->
+        <div class="login-video-section">
+          <video class="login-video" autoplay muted loop playsinline>
+            <source src="./assets/scms.mp4" type="video/mp4">
+          </video>
+          <div class="login-video-overlay">
+            <span class="login-developer">v2023 · designsir@naver.com</span>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- Registration Modal (Naver first-login) -->
+  <div id="regModalOverlay" class="reg-modal-overlay hidden">
+    <div class="reg-modal-card">
+      <h3 class="reg-modal-title">사용 등록 신청</h3>
+      <p class="reg-modal-desc">아래 정보를 입력하면 관리자에게 승인 요청이 전달됩니다.</p>
+      <label class="reg-field"><span>이름 (Name)</span><input id="regName" type="text" class="reg-input" placeholder="홍길동"></label>
+      <label class="reg-field"><span>전화번호 (Phone)</span><input id="regPhone" type="tel" class="reg-input" placeholder="010-1234-5678"></label>
+      <label class="reg-field"><span>회사명 (Company)</span><input id="regCompany" type="text" class="reg-input" placeholder="씨스타 조선"></label>
+      <label class="reg-field"><span>이메일 (Email)</span><input id="regEmail" type="email" class="reg-input" placeholder="user@company.com"></label>
+      <div class="reg-actions">
+        <button id="regSubmitBtn" class="login-btn-primary" type="button">신청하기</button>
+        <button id="regCancelBtn" class="login-btn-guest-toggle" type="button">취소</button>
+      </div>
+      <p id="regHint" class="login-hint"></p>
+    </div>
+  </div>
+
+  <!-- Ship Select Modal (Enhanced) -->
+  <div id="shipSelectOverlay" class="ship-select-overlay">
+    <div class="ship-select-box">
+      <div class="ship-select-header">
+        <div class="ship-select-title-row">
+          <h2 class="ship-select-title">호선 선택 <span class="ship-select-title-en">Ship Selection</span></h2>
+          <button id="shipSelectClose" class="ship-select-close" type="button">&times;</button>
+        </div>
+        <div class="ship-group-info" id="shipGroupInfo">Group: -</div>
+        <div class="ship-search-bar">
+          <input id="shipSearchInput" type="search" class="ship-search-input" placeholder="호선 검색 (Search ships...)">
+        </div>
+      </div>
+      <div class="ship-list" id="shipList"></div>
+      <div class="ship-add-section">
+        <button id="shipAddToggle" class="ship-add-toggle" type="button" onclick="var f=document.getElementById('shipAddForm');if(f)f.classList.toggle('hidden');">+ 새 호선 추가 (Add New Ship)</button>
+        <div id="shipAddForm" class="ship-add-form hidden">
+          <input id="newShipName" class="ship-add-input" placeholder="Ship Name (e.g. MV_PANOPI)">
+          <input id="newShipNo" class="ship-add-input ship-add-input-sm" placeholder="Hull No.">
+          <button id="addShipBtn" class="ship-add-btn" type="button">추가</button>
+        </div>
+      </div>
+      <div class="ship-actions">
+        <button id="shipSelectOk" class="ship-action-btn ship-action-primary" type="button">선택 확인</button>
+        <button id="shipSelectCancel" class="ship-action-btn" type="button">취소</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="appShell" class="app-shell">
+    <header class="topbar">
+      <div class="brand-block">
+        <img src="./assets/logo.jpg" alt="Seastar logo" class="brand-logo">
+        <div class="brand-copy">
+          <span class="brand-scms">SCMS</span>
+          <h1>씨스타 케이블 작업창</h1>
+        </div>
+      </div>
+
+      <div class="topbar-actions">
+        <div class="dependency-strip">
+          <span id="depXlsx" class="dep-pill">XLSX</span>
+          <span id="depThree" class="dep-pill">THREE</span>
+          <span id="depGoogle" class="dep-pill">GIS</span>
+          <span id="depApi" class="dep-pill">AUTH API</span>
+        </div>
+
+        <div id="userPanel" class="user-panel hidden">
+          <div class="user-meta">
+            <strong id="userName">-</strong>
+            <span id="userRole" class="badge badge-info">USER</span>
+            <span id="userProvider" class="badge badge-neutral">local</span>
+            <span id="userGroup" class="badge badge-success">NO GROUP</span>
+          <span id="shipBadge" class="badge badge-neutral hidden" style="cursor:pointer" title="Click to change ship">SHIP: -</span>
+          </div>
+          <button id="changeShipBtn" class="toolbar-btn subtle hidden" type="button">호선변경</button>
+          <button id="logoutBtn" class="toolbar-btn subtle" type="button">로그아웃</button>
+          <button id="settingsGearBtn" type="button" title="Settings">&#9881;</button>
+        </div>
+      </div>
+    </header>
+
+    <section class="toolbar">
+      <div class="toolbar-left">
+        <button id="loadCableBtn" class="toolbar-btn primary" type="button"><span class="toolbar-icon">⤓</span><span class="toolbar-text">케이블</span></button>
+        <button id="loadNodeBtn" class="toolbar-btn" type="button"><span class="toolbar-icon">⌗</span><span class="toolbar-text">노드</span></button>
+        <button id="importProjectBtn" class="toolbar-btn" type="button"><span class="toolbar-icon">⇪</span><span class="toolbar-text">가져오기</span></button>
+        <button id="loadServerProjectBtn" class="toolbar-btn" type="button"><span class="toolbar-icon">↺</span><span class="toolbar-text">서버불러오기</span></button>
+        <button id="saveServerProjectBtn" class="toolbar-btn accent" type="button"><span class="toolbar-icon">⤒</span><span class="toolbar-text">서버저장</span></button>
+        <button id="undoBtn" class="toolbar-btn subtle" type="button"><span class="toolbar-icon">↶</span><span class="toolbar-text">되돌리기</span></button>
+        <button id="redoBtn" class="toolbar-btn subtle" type="button"><span class="toolbar-icon">↷</span><span class="toolbar-text">다시실행</span></button>
+        <button id="routeAllBtn" class="toolbar-btn accent" type="button"><span class="toolbar-icon">◎</span><span class="toolbar-text">전체경로</span></button>
+        <button id="validateAllBtn" class="toolbar-btn" type="button"><span class="toolbar-icon">✓</span><span class="toolbar-text">전체검증</span></button>
+        <button id="exportJsonBtn" class="toolbar-btn" type="button"><span class="toolbar-icon">J</span><span class="toolbar-text">JSON</span></button>
+        <button id="exportXlsxBtn" class="toolbar-btn" type="button"><span class="toolbar-icon">X</span><span class="toolbar-text">엑셀</span></button>
+        <input id="cableFileInput" class="hidden-input" type="file" accept=".xlsx,.xls,.json">
+        <input id="nodeFileInput" class="hidden-input" type="file" accept=".xlsx,.xls,.json">
+        <input id="projectFileInput" class="hidden-input" type="file" accept=".json,.xlsx,.xls">
+      </div>
+
+      <div class="toolbar-right">
+        <button id="openManualBtn" class="toolbar-btn subtle" type="button"><span class="toolbar-icon">?</span><span class="toolbar-text">설명서</span></button>
+      </div>
+    </section>
+
+    <nav class="tabbar">
+      <button class="tab-btn is-active" data-tab="dashboard" type="button"><span class="tab-icon">▤</span><span class="tab-text">케이블</span></button>
+      <button class="tab-btn" data-tab="routing" type="button"><span class="tab-icon">⌘</span><span class="tab-text">경로</span></button>
+      <button class="tab-btn" data-tab="nodes" type="button"><span class="tab-icon">◫</span><span class="tab-text">노드</span></button>
+      <button class="tab-btn" data-tab="bom" type="button"><span class="tab-icon">▦</span><span class="tab-text">자재집계</span></button>
+      <button class="tab-btn" data-tab="reports" type="button"><span class="tab-icon">▥</span><span class="tab-text">보고서</span></button>
+      <button class="tab-btn" data-tab="space" type="button"><span class="tab-icon">◪</span><span class="tab-text">그룹공간</span></button>
+      <button class="tab-btn" data-tab="manual" type="button"><span class="tab-icon">?</span><span class="tab-text">설명서</span></button>
+      <button class="tab-btn" data-tab="cabletype" type="button"><span class="tab-icon">⚡</span><span class="tab-text">Cable Type</span></button>
+      <button class="tab-btn" data-tab="install" type="button"><span class="tab-icon">⚙</span><span class="tab-text">INSTALL</span></button>
+      <button class="tab-btn" data-tab="diagnostics" type="button"><span class="tab-icon">!</span><span class="tab-text">진단</span></button>
+      <button class="tab-btn hidden" data-tab="admin" id="adminTabBtn" type="button"><span class="tab-icon">&#x1F451;</span><span class="tab-text">ADMIN</span></button>
+    </nav>
+
+    <main class="workspace">
+      <section class="tab-panel is-active" data-panel="dashboard">
+        <!-- Sub-tab navigation: Schedule | Cable List | Node List -->
+        <nav class="sub-tabbar">
+          <button class="sub-tab-btn is-active" data-subtab="schedule" type="button">Schedule</button>
+          <button class="sub-tab-btn" data-subtab="cablelist" type="button">Cable List</button>
+          <button class="sub-tab-btn" data-subtab="nodelist" type="button">Node List</button>
+        </nav>
+
+        <!-- SUB-TAB: Schedule (existing editor + grid) -->
+        <div class="sub-tab-panel is-active" data-subpanel="schedule">
+        <div class="dash-v2">
+          <!-- ====== TOP: Full-width Editor ====== -->
+          <section id="editorDock" class="dash-editor">
+            <div class="dash-editor-status">
+              <div id="editorStatus" class="editor-status">선택된 케이블 없음</div>
+              <div class="dash-editor-actions-mini">
+                <button id="saveEditorBtn" class="toolbar-btn primary" type="button">저장</button>
+                <button id="saveRecalcBtn" class="toolbar-btn accent" type="button">저장+재산출</button>
+                <button id="forceRouteBtn" class="toolbar-btn accent" type="button">체크노드 강제 경로</button>
+                <button id="validateSelectedBtn" class="toolbar-btn" type="button">검증</button>
+                <button id="resetEditorBtn" class="toolbar-btn subtle" type="button">초기화</button>
+                <button id="newCableBtn" class="toolbar-btn" type="button">신규</button>
+                <button id="duplicateCableBtn" class="toolbar-btn" type="button">복제</button>
+                <button id="deleteCableBtn" class="toolbar-btn danger" type="button">삭제</button>
+              </div>
+            </div>
+
+            <div class="dash-editor-body">
+              <!-- LEFT: Cable basic info -->
+              <div class="dash-editor-col dash-col-basic">
+                <label class="field compact"><span>CABLE NAME</span><input id="editName" type="text"></label>
+                <label class="field compact"><span>CABLE TYPE</span><input id="editType" type="text"></label>
+                <label class="field compact"><span>SUPPLY DK</span><input id="editSupplyDeck" type="text"></label>
+                <label class="field compact"><span>LENGTH</span><input id="editLength" type="number" step="0.01"></label>
+                <label class="field compact"><span>Weight</span><input id="editPorWeight" type="number" step="0.01"></label>
+                <label class="field compact"><span>OUTDIA</span><input id="editOutDia" type="number" step="0.01"></label>
+                <div class="dash-sub-row">
+                  <label class="field compact"><span>REV</span><input id="editRevision" type="text"></label>
+                  <label class="field compact"><span>SYSTEM</span><input id="editSystem" type="text"></label>
+                </div>
+              </div>
+
+              <!-- CENTER: FROM / TO / CHECK_NODE -->
+              <div class="dash-editor-col dash-col-route">
+                <div class="dash-from-to">
+                  <fieldset class="dash-endpoint">
+                    <legend>FROM</legend>
+                    <label class="field compact"><span>DECK</span><input id="editFromRoom" type="text"></label>
+                    <div class="dash-node-rest">
+                      <label class="field compact"><span>NODE</span><input id="editFromNode" type="text"></label>
+                      <label class="field compact rest"><span>REST</span><input id="editFromRest" type="number" step="0.01"></label>
+                    </div>
+                    <label class="field compact"><span>EQUIPMENT</span><input id="editFromEquip" type="text"></label>
+                  </fieldset>
+                  <fieldset class="dash-endpoint">
+                    <legend>TO</legend>
+                    <label class="field compact"><span>DECK</span><input id="editToRoom" type="text"></label>
+                    <div class="dash-node-rest">
+                      <label class="field compact"><span>NODE</span><input id="editToNode" type="text"></label>
+                      <label class="field compact rest"><span>REST</span><input id="editToRest" type="number" step="0.01"></label>
+                    </div>
+                    <label class="field compact"><span>EQUIPMENT</span><input id="editToEquip" type="text"></label>
+                  </fieldset>
+                </div>
+                <label class="field compact"><span>CHECK NODE</span><input id="editCheckNode" type="text" placeholder="쉼표로 구분"></label>
+                <div class="dash-sub-row">
+                  <label class="field compact"><span>WD_PAGE</span><input id="editWdPage" type="text"></label>
+                  <label class="field compact"><span>C_WEIGHT</span><input id="editCableWeight" type="number" step="0.01"></label>
+                </div>
+              </div>
+
+              <!-- RIGHT: Route path table + detail cards -->
+              <div class="dash-editor-col dash-col-path">
+                <div class="dash-path-header">
+                  <span class="dash-path-label">NO</span>
+                  <span class="dash-path-label">DECK</span>
+                  <span class="dash-path-label grow">NODE</span>
+                  <span class="dash-path-label">LENGTH</span>
+                </div>
+                <div id="dashPathTable" class="dash-path-table"></div>
+                <div class="dash-detail-mini">
+                  <div class="detail-card compact"><span>BASE</span><strong id="detailBaseLength">0</strong></div>
+                  <div class="detail-card compact"><span>GRAPH</span><strong id="detailGraphLength">0</strong></div>
+                  <div class="detail-card compact"><span>TOTAL</span><strong id="detailTotalLength">0</strong></div>
+                  <div class="detail-card compact"><span>MAP</span><strong id="detailMapStatus">-</strong></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Hidden extra fields -->
+            <details class="editor-extra dash-extra">
+              <summary>추가 SCH 항목 (REMARK, PATH, INTERFERENCE)</summary>
+              <div class="dash-extra-grid">
+                <label class="field compact"><span>CABLE_PATH</span><textarea id="editPath" rows="1"></textarea></label>
+                <label class="field compact"><span>INTERFERENCE</span><input id="editInterference" type="text"></label>
+                <label class="field compact"><span>REMARK</span><textarea id="editRemark" rows="1"></textarea></label>
+                <label class="field compact"><span>REMARK1</span><input id="editRemark1" type="text"></label>
+                <label class="field compact"><span>REMARK2</span><input id="editRemark2" type="text"></label>
+                <label class="field compact"><span>REMARK3</span><input id="editRemark3" type="text"></label>
+              </div>
+            </details>
+          </section>
+
+          <!-- ====== FILTER BAR ====== -->
+          <div class="dash-filter-bar">
+            <input id="searchInput" type="search" placeholder="검색: 케이블명, 노드, 시스템" class="dash-search">
+            <select id="validationFilter" class="dash-filter-select">
+              <option value="ALL">전체</option>
+              <option value="PASS">PASS</option>
+              <option value="WARN">WARN</option>
+              <option value="FAIL">FAIL</option>
+              <option value="PENDING">PENDING</option>
+            </select>
+            <select id="systemFilter" class="dash-filter-select">
+              <option value="ALL">전체</option>
+            </select>
+            <div id="listCount" class="dash-count">0 / 0</div>
+            <button id="focusMapBtn" class="toolbar-btn subtle" type="button">맵 표시</button>
+          </div>
+
+          <!-- ====== BOTTOM: Full-width Grid with Deck Tree ====== -->
+          <div class="dash-grid-area">
+            <div class="deck-tree" id="deckTree">
+              <div class="deck-tree-head">Deck Groups</div>
+              <div class="deck-tree-list" id="deckTreeList"></div>
+            </div>
+            <div class="grid-table">
+              <div id="cableGridHeader" class="grid-header"></div>
+              <div id="cableGridViewport" class="grid-viewport">
+                <div id="cableGridInner" class="grid-inner"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ====== Hidden detail panels (rendered but hidden to keep DOM refs) ====== -->
+          <div id="detailEmpty" class="hidden"></div>
+          <div id="detailContent" class="hidden">
+            <div id="lengthBreakdown" class="issue-list"></div>
+            <div id="validationList" class="issue-list"></div>
+            <div id="pathCompare" class="path-compare"></div>
+            <canvas id="detailMapCanvas" class="map-canvas small" style="display:none"></canvas>
+            <div id="detailMapMeta" class="map-meta" style="display:none"></div>
+          </div>
+        </div>
+        </div><!-- /sub-tab-panel schedule -->
+
+        <!-- SUB-TAB: Cable List (full-width Excel spreadsheet) -->
+        <div class="sub-tab-panel" data-subpanel="cablelist">
+          <div class="list-tab-wrapper">
+            <div class="list-tab-toolbar">
+              <input id="cableListSearch" type="search" placeholder="검색: 케이블명, 노드, 시스템, 장비" class="list-tab-search">
+              <select id="cableListSystemFilter" class="list-tab-filter">
+                <option value="ALL">전체 시스템</option>
+              </select>
+              <select id="cableListDeckFilter" class="list-tab-filter">
+                <option value="ALL">전체 데크</option>
+              </select>
+              <div id="cableListCount" class="list-tab-count">0 / 0</div>
+            </div>
+            <div class="list-tab-grid-area">
+              <div class="list-tab-sidebar" id="cableListSidebar">
+                <div class="list-tab-sidebar-head">Cable Groups</div>
+                <div class="list-tab-sidebar-list" id="cableListGroupList"></div>
+              </div>
+              <div class="list-tab-grid">
+                <div id="cableListHeader" class="grid-header"></div>
+                <div id="cableListViewport" class="grid-viewport">
+                  <div id="cableListInner" class="grid-inner"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SUB-TAB: Node List (full-width Excel spreadsheet) -->
+        <div class="sub-tab-panel" data-subpanel="nodelist">
+          <div class="list-tab-wrapper">
+            <div class="list-tab-toolbar">
+              <input id="nodeListSearch" type="search" placeholder="검색: 노드명, 구조, 타입, 데크" class="list-tab-search">
+              <select id="nodeListDeckFilter" class="list-tab-filter">
+                <option value="ALL">전체 데크</option>
+              </select>
+              <select id="nodeListTypeFilter" class="list-tab-filter">
+                <option value="ALL">전체 타입</option>
+              </select>
+              <div id="nodeListTabCount" class="list-tab-count">0 / 0</div>
+            </div>
+            <div class="list-tab-grid-area">
+              <div class="list-tab-grid list-tab-grid-full">
+                <div id="nodeListTabHeader" class="grid-header"></div>
+                <div id="nodeListTabViewport" class="grid-viewport">
+                  <div id="nodeListTabInner" class="grid-inner"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      <section class="tab-panel" data-panel="routing">
+        <div class="split split-routing">
+          <article class="panel route-side">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">수동 경로</p>
+                <h3>수동 경로 검증과 경유 노드 확인</h3>
+              </div>
+            </div>
+
+            <div class="manual-form">
+              <label class="field">
+                <span>FROM NODE</span>
+                <input id="routeFrom" type="text">
+              </label>
+              <label class="field">
+                <span>TO NODE</span>
+                <input id="routeTo" type="text">
+              </label>
+              <label class="field">
+                <span>CHECK NODE</span>
+                <input id="routeCheck" type="text" placeholder="쉼표로 구분">
+              </label>
+              <label class="field">
+                <span>FROM_REST</span>
+                <input id="routeFromRest" type="number" step="0.01" value="0">
+              </label>
+              <label class="field">
+                <span>TO_REST</span>
+                <input id="routeToRest" type="number" step="0.01" value="0">
+              </label>
+            </div>
+
+            <div class="editor-actions route-actions">
+              <button id="previewRouteBtn" class="toolbar-btn accent" type="button">경로 미리보기</button>
+              <button id="clearPreviewBtn" class="toolbar-btn subtle" type="button">미리보기 해제</button>
+              <button id="useSelectedRouteBtn" class="toolbar-btn" type="button">선택 케이블 값 가져오기</button>
+            </div>
+
+            <div class="detail-block">
+              <div class="block-title">경로 결과</div>
+              <div id="routePreviewMeta" class="map-meta">선택된 경로가 없습니다.</div>
+              <div id="routePreviewPath" class="path-chip-list"></div>
+            </div>
+
+            <div class="detail-block">
+              <div class="block-title">3중 검증 방법</div>
+              <ol class="validation-steps">
+                <li>1차 Graph Cross Check: 노드 존재, relation 대상, 비대칭 relation, 단절 여부를 확인합니다.</li>
+                <li>2차 Route Cross Check: path의 연속 edge 실존 여부와 graphLength 합산, FROM_REST와 TO_REST 반영 여부를 확인합니다.</li>
+                <li>3차 Map Cross Check: 2D와 3D가 같은 path를 사용하고 좌표 부족을 정확히 경고하는지 확인합니다.</li>
+              </ol>
+            </div>
+
+            <div class="detail-block grow">
+              <div class="block-title">그래프 요약</div>
+              <div id="graphSummary" class="summary-inline"></div>
+              <div id="graphIssueList" class="issue-list compact"></div>
+            </div>
+          </article>
+
+          <article class="panel map-side">
+            <div class="map-stack">
+              <section class="map-card">
+                <div class="panel-header">
+                  <div>
+                    <p class="eyebrow">2D 검증 맵</p>
+                    <h3>경로와 연결 상태를 직접 확인</h3>
+                  </div>
+                </div>
+                <canvas id="routeMapCanvas" class="map-canvas"></canvas>
+                <div id="routeMapMeta" class="map-meta"></div>
+              </section>
+
+              <section class="map-card">
+                <div class="panel-header">
+                  <div>
+                    <p class="eyebrow">3D 보조 보기</p>
+                    <h3>동일 경로의 3D 보조 시각화</h3>
+                  </div>
+                </div>
+                <div id="threeContainer" class="three-container"></div>
+                <div id="threeMeta" class="map-meta"></div>
+              </section>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="tab-panel" data-panel="nodes">
+        <div class="split split-nodes">
+          <article class="panel node-list-side">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">노드 메뉴</p>
+                <h3>전체 노드 리스트와 자동 트레이 폭</h3>
+              </div>
+              <div id="nodeListCount" class="panel-meta">0 / 0</div>
+            </div>
+
+            <div class="node-toolbar">
+              <label class="toolbar-field">
+                <span>검색</span>
+                <input id="nodeSearch" type="search" placeholder="노드, 구조, 시스템, 데크">
+              </label>
+              <label class="toolbar-field">
+                <span>정렬</span>
+                <select id="nodeSort">
+                  <option value="trayDesc">트레이 폭 큰 순</option>
+                  <option value="fillDesc">충진율 큰 순</option>
+                  <option value="areaDesc">단면적 큰 순</option>
+                  <option value="cableDesc">케이블 수 많은 순</option>
+                  <option value="nameAsc">이름순</option>
+                  <option value="relationDesc">연결 수 많은 순</option>
+                </select>
+              </label>
+            </div>
+
+            <div class="detail-cards node-kpis">
+              <div class="detail-card">
+                <span>VISIBLE</span>
+                <strong id="nodeVisibleCount">0</strong>
+              </div>
+              <div class="detail-card">
+                <span>COORD READY</span>
+                <strong id="nodeCoordReadyCount">0</strong>
+              </div>
+              <div class="detail-card">
+                <span>TRAY AUTO</span>
+                <strong id="nodeTrayDemand">0.00</strong>
+              </div>
+              <div class="detail-card">
+                <span>AREA SUM</span>
+                <strong id="nodeAreaDemand">0.00</strong>
+              </div>
+              <div class="detail-card">
+                <span>FOCUS NODE</span>
+                <strong id="nodeFocusedName">-</strong>
+              </div>
+            </div>
+
+            <div class="detail-block">
+              <div class="block-title">Auto Calculation Rule</div>
+              <div id="nodeAutoMeta" class="summary-inline"></div>
+            </div>
+
+            <div class="detail-block grow">
+              <div class="block-title">Node List</div>
+              <div id="nodeList" class="diagnostic-table grow"></div>
+            </div>
+          </article>
+
+          <article class="panel node-view-side">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Node Focus</p>
+                <h3 id="nodeDetailTitle">노드를 선택해 주세요.</h3>
+              </div>
+              <div id="nodeDetailMeta" class="panel-meta">리스트를 더블클릭하면 3D 맵에서 바로 초점이 맞춰집니다.</div>
+            </div>
+
+            <div class="detail-cards node-detail-cards">
+              <div class="detail-card">
+                <span>TRAY WIDTH</span>
+                <strong id="nodeDetailTrayWidth">0</strong>
+              </div>
+              <div class="detail-card">
+                <span>CABLES</span>
+                <strong id="nodeDetailCableCount">0</strong>
+              </div>
+              <div class="detail-card">
+                <span>RELATIONS</span>
+                <strong id="nodeDetailRelationCount">0</strong>
+              </div>
+              <div class="detail-card">
+                <span>MAP STATUS</span>
+                <strong id="nodeDetailCoordStatus">LOCKED</strong>
+              </div>
+            </div>
+
+            <div class="node-detail-grid">
+              <div class="detail-block">
+                <div class="block-title">Node Summary</div>
+                <div id="nodeSummaryList" class="issue-list compact"></div>
+              </div>
+
+              <div class="detail-block">
+                <div class="block-title">Tray Rule</div>
+                <div id="nodeTrayRule" class="summary-inline"></div>
+                <div id="nodeTrayList" class="issue-list compact"></div>
+              </div>
+
+              <div class="detail-block">
+                <div class="block-title">Matched Cables</div>
+                <div id="nodeCableList" class="diagnostic-table compact"></div>
+              </div>
+
+              <div class="detail-block">
+                <div class="block-title">Connected Nodes</div>
+                <div id="nodeRelationList" class="diagnostic-table compact"></div>
+              </div>
+            </div>
+
+            <section class="detail-block node-tray-engineering">
+              <div class="panel-header compact">
+                <div>
+                  <p class="eyebrow">Tray Engineering</p>
+                  <h3>Fill, tray width, and cable layout for the selected node</h3>
+                </div>
+                <div id="nodeTrayStatus" class="panel-meta">NO NODE</div>
+              </div>
+
+              <div class="node-tray-controls">
+                <label class="field compact">
+                  <span>MAX H</span>
+                  <input id="nodeTrayMaxHeight" type="number" step="10" min="50" value="150">
+                </label>
+                <label class="field compact">
+                  <span>FILL %</span>
+                  <input id="nodeTrayFillLimit" type="number" step="5" min="10" max="90" value="40">
+                </label>
+                <label class="field compact">
+                  <span>TIERS</span>
+                  <input id="nodeTrayTierCount" type="number" step="1" min="1" max="6" value="1">
+                </label>
+                <label class="field compact">
+                  <span>WIDTH</span>
+                  <input id="nodeTrayManualWidth" type="number" step="50" min="100" placeholder="AUTO">
+                </label>
+                <div class="editor-actions compact">
+                  <button id="applyRecommendedTrayBtn" class="toolbar-btn subtle" type="button">Use Recommended</button>
+                  <button id="saveNodeTrayOverrideBtn" class="toolbar-btn accent" type="button">Save Tray</button>
+                  <button id="clearNodeTrayOverrideBtn" class="toolbar-btn subtle" type="button">Clear Override</button>
+                </div>
+              </div>
+
+              <div id="nodeTraySummary" class="issue-list compact"></div>
+              <div id="nodeTrayMatrix" class="tray-matrix"></div>
+              <canvas id="nodeTrayCanvas" class="tray-canvas"></canvas>
+              <div id="nodeTrayCanvasMeta" class="map-meta"></div>
+              <div id="nodeTrayIndexList" class="tray-index-list"></div>
+            </section>
+
+            <div class="node-map-stack">
+              <section class="map-card">
+                <div class="panel-header">
+                  <div>
+                    <p class="eyebrow">2D Node Map</p>
+                    <h3>由ъ뒪?몄? 媛숈? ?몃뱶 醫뚰몴瑜?2D濡??뺤씤</h3>
+                  </div>
+                </div>
+                <canvas id="nodeMapCanvas" class="map-canvas"></canvas>
+                <div id="nodeMapMeta" class="map-meta"></div>
+              </section>
+
+              <section class=”map-card”>
+                <div class=”panel-header”>
+                  <div>
+                    <p class=”eyebrow” id=”nodeThreeEyebrow”>3D Node Focus</p>
+                    <h3 id=”nodeThreeTitle”>전체 노드 환경에서 선택 노드를 강조</h3>
+                  </div>
+                  <button class=”btn btn-xs btn-outline” id=”nodeThreeNetworkToggle” onclick=”window.__toggle3DNetworkView && window.__toggle3DNetworkView()”>Network View</button>
+                </div>
+                <div id=”nodeThreeContainer” class=”three-container”></div>
+                <div id=”nodeThreeMeta” class=”map-meta”></div>
+              </section>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="tab-panel" data-panel="bom">
+        <article class="panel">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">BOM 집계</p>
+              <h3>시스템 / 타입 / 데크 자재 집계</h3>
+            </div>
+          </div>
+
+          <div class="bom-toolbar">
+            <div class="bom-filter-row">
+              <label class="toolbar-field">
+                <span>집계 기준</span>
+                <select id="bomGroupBy">
+                  <option value="SYSTEM_TYPE_DECK">시스템 + 타입 + 데크</option>
+                  <option value="SYSTEM_TYPE">시스템 + 타입</option>
+                  <option value="SYSTEM_DECK">시스템 + 데크</option>
+                  <option value="TYPE_DECK">타입 + 데크</option>
+                  <option value="SYSTEM">시스템</option>
+                  <option value="TYPE">타입</option>
+                  <option value="DECK">데크</option>
+                </select>
+              </label>
+
+              <label class="toolbar-field">
+                <span>시스템</span>
+                <select id="bomSystemFilter">
+                  <option value="ALL">전체</option>
+                </select>
+              </label>
+
+              <label class="toolbar-field">
+                <span>타입</span>
+                <select id="bomTypeFilter">
+                  <option value="ALL">전체</option>
+                </select>
+              </label>
+
+              <label class="toolbar-field">
+                <span>데크</span>
+                <select id="bomDeckFilter">
+                  <option value="ALL">전체</option>
+                </select>
+              </label>
+
+              <label class="toolbar-field">
+                <span>검색</span>
+                <input id="bomSearch" type="search" placeholder="시스템, 타입, 데크">
+              </label>
+
+              <label class="toolbar-field">
+                <span>여유율 %</span>
+                <input id="bomMargin" type="number" min="0" max="100" step="1" value="10">
+              </label>
+            </div>
+
+            <div class="editor-actions bom-actions">
+              <button id="generateBomPosBtn" class="toolbar-btn" type="button">POS 생성</button>
+              <button id="exportBomBtn" class="toolbar-btn accent" type="button">BOM 엑셀 저장</button>
+            </div>
+          </div>
+
+          <div class="detail-cards bom-kpis">
+            <div class="detail-card">
+              <span>그룹 수</span>
+              <strong id="bomGroupCount">0</strong>
+            </div>
+            <div class="detail-card">
+              <span>케이블 수</span>
+              <strong id="bomCableCount">0</strong>
+            </div>
+            <div class="detail-card">
+              <span>필요 길이</span>
+              <strong id="bomRequiredLength">0.00</strong>
+            </div>
+            <div class="detail-card">
+              <span>여유 포함 길이</span>
+              <strong id="bomTotalLength">0.00</strong>
+            </div>
+          </div>
+
+          <div class="bom-grid">
+            <div class="detail-block">
+              <div class="block-title">데크 판정 규칙</div>
+              <div id="bomDeckRule" class="summary-inline"></div>
+            </div>
+
+            <div class="detail-block grow">
+              <div class="block-title">BOM 표</div>
+              <div id="bomTable" class="diagnostic-table grow"></div>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <section class="tab-panel" data-panel="reports">
+        <article class="panel">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">운영 보고서</p>
+              <h3>통합 보고, 트레이 집중 구간, 업그레이드 가이드</h3>
+            </div>
+            <div id="reportSnapshotAt" class="panel-meta">갱신: -</div>
+          </div>
+
+          <div class="bom-toolbar">
+            <div class="bom-filter-row">
+              <label class="toolbar-field">
+                <span>드럼 길이</span>
+                <input id="reportDrumLength" type="number" min="10" step="10" value="500">
+              </label>
+            </div>
+
+            <div class="editor-actions bom-actions">
+              <button id="refreshReportsBtn" class="toolbar-btn" type="button">보고서 새로고침</button>
+              <button id="exportReportsBtn" class="toolbar-btn accent" type="button">보고서 엑셀 저장</button>
+            </div>
+          </div>
+
+          <div class="detail-cards reports-kpis">
+            <div class="detail-card">
+              <span>시스템</span>
+              <strong id="reportSystemCount">0</strong>
+            </div>
+            <div class="detail-card">
+              <span>타입</span>
+              <strong id="reportTypeCount">0</strong>
+            </div>
+            <div class="detail-card">
+              <span>데크</span>
+              <strong id="reportDeckCount">0</strong>
+            </div>
+            <div class="detail-card">
+              <span>드럼</span>
+              <strong id="reportDrumCount">0</strong>
+            </div>
+            <div class="detail-card">
+              <span>FAIL / WARN</span>
+              <strong id="reportFailWatchCount">0 / 0</strong>
+            </div>
+          </div>
+
+          <div class="reports-grid">
+            <div class="detail-block">
+              <div class="block-title">시스템 현황</div>
+              <div id="reportSystemTable" class="diagnostic-table compact"></div>
+            </div>
+
+            <div class="detail-block">
+              <div class="block-title">타입 요약</div>
+              <div id="reportTypeTable" class="diagnostic-table compact"></div>
+            </div>
+
+            <div class="detail-block">
+              <div class="block-title">트레이 집중 구간</div>
+              <div id="reportHotspotTable" class="diagnostic-table compact"></div>
+            </div>
+
+            <div class="detail-block">
+              <div class="block-title">검증 주의 목록</div>
+              <div id="reportValidationTable" class="diagnostic-table compact"></div>
+            </div>
+
+            <div class="detail-block">
+              <div class="block-title">드럼 계획</div>
+              <div id="reportDrumTable" class="diagnostic-table compact"></div>
+            </div>
+
+            <div class="detail-block">
+              <div class="block-title">업그레이드 가이드</div>
+              <div id="reportUpgradeGuide" class="issue-list compact"></div>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <section class="tab-panel" data-panel="space">
+        <div class="space-layout">
+          <article class="panel">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Group Space</p>
+                <h3>?뱀씤??洹몃９蹂??꾩슜 怨듦컙</h3>
+              </div>
+              <div id="spaceStatus" class="panel-meta">濡쒓렇?????ъ슜?????덉뒿?덈떎.</div>
+            </div>
+
+            <div class="detail-cards">
+              <div class="detail-card">
+                <span>ACTIVE GROUP</span>
+                <strong id="spaceActiveGroup">-</strong>
+              </div>
+              <div class="detail-card">
+                <span>MEMBERS</span>
+                <strong id="spaceMemberCount">0</strong>
+              </div>
+              <div class="detail-card">
+                <span>UPDATED</span>
+                <strong id="spaceUpdatedAt">-</strong>
+              </div>
+              <div class="detail-card">
+                <span>ACCESS</span>
+                <strong id="spaceAccessLevel">LOCKED</strong>
+              </div>
+            </div>
+
+            <div class="space-toolbar">
+              <label class="toolbar-field">
+                <span>GROUP</span>
+                <select id="spaceGroupSelect">
+                  <option value="">No Group</option>
+                </select>
+              </label>
+              <button id="refreshSpaceBtn" class="toolbar-btn" type="button">Refresh Space</button>
+              <button id="saveSpaceBtn" class="toolbar-btn accent" type="button">Save Space</button>
+            </div>
+
+            <div class="space-grid">
+              <div class="detail-block">
+                <div class="block-title">Announcement</div>
+                <textarea id="spaceAnnouncement" class="space-textarea" placeholder="洹몃９ 怨듭?? 怨듭슜 硫붾え瑜??낅젰?섏꽭??"></textarea>
+              </div>
+
+              <div class="detail-block">
+                <div class="block-title">Workspace Notes</div>
+                <textarea id="spaceNotes" class="space-textarea tall" placeholder="洹몃９蹂??묒뾽 湲곗?, ?몄닔?멸퀎, ?뱀씠?ы빆???④린?몄슂."></textarea>
+              </div>
+            </div>
+
+            <div class="detail-block grow">
+              <div class="block-title">Members</div>
+              <div id="spaceMemberList" class="diagnostic-table compact"></div>
+            </div>
+          </article>
+
+          <article id="adminApprovalPanel" class="panel">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Admin Queue</p>
+                <h3>?ъ슜 ?붿껌 ?뱀씤怨?洹몃９ 諛곗젙</h3>
+              </div>
+              <button id="refreshAdminBtn" class="toolbar-btn" type="button">Refresh Queue</button>
+            </div>
+
+            <div class="detail-cards">
+              <div class="detail-card">
+                <span>PENDING REQUESTS</span>
+                <strong id="adminPendingCount">0</strong>
+              </div>
+              <div class="detail-card">
+                <span>GROUPS</span>
+                <strong id="adminGroupCount">0</strong>
+              </div>
+              <div class="detail-card">
+                <span>ACTIVE USERS</span>
+                <strong id="adminActiveUsers">0</strong>
+              </div>
+              <div class="detail-card">
+                <span>ADMIN</span>
+                <strong id="adminDisplayName">愿由ъ옄</strong>
+              </div>
+            </div>
+
+            <div class="detail-block grow">
+              <div class="block-title">Approval Requests</div>
+              <div id="adminRequestList" class="diagnostic-table grow"></div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="tab-panel" data-panel="manual">
+        <article class="panel manual-panel">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">설명서</p>
+              <h3>작업 순서와 라우팅 기준</h3>
+            </div>
+          </div>
+
+          <div class="manual-layout">
+            <section class="manual-section">
+              <div class="block-title">기본 작업 순서</div>
+              <ul class="manual-list">
+                <li>`케이블` 버튼으로 SCH 파일을 불러옵니다.</li>
+                <li>`노드` 버튼으로 NODE 파일을 불러옵니다.</li>
+                <li>케이블 리스트를 더블클릭해 상단 편집기에서 값을 수정합니다.</li>
+                <li>`저장+재산출` 또는 `전체경로`로 경로를 다시 산출합니다.</li>
+                <li>`전체검증`으로 그래프, 경로, 맵 일치 여부를 확인합니다.</li>
+                <li>완료 후 `엑셀` 또는 `서버저장`을 사용합니다.</li>
+              </ul>
+            </section>
+
+            <section class="manual-section">
+              <div class="block-title">라우팅 규칙</div>
+              <ul class="manual-list">
+                <li>총 길이는 `GRAPH_LENGTH + FROM_REST + TO_REST`로 계산됩니다.</li>
+                <li>`CHECK_NODE`를 입력하면 입력 순서대로 반드시 경유합니다.</li>
+                <li>`FROM_NODE`와 `TO_NODE`가 같으면 해당 노드 `linkLength`를 기본 길이로 사용합니다.</li>
+                <li>연속 노드쌍의 relation edge가 실제로 있어야 검증 PASS가 가능합니다.</li>
+                <li>좌표가 없는 노드는 맵 상태에서 경고가 표시됩니다.</li>
+              </ul>
+            </section>
+
+            <section class="manual-section">
+              <div class="block-title">화면 사용 기준</div>
+              <ul class="manual-list">
+                <li>주 작업 화면은 `케이블` 탭입니다. 리스트를 최대한 많이 보도록 구성했습니다.</li>
+                <li>우측 패널은 선택 케이블의 길이 분해와 검증 결과만 빠르게 확인하는 용도입니다.</li>
+                <li>상단 편집기에는 자주 바꾸는 항목만 먼저 보이고, 추가 SCH 필드는 접어서 관리합니다.</li>
+                <li>`경로` 탭은 수동 경로 미리보기와 `CHECK_NODE` 검토용입니다.</li>
+              </ul>
+            </section>
+
+            <section class="manual-section">
+              <div class="block-title">로그인 / 저장</div>
+              <ul class="manual-list">
+                <li>관리자 로그인, Google, Naver는 서버 인증 설정이 되어 있어야 동작합니다.</li>
+                <li>서버 저장은 현재 프로젝트 스냅샷을 저장합니다.</li>
+                <li>엑셀 반출 전에는 검증 상태와 총 길이를 반드시 확인하세요.</li>
+              </ul>
+            </section>
+          </div>
+        </article>
+      </section>
+
+      <section class="tab-panel" data-panel="diagnostics">
+        <div class="diagnostics-layout">
+          <article class="panel">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">검증 요약</p>
+                <h3>3중 검증 집계</h3>
+              </div>
+              <div id="diagnosticRunAt" class="panel-meta">-</div>
+            </div>
+
+            <div class="detail-cards">
+              <div class="detail-card">
+                <span>PASS</span>
+                <strong id="diagPass">0</strong>
+              </div>
+              <div class="detail-card">
+                <span>WARN</span>
+                <strong id="diagWarn">0</strong>
+              </div>
+              <div class="detail-card">
+                <span>FAIL</span>
+                <strong id="diagFail">0</strong>
+              </div>
+              <div class="detail-card">
+                <span>그래프 이슈</span>
+                <strong id="diagGraphIssues">0</strong>
+              </div>
+            </div>
+
+            <div class="detail-block grow">
+              <div class="block-title">그래프 이슈</div>
+              <div id="diagnosticGraphTable" class="diagnostic-table"></div>
+            </div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">케이블 진단</p>
+                <h3>문제가 있는 케이블 우선 표시</h3>
+              </div>
+            </div>
+            <div id="diagnosticCableTable" class="diagnostic-table grow"></div>
+            <div class="detail-block detail-block-tight">
+              <div class="block-title">버전 비교</div>
+              <div id="versionCompareTable" class="diagnostic-table compact"></div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="tab-panel" data-panel="install">
+        <div id="installPanel"></div>
+      </section>
+
+      <section class="tab-panel" data-panel="cabletype">
+        <div class="cabletype-layout">
+          <div class="panel-header compact">
+            <div>
+              <p class="eyebrow">CABLE TYPE MASTER</p>
+              <h3>Cable Type Database</h3>
+            </div>
+            <div class="toolbar-row">
+              <input id="cableTypeSearch" type="text" class="toolbar-input" placeholder="Search cable type...">
+              <div id="cableTypeCount" class="dash-count">0</div>
+            </div>
+          </div>
+          <div class="grid-shell grow">
+            <div class="grid-header" id="cableTypeGridHeader"></div>
+            <div class="grid-viewport" id="cableTypeGridViewport">
+              <div class="grid-inner" id="cableTypeGridInner"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="tab-panel" data-panel="admin">
+        <div class="admin-console-layout">
+          <article class="panel">
+            <div class="panel-header compact">
+              <div>
+                <p class="eyebrow">ADMIN CONSOLE</p>
+                <h3>시스템 관리</h3>
+              </div>
+              <button id="adminRefreshAll" class="toolbar-btn" type="button">Refresh All</button>
+            </div>
+            <div class="detail-cards" id="adminStatsCards">
+              <div class="detail-card"><span>TOTAL CABLES</span><strong id="adminStatCables">0</strong></div>
+              <div class="detail-card"><span>TOTAL NODES</span><strong id="adminStatNodes">0</strong></div>
+              <div class="detail-card"><span>VALIDATION OK</span><strong id="adminStatValid">0</strong></div>
+              <div class="detail-card"><span>VALIDATION FAIL</span><strong id="adminStatInvalid">0</strong></div>
+            </div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-header compact">
+              <div>
+                <p class="eyebrow">USER MANAGEMENT</p>
+                <h3>사용자 목록</h3>
+              </div>
+            </div>
+            <div id="adminUserList" class="admin-user-list"></div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-header compact">
+              <div>
+                <p class="eyebrow">PENDING REQUESTS</p>
+                <h3>대기 중인 요청</h3>
+              </div>
+            </div>
+            <div id="adminPendingList" class="admin-pending-list"></div>
+          </article>
+
+          <!-- 사용 기록 로그 -->
+          <article class="panel" id="adminLogSection">
+            <div class="panel-header compact">
+              <div>
+                <p class="eyebrow">USAGE LOG</p>
+                <h3>사용 기록 로그</h3>
+              </div>
+              <button class="toolbar-btn subtle" id="adminLogRefresh" type="button">새로고침</button>
+            </div>
+            <div id="adminLogViewer" class="admin-log-viewer">
+              <div class="admin-empty" style="padding:12px;text-align:center;color:rgba(255,255,255,0.3);font-size:12px">로그 불러오는 중...</div>
+            </div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-header compact">
+              <div>
+                <p class="eyebrow">SERVER DATA</p>
+                <h3>서버 데이터 관리</h3>
+              </div>
+            </div>
+            <div id="adminServerData" class="admin-server-data"></div>
+          </article>
+
+          <!-- Version History Panel -->
+          <article class="panel" id="versionHistoryPanel">
+            <div class="panel-header compact">
+              <div>
+                <p class="eyebrow">VERSION HISTORY</p>
+                <h3>버전 히스토리 &amp; 복원</h3>
+              </div>
+              <button id="versionRefreshBtn" class="toolbar-btn" type="button">새로고침</button>
+            </div>
+            <div class="ver-ship-select" style="display:flex;gap:8px;align-items:center;padding:8px 0;flex-wrap:wrap;">
+              <label style="font-size:11px;font-weight:600;color:#495057;">그룹:</label>
+              <select id="verGroupSelect" style="height:26px;font-size:11px;border:1px solid #ced4da;border-radius:3px;padding:0 6px;min-width:100px;"></select>
+              <label style="font-size:11px;font-weight:600;color:#495057;">호선:</label>
+              <select id="verShipSelect" style="height:26px;font-size:11px;border:1px solid #ced4da;border-radius:3px;padding:0 6px;min-width:120px;"></select>
+            </div>
+            <div id="versionList" class="ver-list"></div>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <footer class="status-bar">
+      <div class="status-metrics">
+        <div class="summary-card status-card">
+          <span>케이블</span>
+          <strong id="metricCables">0</strong>
+        </div>
+        <div class="summary-card status-card">
+          <span>업로드 노드</span>
+          <strong id="metricUploadedNodes">0</strong>
+        </div>
+        <div class="summary-card status-card">
+          <span>병합 노드</span>
+          <strong id="metricMergedNodes">0</strong>
+        </div>
+        <div class="summary-card status-card">
+          <span>경로 완료</span>
+          <strong id="metricRouted">0</strong>
+        </div>
+        <div class="summary-card status-card">
+          <span>검증</span>
+          <strong id="metricValidation">0 / 0 / 0</strong>
+        </div>
+        <div class="summary-card status-card">
+          <span>그래프 이슈</span>
+          <strong id="metricGraphIssues">0</strong>
+        </div>
+      </div>
+
+      <div class="status-state">
+        <div id="projectStatus" class="toolbar-status">프로젝트 없음</div>
+        <div id="historyStatus" class="toolbar-status">이력 0 / 0</div>
+      </div>
+      <div class="status-developer">Developer(System Inquiry): designsir@naver.com</div>
+    </footer>
+  </div>
+
+  <div id="toastStack" class="toast-stack"></div>
 </body>
 </html>
+
