@@ -125,6 +125,7 @@ function getDeckForNode(n){
 
 // ---- UTILITIES ----
 function safePF(v){const p=parseFloat(String(v||'').replace(/[^0-9.-]/g,''));return isNaN(p)?0:p}
+function safeCoord(v){if(v==null||v==='')return null;const p=parseFloat(String(v).replace(/[^0-9.-]/g,''));return isNaN(p)?null:p}
 function fmt(n,d=1){return n!=null?Number(n).toFixed(d):'-'}
 function fmtNum(n){return n>=1e6?(n/1e6).toFixed(1)+'M':n>=1e3?(n/1e3).toFixed(1)+'K':String(n)}
 function now(){return new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}
@@ -452,7 +453,7 @@ function processNode(raw){
   for(const k in NODE_MAP_COLS)idx[k]=getColIdx(h,NODE_MAP_COLS[k]);
   _nodeMap=null;
   nodeData=raw.slice(1).map((r,i)=>({
-    id:i,name:idx.name>=0?String(r[idx.name]||''):'',structure:idx.structure>=0?String(r[idx.structure]||''):'',component:idx.component>=0?String(r[idx.component]||''):'',type:idx.type>=0?String(r[idx.type]||''):'',relation:idx.relation>=0?String(r[idx.relation]||''):'',linkLength:idx.linkLength>=0?safePF(r[idx.linkLength]):1,areaSize:idx.areaSize>=0?safePF(r[idx.areaSize]):0,x:idx.nx>=0?safePF(r[idx.nx]):null,y:idx.ny>=0?safePF(r[idx.ny]):null,z:idx.nz>=0?safePF(r[idx.nz]):null,relations:idx.relation>=0?String(r[idx.relation]||'').split(',').map(s=>s.trim()).filter(Boolean):[],connectedCables:0,fillPct:0
+    id:i,name:idx.name>=0?String(r[idx.name]||''):'',structure:idx.structure>=0?String(r[idx.structure]||''):'',component:idx.component>=0?String(r[idx.component]||''):'',type:idx.type>=0?String(r[idx.type]||''):'',relation:idx.relation>=0?String(r[idx.relation]||''):'',linkLength:idx.linkLength>=0?safePF(r[idx.linkLength]):1,areaSize:idx.areaSize>=0?safePF(r[idx.areaSize]):0,x:idx.nx>=0?safeCoord(r[idx.nx]):null,y:idx.ny>=0?safeCoord(r[idx.ny]):null,z:idx.nz>=0?safeCoord(r[idx.nz]):null,coordSource:idx.nx>=0&&safeCoord(r[idx.nx])!=null?'excel':'none',relations:idx.relation>=0?String(r[idx.relation]||'').split(',').map(s=>s.trim()).filter(Boolean):[],connectedCables:0,fillPct:0
   })).filter(n=>n.name);
   filteredNodeData=[...nodeData];
 }
@@ -721,46 +722,92 @@ function render3D(){
   scene.children.filter(c=>c.userData.dynamic).forEach(c=>scene.remove(c));
   const nodes=nodeData.length?nodeData:[];
   if(!nodes.length){renderer.render(scene,camera);return}
-  // Normalize
-  let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity,minZ=Infinity,maxZ=-Infinity;
-  const validNodes=nodes.filter(n=>n.x!=null&&n.y!=null);
-  if(!validNodes.length){
-    // Force-directed layout from connections
-    layoutFromConnections(nodes);
+
+  // Separate coordinate nodes from auto-layout nodes
+  const coordNodes=nodes.filter(n=>n.x!=null&&n.y!=null);
+  const noCoordNodes=nodes.filter(n=>n.x==null||n.y==null);
+
+  // Auto-layout for nodes without coordinates
+  if(noCoordNodes.length){
+    layoutFromConnections(noCoordNodes);
+    // Offset auto-layout nodes to the side of coordinate nodes bounding box
+    if(coordNodes.length){
+      let maxCX=-Infinity;
+      coordNodes.forEach(n=>{if(n.x>maxCX)maxCX=n.x});
+      const offsetX=maxCX+200;
+      noCoordNodes.forEach(n=>{if(n.x!=null)n.x+=offsetX;n.coordSource='auto'});
+    }else{
+      noCoordNodes.forEach(n=>{n.coordSource='auto'});
+    }
   }
+
+  // All displayable nodes (now all have coordinates)
   const displayNodes=nodes.filter(n=>n.x!=null&&n.y!=null);
+  if(!displayNodes.length){renderer.render(scene,camera);return}
+
+  // Calculate bounds and normalize
+  let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity,minZ=Infinity,maxZ=-Infinity;
   displayNodes.forEach(n=>{minX=Math.min(minX,n.x);maxX=Math.max(maxX,n.x);minY=Math.min(minY,n.y);maxY=Math.max(maxY,n.y);minZ=Math.min(minZ,n.z||0);maxZ=Math.max(maxZ,n.z||0)});
   const scale=400/Math.max(maxX-minX||1,maxY-minY||1,maxZ-minZ||1);
   const cx=(minX+maxX)/2,cy=(minY+maxY)/2,cz=(minZ+maxZ)/2;
   const posMap={};
+  // Y-Up coordinate system: Excel X→3D X, Excel Y→3D Z, Excel Z→3D Y
   displayNodes.forEach(n=>{posMap[n.name]=new THREE.Vector3((n.x-cx)*scale,((n.z||0)-cz)*scale,(n.y-cy)*scale)});
   const search=(document.getElementById('map3DNodeSearch')?.value||'').toLowerCase();
-  let shown=0;
+  let shownCoord=0,shownAuto=0;
+
   // Create hexagonal prism nodes
   displayNodes.forEach(n=>{
     if(search&&!n.name.toLowerCase().includes(search))return;
-    const pos=posMap[n.name];if(!pos)return;shown++;
+    const pos=posMap[n.name];if(!pos)return;
     const dk=getDeckForNode(n.name);
-    const geo=new THREE.CylinderGeometry(4,4,2,6);
-    const mat=new THREE.MeshPhongMaterial({color:new THREE.Color(dk.color),emissive:new THREE.Color(dk.color),emissiveIntensity:0.3});
-    const mesh=new THREE.Mesh(geo,mat);mesh.position.copy(pos);mesh.userData={dynamic:true,nodeName:n.name};
+    const isAuto=n.coordSource==='auto'||n.coordSource==='none';
+    if(isAuto)shownAuto++;else shownCoord++;
+    // Coordinate nodes: solid, larger; Auto nodes: smaller, wireframe outline
+    const nodeSize=isAuto?3:4.5;
+    const geo=new THREE.CylinderGeometry(nodeSize,nodeSize,2,6);
+    const mat=new THREE.MeshPhongMaterial({
+      color:new THREE.Color(dk.color),
+      emissive:new THREE.Color(dk.color),
+      emissiveIntensity:isAuto?0.15:0.4,
+      transparent:isAuto,
+      opacity:isAuto?0.6:1.0
+    });
+    const mesh=new THREE.Mesh(geo,mat);mesh.position.copy(pos);mesh.userData={dynamic:true,nodeName:n.name,coordSource:n.coordSource||'excel'};
     scene.add(mesh);
+    // Wireframe ring for auto-layout nodes
+    if(isAuto){
+      const wGeo=new THREE.EdgesGeometry(new THREE.CylinderGeometry(nodeSize+0.5,nodeSize+0.5,2.2,6));
+      const wMat=new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:0.3});
+      const wire=new THREE.LineSegments(wGeo,wMat);wire.position.copy(pos);wire.userData.dynamic=true;
+      scene.add(wire);
+    }
   });
+
   // Edges as lines
   const showEdges=document.getElementById('show3DEdges')?.checked!==false;
   if(showEdges){
     const edgeMat=new THREE.LineBasicMaterial({color:0x1a4270,transparent:true,opacity:0.6});
+    const edgeMatCross=new THREE.LineBasicMaterial({color:0x4a1a70,transparent:true,opacity:0.3});
     displayNodes.forEach(n=>{
       if(search&&!n.name.toLowerCase().includes(search))return;
       const pa=posMap[n.name];if(!pa)return;
       (n.relations||[]).forEach(rel=>{
-        const pb=posMap[typeof rel==='string'?rel:rel.to];if(!pb)return;
+        const relName=typeof rel==='string'?rel:rel.to;
+        const pb=posMap[relName];if(!pb)return;
         const geo=new THREE.BufferGeometry().setFromPoints([pa,pb]);
-        const line=new THREE.Line(geo,edgeMat);line.userData.dynamic=true;scene.add(line);
+        // Different color for cross-source edges (coord↔auto)
+        const targetNode=nodes.find(nd=>nd.name===relName);
+        const isCross=(n.coordSource!=='auto')!==(targetNode?.coordSource!=='auto');
+        const line=new THREE.Line(geo,isCross?edgeMatCross:edgeMat);line.userData.dynamic=true;scene.add(line);
       });
     });
   }
-  const info=document.getElementById('map3DInfo');if(info)info.textContent=`노드 ${shown}개 표시`;
+
+  const total=shownCoord+shownAuto;
+  const info=document.getElementById('map3DInfo');
+  if(info)info.textContent=`노드 ${total}개 (좌표: ${shownCoord}, 자동배치: ${shownAuto})`;
+
   // Camera
   const ms=mouseState,theta=ms.theta*Math.PI/180,phi=Math.max(5,Math.min(175,ms.phi))*Math.PI/180;
   camera.position.set(ms.dist*Math.sin(phi)*Math.sin(theta)+ms.tx,ms.dist*Math.cos(phi)+ms.ty,ms.dist*Math.sin(phi)*Math.cos(theta));
