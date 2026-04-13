@@ -24,7 +24,7 @@ cadApi.post('/sync', async (c) => {
 
     // 2. Integration Logic:
     // In a real scenario, we would map networkData.nodes and networkData.edges 
-    // to the internal SCMS data structure.
+    // to the internal SEcMS data structure.
     // For now, we'll store it in a 'cad_sync' field for the frontend to consume.
     projectData.cadMetadata = {
         lastSync: new Date().toISOString(),

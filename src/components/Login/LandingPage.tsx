@@ -136,7 +136,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess, availableShip
                     <div className="w-full py-10 text-center relative overflow-hidden bg-slate-900/50">
                         <div className="relative z-10 flex flex-col items-center justify-center gap-3">
                             <div className="w-full h-32 mb-2 overflow-hidden bg-transparent flex items-center justify-center">
-                                <img src="/logo.jpg" alt="SCMS Logo" className="w-24 h-24 object-contain rounded-xl opacity-90 shadow-xl" />
+                                <img src="/logo.jpg" alt="SEcMS Logo" className="w-24 h-24 object-contain rounded-xl opacity-90 shadow-xl" />
                             </div>
                             <p className="text-[10px] font-bold text-slate-400 tracking-[0.3em] uppercase">
                                 Seastar Cable Management System

@@ -1,4 +1,4 @@
--- SEASTAR CMS Database Schema
+-- SEcMS Database Schema
 -- Users table
 CREATE TABLE IF NOT EXISTS users (
   id TEXT PRIMARY KEY,

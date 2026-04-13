@@ -1,5 +1,5 @@
 // ============================================================
-// SEASTAR CMS V6 — React-Compatible Single-File Application
+// SEcMS V6 — React-Compatible Single-File Application
 // Full Cable Management System with Auth, Node Map, Tray Physics, BOM
 // ============================================================
 
@@ -1816,8 +1816,8 @@ document.addEventListener('DOMContentLoaded',()=>{
   setInterval(()=>{const e=document.getElementById('sbTime');if(e)e.textContent=now()},1000);
   checkSession();
   setTimeout(()=>{
-    if(typeof XLSX!=='undefined'&&typeof Chart!=='undefined')notify('SEASTAR CMS V6 준비 완료','success');
-    else if(typeof XLSX!=='undefined')notify('SEASTAR CMS V6 준비 완료 (차트 로드 중...)','info');
+    if(typeof XLSX!=='undefined'&&typeof Chart!=='undefined')notify('SEcMS V6 준비 완료','success');
+    else if(typeof XLSX!=='undefined')notify('SEcMS V6 준비 완료 (차트 로드 중...)','info');
     else notify('XLSX 라이브러리 로드 실패','error');
   },800);
 });
@@ -2120,7 +2120,7 @@ function buildAppHTML(){
     </main>
   </div>
   <div class="status-bar">
-    <div class="si">SEASTAR CMS V6</div>
+    <div class="si">SEcMS V6</div>
     <div class="si">케이블: <span id="sbCables">0</span></div>
     <div class="si">노드: <span id="sbNodes">0</span></div>
     <div class="si">필터: <span id="sbFiltered">-</span></div>

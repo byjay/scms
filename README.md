@@ -1,7 +1,7 @@
-# SCMS — SEASTAR Cable Management System V6
+# SEcMS — Shipboard Electrical Cable Management System V6
 
 ## Project Overview
-- **Name**: SEASTAR CMS V6 (SCMS)
+- **Name**: SEcMS V6 (Shipboard Electrical Cable Management System)
 - **Goal**: 선박 전기 케이블 관리 시스템 (Shipboard Electrical Cable Management System)
 - **Tech Stack**: Hono + TypeScript + React + Cloudflare Pages + D1 Database + Three.js + Vite
 - **Features**: 사용자 인증(5-tier RBAC), 멀티테넌시, 케이블 경로 산출(Dijkstra), 3D 노드맵, Tray Physics, BOM, 보안 시스템, CAD 동기화
@@ -356,7 +356,7 @@ npm run dev:sandbox
 - **Platform**: Cloudflare Pages + D1
 - **Build Output**: `./dist`
 - **Environment Detection**: Host 헤더 기반 (localhost = dev, else = prod)
-- **D1 Binding**: `DB` → `seastar-cms-db`
+- **D1 Binding**: `DB` → `secms-db`
 - **Compatibility**: `nodejs_compat` flag 활성화
 
 ```bash
@@ -394,7 +394,7 @@ public/
 │   ├── app.js           # 레거시 대시보드 (2,143 lines)
 │   └── app.css          # 대시보드 스타일
 ├── video/               # 배경 비디오 파일
-└── logo.jpg             # SEASTAR 로고
+└── logo.jpg             # SEcMS 로고
 ```
 
 ---

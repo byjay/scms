@@ -1,7 +1,7 @@
 module.exports = {
   apps: [
     {
-      name: 'seastar-cms',
+      name: 'secms',
       script: 'npx',
       args: 'wrangler pages dev dist --d1 DB=seastar-cms-db --local --ip 0.0.0.0 --port 3000',
       env: {

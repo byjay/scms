@@ -31,7 +31,7 @@ authApi.post('/login', async (c) => {
       user: {
         id: 'super_admin_env',
         username: username,
-        name: '최고경영자(SCMS)',
+        name: '최고경영자(SEcMS)',
         role: 'super_admin',
         groupId: 'grp_default',
         companyId: 'system'

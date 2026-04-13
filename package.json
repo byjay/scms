@@ -1,5 +1,5 @@
 {
-  "name": "seastar-cms",
+  "name": "secms",
   "type": "module",
   "scripts": {
     "dev": "vite",
