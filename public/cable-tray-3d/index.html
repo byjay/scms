@@ -1,0 +1,310 @@
+<html lang="ko"><head manus-helper-ready="true">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SEcMS · Cable Tray 3D — Viewer &amp; Editor</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app">
+  <!-- ══════ TOP BAR ══════ -->
+  <header id="topbar">
+    <div class="topbar-left">
+      <i class="fas fa-bolt logo-icon"></i>
+      <h1><span class="brand-mark">SEcMS</span> <span class="brand-sep">·</span> Cable Tray 3D</h1>
+      <div class="mode-tabs">
+        <button class="mode-tab active" data-mode="viewer" data-manus_clickable="true" data-manus_click_id="1"><i class="fas fa-eye"></i> Viewer</button>
+        <button class="mode-tab" data-mode="editor" data-manus_clickable="true" data-manus_click_id="2"><i class="fas fa-pen-ruler"></i> Editor</button>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <div class="lang-switcher">
+        <button class="lang-btn active" data-lang="ko" data-manus_clickable="true" data-manus_click_id="3">한</button>
+        <button class="lang-btn" data-lang="en" data-manus_clickable="true" data-manus_click_id="4">EN</button>
+        <button class="lang-btn" data-lang="ja" data-manus_clickable="true" data-manus_click_id="5">日</button>
+        <button class="lang-btn" data-lang="zh" data-manus_clickable="true" data-manus_click_id="6">中</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Disclaimer strip — class society / fill rules are advisory -->
+  <div class="disclaimer-strip">
+    <i class="fas fa-triangle-exclamation"></i>
+    선급규칙(DNV / LR / BV / ABS / NK / KR / RINA / CCS) 및 필 한도값은 <b>검토 보조 용도</b>입니다 — 최종 적용 전 사용자 검증 필요
+  </div>
+
+  <div id="main-body">
+    <!-- ══════ VIEWER SIDEBAR ══════ -->
+    <aside id="sidebar-viewer" class="sidebar">
+      <div class="sidebar-content">
+        <!-- File Upload (hidden when SEcMS parent injects project nodes) -->
+        <section class="panel">
+          <label class="upload-btn" id="upload-label" data-manus_clickable="true" data-manus_click_id="7">
+            <i class="fas fa-folder-open"></i>
+            <span id="lbl-upload">Excel 파일 업로드</span>
+            <input type="file" id="file-input" accept=".xlsx,.xls" hidden="" style="">
+          </label>
+          <div class="upload-hint" id="lbl-upload-hint">(.xlsx / .xls 지원)</div>
+          <div class="demo-files">
+            <button class="demo-btn" data-url="data/sample-node.xls" data-manus_clickable="true" data-manus_click_id="8">
+              <i class="fas fa-file-excel"></i> sample-node
+            </button>
+            <button class="demo-btn" data-url="data/35k_node.xlsx" data-manus_clickable="true" data-manus_click_id="9">
+              <i class="fas fa-file-excel"></i> 35k node
+            </button>
+          </div>
+        </section>
+        <!-- Project-mode badge (shown only when parent injects nodes) -->
+        <section class="panel project-mode-badge" id="scms-project-badge" style="display:none">
+          <div class="pmb-row">
+            <i class="fas fa-link pmb-icon"></i>
+            <div class="pmb-text">
+              <div class="pmb-title">SEcMS 연동 모드</div>
+              <div class="pmb-sub">프로젝트에서 자동 주입</div>
+            </div>
+          </div>
+        </section>
+        <!-- Stats -->
+        <section class="panel stats-grid">
+          <div class="stat-item"><div class="stat-value" id="stat-total">0</div><div class="stat-label" id="lbl-total">총 노드</div></div>
+          <div class="stat-item"><div class="stat-value" id="stat-trays">0</div><div class="stat-label" id="lbl-trays">트레이</div></div>
+          <div class="stat-item"><div class="stat-value stat-hole" id="stat-holes">0</div><div class="stat-label" id="lbl-holes">홀</div></div>
+          <div class="stat-item"><div class="stat-value stat-edge" id="stat-edges">0</div><div class="stat-label" id="lbl-edges">연결</div></div>
+        </section>
+        <!-- View Controls -->
+        <section class="panel">
+          <div class="panel-title" id="lbl-view">뷰 모드</div>
+          <div class="view-grid">
+            <button class="view-btn active" data-view="iso" data-manus_clickable="true" data-manus_click_id="10"><i class="fas fa-cube"></i> ISO</button>
+            <button class="view-btn" data-view="plan" data-manus_clickable="true" data-manus_click_id="11"><i class="fas fa-map"></i> PLAN</button>
+            <button class="view-btn" data-view="front" data-manus_clickable="true" data-manus_click_id="12"><i class="fas fa-building"></i> FRONT</button>
+            <button class="view-btn" data-view="side" data-manus_clickable="true" data-manus_click_id="13"><i class="fas fa-ruler-combined"></i> SIDE</button>
+          </div>
+          <button class="toggle-btn" id="btn-labels" data-manus_clickable="true" data-manus_click_id="14"><i class="fas fa-tag"></i> <span id="lbl-labels">라벨 표시</span></button>
+          <button class="toggle-btn" id="btn-reset-view" data-manus_clickable="true" data-manus_click_id="15"><i class="fas fa-crosshairs"></i> <span id="lbl-reset">뷰 초기화</span></button>
+        </section>
+        <!-- Path Finder -->
+        <section class="panel">
+          <div class="panel-title" id="lbl-pathfinder">경로 탐색</div>
+          <div class="input-group">
+            <label id="lbl-start-node"><i class="fas fa-circle" style="color:#22c55e"></i> 시작 노드</label>
+            <div class="input-wrapper">
+              <input type="text" id="input-start" list="datalist-nodes" placeholder="클릭하거나 입력..." autocomplete="off" data-manus_clickable="true" data-manus_click_id="16" style="">
+              <button class="clear-btn" data-target="input-start" data-manus_clickable="true" data-manus_click_id="17"><i class="fas fa-times"></i></button>
+            </div>
+          </div>
+          <div class="input-group">
+            <label id="lbl-end-node"><i class="fas fa-circle" style="color:#ef4444"></i> 끝 노드</label>
+            <div class="input-wrapper">
+              <input type="text" id="input-end" list="datalist-nodes" placeholder="클릭하거나 입력..." autocomplete="off" data-manus_clickable="true" data-manus_click_id="18" style="">
+              <button class="clear-btn" data-target="input-end" data-manus_clickable="true" data-manus_click_id="19"><i class="fas fa-times"></i></button>
+            </div>
+          </div>
+          <datalist id="datalist-nodes"></datalist>
+          <button class="action-btn" id="btn-find-path" disabled="" data-manus_clickable="true" data-manus_click_id="20"><i class="fas fa-route"></i> <span id="lbl-find">경로 찾기</span></button>
+          <button class="action-btn secondary" id="btn-clear-path" style="display:none"><i class="fas fa-eraser"></i> <span id="lbl-clear">경로 초기화</span></button>
+        </section>
+        <!-- Path Result -->
+        <section class="panel" id="path-result" style="display:none">
+          <div class="path-header">
+            <span id="path-info"></span>
+            <button class="fire-toggle" id="btn-fire" title="Fire animation"><i class="fas fa-fire"></i></button>
+          </div>
+          <div class="path-list" id="path-list"></div>
+        </section>
+        <!-- Node Search -->
+        <section class="panel">
+          <div class="panel-title" id="lbl-search">노드 검색</div>
+          <input type="text" id="input-search" class="search-input" placeholder="ID 입력..." data-manus_clickable="true" data-manus_click_id="21" style="">
+          <div class="search-results" id="search-results"></div>
+        </section>
+      </div>
+    </aside>
+
+    <!-- ══════ EDITOR SIDEBAR ══════ -->
+    <aside id="sidebar-editor" class="sidebar" style="display:none">
+      <div class="sidebar-content">
+        <!-- Deck Settings -->
+        <section class="panel">
+          <div class="panel-title"><i class="fas fa-layer-group"></i> Deck 설정</div>
+          <div class="input-group">
+            <label>Deck 코드 (접두사)</label>
+            <input type="text" id="ed-deck-code" class="ed-input" value="EC" placeholder="EC, PA, BC..." style="">
+          </div>
+          <div class="input-group">
+            <label>시작 번호</label>
+            <input type="number" id="ed-start-num" class="ed-input" value="1" min="0" style="">
+          </div>
+          <div class="input-group">
+            <label>자릿수</label>
+            <select id="ed-num-digits" class="ed-input">
+              <option value="2">2자리 (01)</option>
+              <option value="3" selected="">3자리 (001)</option>
+              <option value="4">4자리 (0001)</option>
+            </select>
+          </div>
+          <div class="input-group">
+            <label>노드 타입</label>
+            <div class="type-toggle">
+              <button class="type-btn active" data-type="Tray"><i class="fas fa-grip-lines"></i> Tray</button>
+              <button class="type-btn" data-type="Hole"><i class="fas fa-circle-dot"></i> Hole</button>
+            </div>
+          </div>
+          <div class="input-group">
+            <label>컴포넌트</label>
+            <input type="text" id="ed-component" class="ed-input" placeholder="RLA-2-S, LA-3-B..." style="">
+          </div>
+          <div class="ed-next-label">다음 노드: <span id="ed-next-id">EC001</span></div>
+        </section>
+
+        <!-- Editor Tools -->
+        <section class="panel">
+          <div class="panel-title"><i class="fas fa-tools"></i> 편집 도구</div>
+          <div class="tool-grid">
+            <button class="tool-btn active" data-tool="create" title="노드 생성 (N)"><i class="fas fa-plus-circle"></i><span>노드 생성</span></button>
+            <button class="tool-btn" data-tool="connect" title="연결 (C)"><i class="fas fa-link"></i><span>연결</span></button>
+            <button class="tool-btn" data-tool="move" title="이동 (M)"><i class="fas fa-arrows-alt"></i><span>이동</span></button>
+            <button class="tool-btn" data-tool="delete" title="삭제 (D)"><i class="fas fa-trash-alt"></i><span>삭제</span></button>
+          </div>
+        </section>
+
+        <!-- Grid & Snap -->
+        <section class="panel">
+          <div class="panel-title"><i class="fas fa-th"></i> 그리드 &amp; 스냅</div>
+          <div class="input-group">
+            <label>그리드 크기 (mm)</label>
+            <input type="number" id="ed-grid-size" class="ed-input" value="500" min="50" step="50" style="">
+          </div>
+          <button class="toggle-btn active" id="ed-snap-toggle"><i class="fas fa-magnet"></i> 그리드 스냅</button>
+          <button class="toggle-btn" id="ed-grid-toggle"><i class="fas fa-border-all"></i> 그리드 표시</button>
+        </section>
+
+        <!-- Elevation -->
+        <section class="panel">
+          <div class="panel-title"><i class="fas fa-arrows-alt-v"></i> 높이(Y) 설정</div>
+          <div class="input-group">
+            <label>현재 높이 (mm)</label>
+            <input type="number" id="ed-elevation" class="ed-input" value="3000" step="100" style="">
+          </div>
+          <div class="elev-presets">
+            <button class="elev-btn" data-elev="0">0</button>
+            <button class="elev-btn active" data-elev="3000">3000</button>
+            <button class="elev-btn" data-elev="6000">6000</button>
+            <button class="elev-btn" data-elev="9000">9000</button>
+          </div>
+        </section>
+
+        <!-- Background DXF -->
+        <section class="panel">
+          <div class="panel-title"><i class="fas fa-drafting-compass"></i> 배경 도면</div>
+          <label class="upload-btn small" id="dxf-upload-label">
+            <i class="fas fa-file-import"></i> DXF 파일 불러오기
+            <input type="file" id="dxf-file-input" accept=".dxf" hidden="" style="">
+          </label>
+          <div class="upload-hint">(.dxf — AutoCAD R12+, LINE / LWPOLYLINE)</div>
+          <div class="upload-hint" style="color: var(--accent-amber); margin-top:4px;">
+            <i class="fas fa-circle-info"></i> 업로드 시 배치 레벨(Z, mm)을 입력받습니다
+          </div>
+          <div class="dxf-controls" id="dxf-controls" style="display:none">
+            <button class="toggle-btn active" id="dxf-visible-toggle"><i class="fas fa-eye"></i> 도면 표시</button>
+            <div class="input-group">
+              <label>투명도</label>
+              <input type="range" id="dxf-opacity" min="0.05" max="0.85" step="0.05" value="0.55" style="">
+            </div>
+          </div>
+        </section>
+
+        <!-- Editor Stats -->
+        <section class="panel stats-grid">
+          <div class="stat-item"><div class="stat-value" id="ed-stat-nodes">0</div><div class="stat-label">노드</div></div>
+          <div class="stat-item"><div class="stat-value stat-edge" id="ed-stat-edges">0</div><div class="stat-label">연결</div></div>
+          <div class="stat-item"><div class="stat-value stat-hole" id="ed-stat-holes">0</div><div class="stat-label">홀</div></div>
+          <div class="stat-item"><div class="stat-value" id="ed-stat-length">0</div><div class="stat-label">총길이m</div></div>
+        </section>
+
+        <!-- Export -->
+        <section class="panel">
+          <div class="panel-title"><i class="fas fa-file-export"></i> 내보내기</div>
+          <button class="action-btn" id="btn-export-xlsx"><i class="fas fa-file-excel"></i> Excel (.xlsx) 내보내기</button>
+          <button class="action-btn secondary" id="btn-export-dxf" style="margin-top:4px"><i class="fas fa-drafting-compass"></i> DXF 내보내기</button>
+          <button class="action-btn secondary" id="btn-send-viewer" style="margin-top:4px"><i class="fas fa-paper-plane"></i> Viewer로 전송</button>
+        </section>
+
+        <!-- Import to Editor -->
+        <section class="panel">
+          <div class="panel-title"><i class="fas fa-file-import"></i> 가져오기</div>
+          <label class="upload-btn small">
+            <i class="fas fa-folder-open"></i> Excel → Editor 불러오기
+            <input type="file" id="ed-file-input" accept=".xlsx,.xls" hidden="" style="">
+          </label>
+          <button class="action-btn secondary" id="btn-import-viewer" style="margin-top:4px"><i class="fas fa-download"></i> Viewer 데이터 가져오기</button>
+          <button class="action-btn secondary" id="btn-clear-editor" style="margin-top:4px;border-color:#ef4444;color:#ef4444"><i class="fas fa-bomb"></i> 에디터 초기화</button>
+        </section>
+      </div>
+    </aside>
+
+    <!-- ══════ CANVAS AREA ══════ -->
+    <main id="canvas-area">
+      <canvas id="main-canvas" width="960" height="1022" data-manus_clickable="true" data-manus_click_id="22"></canvas>
+
+      <!-- Legend (Viewer) -->
+      <div class="overlay legend" id="legend">
+        <div class="overlay-title" id="lbl-legend">범례</div>
+        <div class="legend-item"><span class="legend-line path"></span><span id="lbl-leg-path">경로</span></div>
+        <div class="legend-item"><span class="legend-dot start"></span><span id="lbl-leg-start">시작점</span></div>
+        <div class="legend-item"><span class="legend-dot end"></span><span id="lbl-leg-end">끝점</span></div>
+        <div class="legend-item"><span class="legend-dot hole"></span><span id="lbl-leg-hole">홀</span></div>
+        <div class="legend-item"><span class="legend-line tray"></span><span id="lbl-leg-tray">트레이</span></div>
+        <div class="legend-item"><span class="legend-dot fire"></span><span id="lbl-leg-fire">불꽃 경로</span></div>
+      </div>
+
+      <!-- Editor HUD -->
+      <div class="overlay editor-hud" id="editor-hud" style="display:none">
+        <div class="hud-row"><span class="hud-key">Tool:</span> <span id="hud-tool" class="hud-val">CREATE</span></div>
+        <div class="hud-row"><span class="hud-key">Next:</span> <span id="hud-next" class="hud-val">EC001</span></div>
+        <div class="hud-row"><span class="hud-key">Y:</span> <span id="hud-elev" class="hud-val">3000</span></div>
+        <div class="hud-row"><span class="hud-key">Pos:</span> <span id="hud-pos" class="hud-val">—</span></div>
+        <div class="hud-row" id="hud-drag-row" style="display:none"><span class="hud-key">Len:</span> <span id="hud-drag-len" class="hud-val">0m</span></div>
+      </div>
+
+      <!-- Controls Hint -->
+      <div class="overlay controls-hint" id="controls-hint">
+        <div><i class="fas fa-mouse-pointer"></i> <b>드래그</b> — 회전</div>
+        <div><b>🖱️ 휠 드래그</b> — 이동(Pan)</div>
+        <div><b>⇧ + 드래그</b> — 이동</div>
+        <div><i class="fas fa-mouse-pointer"></i> <b>스크롤</b> — 줌</div>
+        <div><i class="fas fa-hand-pointer"></i> <b>클릭</b> — 선택</div>
+      </div>
+
+      <!-- Tooltip -->
+      <div class="tooltip" id="tooltip" style="display:none"></div>
+
+      <!-- Empty State -->
+      <div class="empty-state" id="empty-state">
+        <i class="fas fa-project-diagram"></i>
+        <h3 id="lbl-empty-title">Excel 파일을 업로드하세요</h3>
+        <p id="lbl-empty-desc">좌측에서 파일을 업로드하거나<br>데모 파일을 선택하면 3D 네트워크가 표시됩니다</p>
+      </div>
+
+      <!-- Loading Overlay -->
+      <div class="loading-overlay" id="loading" style="display:none">
+        <div class="spinner"></div>
+        <span id="lbl-loading">로딩 중...</span>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="js/i18n.js"></script>
+<script src="js/parser.js"></script>
+<script src="js/graph.js"></script>
+<script src="js/renderer.js"></script>
+<script src="js/dxf-io.js"></script>
+<script src="js/editor.js"></script>
+<script src="js/app.js"></script>
+
+
+</body></html>
